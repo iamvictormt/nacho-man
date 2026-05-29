@@ -1,8 +1,8 @@
 import type { CartItem } from "./cart-store"
 import { formatPrice } from "./format"
 
-/** Número de WhatsApp da loja Nacho Man (com código do país) */
-export const STORE_WHATSAPP_NUMBER = "5511999999999"
+/** Número de WhatsApp comercial da Nacho Factory (com código do país). */
+export const STORE_WHATSAPP_NUMBER = "554797269146"
 
 /**
  * Gera mensagem formatada para envio via WhatsApp com os itens do carrinho.

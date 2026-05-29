@@ -27,6 +27,8 @@ export default function ProdutosPage() {
 
     if (category === "CONGELADO" || category === "SECO") {
       setFilters((prev) => ({ ...prev, category }))
+    } else if (category) {
+      setFilters((prev) => ({ ...prev, subcategory: category }))
     }
   }, [])
 

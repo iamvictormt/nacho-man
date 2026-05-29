@@ -3,25 +3,23 @@ import {
   ArrowRight,
   Facebook,
   Instagram,
-  Mail,
-  MapPin,
   MessageCircle,
   Phone,
-  ShoppingBag,
 } from "lucide-react"
 import { STORE_WHATSAPP_NUMBER, buildWhatsAppUrl } from "@/lib/whatsapp"
 
 const shopLinks = [
-  { label: "Todos os produtos", href: "/produtos" },
+  { label: "Carnes", href: "/produtos?category=Carnes" },
+  { label: "Molhos", href: "/produtos?category=Molhos" },
+  { label: "Bases", href: "/produtos?category=Kits" },
   { label: "Congelados", href: "/produtos?category=CONGELADO" },
-  { label: "Molhos e temperos", href: "/produtos?category=SECO" },
-  { label: "Combos", href: "/combos" },
 ]
 
-const companyLinks = [
-  { label: "Início", href: "/" },
-  { label: "Sobre", href: "/sobre" },
-  { label: "Contato", href: "/contato" },
+const structureLinks = [
+  { label: "Producao terceirizada", href: "/contato" },
+  { label: "Armazenagem", href: "/sobre" },
+  { label: "Estrutura industrial", href: "/sobre" },
+  { label: "Controle de qualidade", href: "/sobre" },
 ]
 
 const socialLinks = [
@@ -40,10 +38,10 @@ const socialLinks = [
 function formatWhatsAppDisplay(number: string): string {
   const local = number.replace(/^55/, "")
   const ddd = local.slice(0, 2)
-  const first = local.slice(2, 3)
-  const middle = local.slice(3, 7)
-  const last = local.slice(7, 11)
-  return `(${ddd}) ${first} ${middle}-${last}`
+  const subscriber = local.slice(2)
+  const first = subscriber.slice(0, Math.max(4, subscriber.length - 4))
+  const last = subscriber.slice(-4)
+  return `+55 ${ddd} ${first}-${last}`
 }
 
 export function SiteFooter() {
@@ -83,8 +81,8 @@ export function SiteFooter() {
               />
             </Link>
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground">
-              Mexican food pronta para abastecer sua cozinha: congelados, molhos,
-              temperos e combos com compra simples e finalização pelo WhatsApp.
+              Alimentos prontos para operacoes food service: carnes congeladas,
+              molhos, bases, temperos e kits com atendimento comercial pelo WhatsApp.
             </p>
             <div className="mt-5 flex flex-wrap items-center gap-3">
               {socialLinks.map((social) => (
@@ -110,11 +108,13 @@ export function SiteFooter() {
               Atendimento comercial
             </p>
             <h2 className="mt-2 text-2xl font-black tracking-tight">
-              Precisa montar um pedido?
+              Atendimento Comercial
             </h2>
-            <p className="mt-3 text-sm font-medium leading-relaxed text-background/75">
-              Envie sua lista, tire dúvidas ou finalize o carrinho com nosso time.
-            </p>
+            <div className="mt-4 space-y-2 text-sm font-bold leading-relaxed text-background/75">
+              <p>WhatsApp {whatsappDisplay}</p>
+              <p>SEG A SEX das 7h as 12h - 13h as 17h30</p>
+              <p>factory.administrativo@nachomanbrasil.com.br</p>
+            </div>
             <a
               href={whatsappUrl}
               target="_blank"
@@ -129,22 +129,22 @@ export function SiteFooter() {
         </div>
 
         <div className="grid grid-cols-1 gap-8 border-t border-border/60 pt-9 md:grid-cols-2 lg:grid-cols-12">
-          <FooterLinkGroup title="Comprar" links={shopLinks} className="lg:col-span-4" />
-          <FooterLinkGroup title="Nacho Man" links={companyLinks} className="lg:col-span-4" />
+          <FooterLinkGroup title="Produtos" links={shopLinks} className="lg:col-span-4" />
+          <FooterLinkGroup title="Estrutura" links={structureLinks} className="lg:col-span-4" />
 
           <div className="lg:col-span-4">
             <h3 className="mb-4 text-[10px] font-black uppercase tracking-[0.25em] text-purple-medium">
-              Pedido online
+              Atendimento comercial
             </h3>
-            <div className="rounded-2xl border border-border bg-background/35 p-4">
-              <div className="flex items-center gap-3">
+            <div className="border border-border bg-background/35 p-4">
+              <div className="flex items-start gap-3">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-lime/25 bg-lime/10">
-                  <ShoppingBag className="h-5 w-5 text-lime" aria-hidden="true" />
+                  <Phone className="h-5 w-5 text-lime" aria-hidden="true" />
                 </div>
                 <div>
-                  <p className="text-sm font-black text-foreground">Carrinho + WhatsApp</p>
+                  <p className="text-sm font-black text-foreground">{whatsappDisplay}</p>
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                    Adicione itens e envie o resumo completo para o atendimento.
+                    Envie sua lista, tire duvidas e solicite orcamento com nosso time.
                   </p>
                 </div>
               </div>
@@ -155,7 +155,7 @@ export function SiteFooter() {
         <div className="mt-10 flex flex-col gap-3 border-t border-border/60 pt-6 text-xs text-muted-foreground/70 md:flex-row md:items-center md:justify-between">
           <p>© {year} Nacho Man. Todos os direitos reservados.</p>
           <p className="font-semibold text-muted-foreground/60">
-            Congelados, molhos, temperos e combos mexicanos.
+            Nacho Factory: congelados, molhos, bases e producao food service.
           </p>
         </div>
       </div>
