@@ -8,6 +8,7 @@ import {
   ShoppingBag,
   Snowflake,
   Sparkles,
+  UtensilsCrossed,
 } from "lucide-react"
 import { ProductCard } from "@/components/product-card"
 import { allProducts } from "@/lib/products"
@@ -67,50 +68,58 @@ export default function Home() {
       <section className="relative min-h-[calc(100vh-128px)] overflow-hidden bg-background border-b border-border">
         <div className="absolute inset-0">
           <Image
-            src="/produtos-congelados.webp"
+            src="/embalagens-3.webp"
             alt=""
             fill
             priority
             sizes="100vw"
             className="object-cover"
           />
-          <div className="absolute inset-0 bg-background/80" />
+          <div className="absolute inset-0 bg-background/40" />
           <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/50" />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/60" />
         </div>
 
-        <div className="absolute inset-0 pointer-events-none">
+        {/* <div className="absolute inset-0 pointer-events-none">
           <Image
-            src="/estrelas-roxo.svg"
+            src="/lutador-roxo.svg"
             alt=""
-            width={44}
-            height={44}
-            className="absolute right-[8%] top-[16%] opacity-20 animate-float-1"
+            width={102}
+            height={102}
+            className="absolute left-[6%] bottom-[72%] opacity-12 hero-twinkle-delayed"
+            aria-hidden="true"
+          />
+          <Image
+            src="/caveira-roxo.svg"
+            alt=""
+            width={102}
+            height={102}
+            className="absolute left-[6%] bottom-[52%] opacity-12 hero-twinkle-delayed"
             aria-hidden="true"
           />
           <Image
             src="/pimenta-roxo.svg"
             alt=""
-            width={52}
-            height={52}
-            className="absolute right-[18%] bottom-[18%] opacity-15 animate-float-3"
+            width={102}
+            height={102}
+            className="absolute left-[6%] bottom-[32%] opacity-12 hero-twinkle-delayed"
             aria-hidden="true"
           />
           <Image
             src="/cacto-roxo.svg"
             alt=""
-            width={48}
-            height={48}
-            className="absolute left-[6%] bottom-[22%] opacity-12 animate-float-2"
+            width={102}
+            height={102}
+            className="absolute left-[6%] bottom-[12%] opacity-12 hero-twinkle-delayed"
             aria-hidden="true"
           />
-        </div>
+        </div> */}
 
-        <div className="relative mx-auto grid min-h-[calc(100vh-128px)] max-w-7xl grid-cols-1 items-center gap-10 px-4 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-20">
+        <div className="relative mx-auto grid min-h-[calc(100vh-128px)] max-w-7xl grid-cols-1 items-center gap-10 px-4 py-8 lg:grid-cols-[1.05fr_0.95fr] lg:py-20">
           <div className="max-w-3xl space-y-7">
             <div className="inline-flex min-h-11 items-center gap-2 rounded-full border border-lime/30 bg-lime/10 px-4 text-[10px] font-black uppercase tracking-[0.25em] text-lime">
-              <Sparkles className="h-4 w-4" aria-hidden="true" />
-              Mexican food para vender, servir e repetir
+              <UtensilsCrossed className="h-4 w-4" aria-hidden="true" />
+              Para vender, servir e repetir
             </div>
 
             <div className="space-y-4">

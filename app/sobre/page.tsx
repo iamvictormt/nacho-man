@@ -1,3 +1,5 @@
+"use client"
+
 import { PageHeader } from "@/components/page-header"
 import {
   ArrowRight,
@@ -6,6 +8,7 @@ import {
   Users,
   Zap,
   MapPin,
+  Store,
 } from "lucide-react"
 
 export default function SobrePage() {
@@ -16,7 +19,7 @@ export default function SobrePage() {
         label="INSTITUCIONAL"
         title="QUEM É A NACHO FACTORY"
         description="Uma indústria especializada na produção de alimentos congelados para restaurantes, cafeterias, dark kitchens e marcas próprias."
-        emoji="🏭"
+        icon={Store}
       />
 
       {/* Diferenciais */}
@@ -108,7 +111,7 @@ export default function SobrePage() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {[
               { image: "/local-nacho-factory.webp", alt: "Vista externa da fábrica Nacho Factory com estrutura industrial moderna" },
               { image: "/camara-fria.webp", alt: "Câmara fria industrial com prateleiras de produtos congelados armazenados" },

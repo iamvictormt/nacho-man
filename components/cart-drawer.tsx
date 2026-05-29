@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { X, Minus, Plus, Trash2, ShoppingBag, MessageCircle } from "lucide-react"
 import { useCartStore } from "@/lib/cart-store"
 import { formatPrice } from "@/lib/format"
@@ -170,8 +171,15 @@ export function CartDrawer() {
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
-              <div className="h-20 w-20 rounded-full bg-foreground/5 flex items-center justify-center">
-                <ShoppingBag className="h-8 w-8 text-muted-foreground" />
+              <div className="relative h-32 w-32 rounded-full bg-lime/10 border border-lime/20 flex items-center justify-center">
+                <Image
+                  src="/burrito-pegando-fogo-fundo-amarelo.svg"
+                  alt=""
+                  width={76}
+                  height={76}
+                  className="h-24 w-24 object-contain p-2 opacity-50"
+                  aria-hidden="true"
+                />
               </div>
               <p className="text-sm font-semibold text-muted-foreground">
                 Seu carrinho está vazio

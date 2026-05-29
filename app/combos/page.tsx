@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { ShoppingCart, Check, Package } from "lucide-react"
+import { ShoppingCart, Check, Package, Flame } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { allCombos, getComboOriginalPrice, calculateSavings, getComboProducts } from "@/lib/combos"
 import { formatPrice } from "@/lib/format"
@@ -27,7 +27,7 @@ export default function CombosPage() {
         label="Promoções"
         title="COMBOS"
         description="Aproveite nossos combos especiais com preços promocionais e economize na sua compra."
-        emoji="🔥"
+        icon={Flame}
       />
 
       <section className="py-16 md:py-20">

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { ShoppingBag, ArrowRight, PackageX } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { ProductCard } from "@/components/product-card"
@@ -135,10 +136,17 @@ export default function ProdutosPage() {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="h-16 w-16 rounded-full bg-graphite border border-border flex items-center justify-center mb-4">
-                    <PackageX className="h-8 w-8 text-muted-foreground" />
+              <div className="relative h-32 w-32 rounded-full bg-lime/10 border border-lime/20 flex items-center justify-center">
+                    <Image
+                      src="/garrafa-pimenta-fundo-amarelo.svg"
+                      alt=""
+                      width={88}
+                      height={88}
+                  className="h-24 w-24 object-contain p-2 opacity-50"
+                      aria-hidden="true"
+                    />
                   </div>
-                  <h3 className="text-lg font-black text-foreground mb-2">
+                  <h3 className="text-lg font-black text-foreground mb-2 mt-1">
                     Nenhum produto encontrado
                   </h3>
                   <p className="text-sm text-muted-foreground mb-6 max-w-sm">
