@@ -1,12 +1,17 @@
 import type { Metadata } from 'next'
 import { Montserrat } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { TopBar } from '@/components/top-bar'
+import { Navbar } from '@/components/navbar'
+import { SiteFooter } from '@/components/site-footer'
+import { CartDrawerWrapper } from '@/components/cart-drawer-wrapper'
 import './globals.css'
 
 const montserrat = Montserrat({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700', '800', '900'],
   variable: '--font-montserrat',
+  display: 'swap',
 })
 
 export const metadata: Metadata = {
@@ -22,7 +27,11 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className="bg-background">
       <body className={`${montserrat.className} font-sans antialiased`}>
-        {children}
+        <TopBar />
+        <Navbar />
+        <main>{children}</main>
+        <SiteFooter />
+        <CartDrawerWrapper />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

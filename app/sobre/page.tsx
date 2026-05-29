@@ -1,12 +1,5 @@
-"use client"
-
-import { Navbar } from "@/components/navbar"
-import { TopBar } from "@/components/top-bar"
-import { SiteFooter } from "@/components/site-footer"
-import { CartDrawerWrapper } from "@/components/cart-drawer-wrapper"
+import { PageHeader } from "@/components/page-header"
 import {
-  Factory,
-  Snowflake,
   ArrowRight,
   ShieldCheck,
   ClipboardCheck,
@@ -17,36 +10,14 @@ import {
 
 export default function SobrePage() {
   return (
-    <main className="min-h-screen bg-background">
-      <TopBar />
-      <Navbar />
-
-      {/* Hero */}
-      <section className="relative py-28 md:py-36 overflow-hidden bg-graphite border-b border-border">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 h-[400px] w-[400px] rounded-full bg-purple-medium/20 blur-[120px]" />
-          <div className="absolute bottom-0 left-0 h-[300px] w-[300px] rounded-full bg-purple-medium/10 blur-[100px]" />
-        </div>
-        {/* Neon lines */}
-        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-purple-medium/50 via-lime/30 to-purple-medium/50" />
-        <div className="absolute top-[30%] left-0 w-[30%] h-px bg-gradient-to-r from-purple-medium/30 to-transparent" />
-
-        {/* Floating icons */}
-        <img src="/cacto-roxo.svg" alt="" className="absolute top-12 right-12 h-14 w-14 opacity-20 animate-float-2 pointer-events-none" aria-hidden="true" />
-        <img src="/pimenta-roxo.svg" alt="" className="absolute bottom-16 left-12 h-10 w-10 opacity-20 animate-float-4 pointer-events-none" aria-hidden="true" />
-        <img src="/estrelas-roxo.svg" alt="" className="absolute top-[50%] right-[20%] h-8 w-8 opacity-15 animate-float-1 pointer-events-none" aria-hidden="true" />
-
-        <div className="relative mx-auto max-w-3xl px-4 text-center">
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-foreground tracking-tight leading-[0.95]">
-            QUEM É A<br />
-            <span className="text-lime neon-glow italic">NACHO FACTORY</span>
-          </h1>
-
-          <p className="text-muted-foreground text-lg md:text-xl mt-8 max-w-2xl mx-auto leading-relaxed">
-            Uma indústria especializada na produção de alimentos congelados para restaurantes, cafeterias, dark kitchens e marcas próprias.
-          </p>
-        </div>
-      </section>
+    <div className="min-h-screen bg-background">
+      {/* Page Header */}
+      <PageHeader
+        label="INSTITUCIONAL"
+        title="QUEM É A NACHO FACTORY"
+        description="Uma indústria especializada na produção de alimentos congelados para restaurantes, cafeterias, dark kitchens e marcas próprias."
+        emoji="🏭"
+      />
 
       {/* Diferenciais */}
       <section className="py-6 bg-background border-b border-border">
@@ -73,13 +44,17 @@ export default function SobrePage() {
       </section>
 
       {/* Quem Somos */}
-      <section className="py-20">
-        <div className="mx-auto max-w-7xl px-4">
+      <section className="py-20 relative overflow-hidden">
+        {/* Decorative SVGs */}
+        <img src="/caveira-roxo.svg" alt="" className="absolute top-12 right-8 h-14 w-14 opacity-15 animate-float-2 pointer-events-none" aria-hidden="true" />
+        <img src="/pimenta-roxo.svg" alt="" className="absolute bottom-16 left-8 h-10 w-10 opacity-15 animate-float-4 pointer-events-none" aria-hidden="true" />
+
+        <div className="relative mx-auto max-w-7xl px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="relative rounded-2xl overflow-hidden border border-border">
               <img
                 src="/local-nacho-factory.webp"
-                alt="Nacho Factory Alimentos - Blumenau SC"
+                alt="Fachada da fábrica Nacho Factory Alimentos em Blumenau, Santa Catarina"
                 className="w-full h-auto md:h-[600px] object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
@@ -118,7 +93,7 @@ export default function SobrePage() {
         </div>
       </section>
 
-      {/* O Que Produzimos */}
+      {/* Galeria da Fábrica */}
       <section className="py-20 bg-graphite border-y border-border relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-purple-medium/40 via-lime/20 to-purple-medium/40" />
         <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-medium/20 to-transparent" />
@@ -127,45 +102,46 @@ export default function SobrePage() {
 
         <div className="relative mx-auto max-w-7xl px-4">
           <div className="text-center mb-12">
-            <span className="text-[10px] font-black tracking-[0.3em] text-lime">O QUE PRODUZIMOS</span>
+            <span className="text-[10px] font-black tracking-[0.3em] text-lime">NOSSA ESTRUTURA</span>
             <h2 className="text-3xl md:text-4xl font-black text-foreground tracking-tight mt-2">
-              SOLUÇÕES PRONTAS PARA O SEU <span className="text-lime neon-glow">FOOD SERVICE</span>
+              CONHEÇA A <span className="text-lime neon-glow">FÁBRICA</span>
             </h2>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { image: "/molhos.webp", name: "Molhos & Salsas" },
-              { image: "/carne.webp", name: "Proteínas Cozidas" },
-              { image: "/costelinha.webp", name: "Carnes Desfiadas" },
-              { image: "/produtos-congelados.webp", name: "Congelados" },
-              { image: "/carne-embalada.webp", name: "Embalados" },
-              { image: "/embalagens.webp", name: "Food Service" },
+              { image: "/local-nacho-factory.webp", alt: "Vista externa da fábrica Nacho Factory com estrutura industrial moderna" },
+              { image: "/camara-fria.webp", alt: "Câmara fria industrial com prateleiras de produtos congelados armazenados" },
+              { image: "/produtos-congelados.webp", alt: "Produtos congelados embalados prontos para distribuição na linha de produção" },
+              { image: "/molhos.webp", alt: "Linha de produção de molhos artesanais em recipientes industriais" },
+              { image: "/estrutura.webp", alt: "Área de produção industrial com equipamentos de processamento de alimentos" },
+              { image: "/embalagens.webp", alt: "Setor de embalagem com produtos sendo preparados para expedição" },
             ].map((item, i) => (
-              <div key={i} className="group relative rounded-2xl overflow-hidden border border-border hover:border-lime/30 transition-all duration-300">
-                <img src={item.image} alt={item.name} className="w-full h-full md:h-100 object-cover transition-transform duration-700 group-hover:scale-105" />
-                <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent" />
-                <div className="absolute bottom-4 left-4">
-                  <span className="text-xs font-black text-foreground tracking-wider">{item.name}</span>
-                </div>
+              <div key={i} className="group relative rounded-2xl overflow-hidden border border-border hover:border-lime/30 transition-all duration-300 aspect-square">
+                <img
+                  src={item.image}
+                  alt={item.alt}
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Armazenagem */}
+      {/* Armazenagem Refrigerada */}
       <section className="py-20">
         <div className="mx-auto max-w-7xl px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-5">
-                          <span className="text-[10px] font-black tracking-[0.3em] text-lime">ARMAZENAGEM REFRIGERADA</span>
+              <span className="text-[10px] font-black tracking-[0.3em] text-lime">ARMAZENAGEM REFRIGERADA</span>
 
               <h2 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">
                 CONTROLE TOTAL DE<br /><span className="text-lime neon-glow">TEMPERATURA</span>
               </h2>
               <p className="text-muted-foreground leading-relaxed">
-                Estrutura completa para armazenagem de produtos de terceiros com segurança, controle de temperatura e rastreabilidade. Câmaras frias modernas para manter a qualidade dos seus produtos.
+                Estrutura completa para armazenagem de produtos de terceiros com segurança, controle de temperatura e rastreabilidade. Câmaras frias modernas para manter a qualidade dos seus produtos com monitoramento contínuo 24 horas por dia.
               </p>
               <div className="grid grid-cols-3 gap-3 pt-4">
                 {[
@@ -182,55 +158,13 @@ export default function SobrePage() {
             </div>
 
             <div className="relative rounded-2xl overflow-hidden border border-border">
-              <img src="/camara-fria.webp" alt="Câmara fria" className="w-full h-[600px] object-cover" />
+              <img
+                src="/camara-fria.webp"
+                alt="Interior da câmara fria com sistema de refrigeração industrial e monitoramento de temperatura"
+                className="w-full h-[600px] object-cover"
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-background/40 via-transparent to-transparent" />
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Infraestrutura */}
-      <section className="py-20 bg-graphite border-y border-border">
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="text-center mb-12">
-            <span className="text-[10px] font-black tracking-[0.3em] text-lime">INFRAESTRUTURA</span>
-            <h2 className="text-2xl md:text-3xl font-black text-foreground tracking-tight mt-2">ESTRUTURA DE PONTA</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {[
-              { title: "PRODUÇÃO INDUSTRIAL", description: "Equipamentos modernos e processos padronizados para produção em escala.", image: "/estrutura.webp" },
-              { title: "CÂMARAS FRIAS", description: "Armazenagem refrigerada e congelada com controle 24/7 e rastreabilidade.", image: "/camara-fria.webp" },
-              { title: "ESCALA E CONFIANÇA", description: "Capacidade para atender desde pequenas demandas até grandes volumes.", image: "/embalagens-2.webp" },
-            ].map((item, i) => (
-              <div key={i} className="group rounded-2xl overflow-hidden border border-border hover:border-lime/30 transition-all duration-300 bg-background">
-                <div className="relative h-82 overflow-hidden">
-                  <img src={item.image} alt={item.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-                </div>
-                <div className="p-6 space-y-2">
-                  <h3 className="text-[11px] font-black text-foreground tracking-wider">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Galeria */}
-      <section className="py-16">
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="mb-8">
-            <span className="text-[10px] font-black tracking-[0.3em] text-lime">PRODUÇÃO</span>
-            <h2 className="text-2xl font-black text-foreground tracking-tight mt-1">DO PROCESSO AO PRODUTO</h2>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {["/embalagens.webp", "/embalagens-2.webp", "/embalagens-3.webp", "/carne-embalada.webp"].map((img, i) => (
-              <div key={i} className="relative rounded-2xl overflow-hidden border border-border aspect-square group">
-                <img src={img} alt="Processo de produção" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-              </div>
-            ))}
           </div>
         </div>
       </section>
@@ -263,8 +197,6 @@ export default function SobrePage() {
         </div>
       </section>
 
-      <SiteFooter />
-      <CartDrawerWrapper />
-    </main>
+    </div>
   )
 }

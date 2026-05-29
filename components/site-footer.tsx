@@ -1,124 +1,229 @@
-"use client"
+import Link from "next/link"
+import {
+  ArrowRight,
+  Facebook,
+  Instagram,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Phone,
+  ShoppingBag,
+} from "lucide-react"
+import { STORE_WHATSAPP_NUMBER, buildWhatsAppUrl } from "@/lib/whatsapp"
 
-import { Instagram, MapPin, Phone, Mail, ArrowRight } from "lucide-react"
+const shopLinks = [
+  { label: "Todos os produtos", href: "/produtos" },
+  { label: "Congelados", href: "/produtos?category=CONGELADO" },
+  { label: "Molhos e temperos", href: "/produtos?category=SECO" },
+  { label: "Combos", href: "/combos" },
+]
 
-const links = {
-  services: [
-    { label: "Produção de Congelados", href: "/produtos" },
-    { label: "Molhos & Salsas", href: "/produtos" },
-    { label: "Armazenagem Refrigerada", href: "/combos" },
-    { label: "Marcas Próprias", href: "/contato" },
-  ],
-  segments: [
-    { label: "Restaurantes", href: "/contato" },
-    { label: "Hotéis & Resorts", href: "/contato" },
-    { label: "Dark Kitchens", href: "/contato" },
-    { label: "Redes de Fast Food", href: "/contato" },
-    { label: "Food Service", href: "/contato" },
-  ],
-  institutional: [
-    { label: "Sobre a NachoMan", href: "/sobre" },
-    { label: "Contato", href: "/contato" },
-    { label: "Política de Privacidade", href: "#" },
-    { label: "Termos de Uso", href: "#" },
-  ],
+const companyLinks = [
+  { label: "Inicio", href: "/" },
+  { label: "Sobre", href: "/sobre" },
+  { label: "Contato", href: "/contato" },
+]
+
+const socialLinks = [
+  {
+    label: "Instagram",
+    href: "https://instagram.com/nachoman",
+    icon: Instagram,
+  },
+  {
+    label: "Facebook",
+    href: "https://facebook.com/nachoman",
+    icon: Facebook,
+  },
+]
+
+function formatWhatsAppDisplay(number: string): string {
+  const local = number.replace(/^55/, "")
+  const ddd = local.slice(0, 2)
+  const first = local.slice(2, 3)
+  const middle = local.slice(3, 7)
+  const last = local.slice(7, 11)
+  return `(${ddd}) ${first} ${middle}-${last}`
 }
 
 export function SiteFooter() {
   const year = new Date().getFullYear()
+  const whatsappDisplay = formatWhatsAppDisplay(STORE_WHATSAPP_NUMBER)
+  const whatsappUrl = buildWhatsAppUrl(
+    STORE_WHATSAPP_NUMBER,
+    "Olá! Vim pelo site da Nacho Man e gostaria de atendimento."
+  )
 
   return (
-    <footer className="bg-graphite border-t border-border relative">
-      {/* Neon top line */}
-      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-purple-medium/40 via-lime/30 to-purple-medium/40" />
+    <footer className="relative overflow-hidden border-t border-border bg-graphite">
+      <div className="absolute left-0 top-0 h-px w-full bg-gradient-to-r from-purple-medium/40 via-lime/30 to-purple-medium/40" />
+      <div className="absolute inset-0 pointer-events-none">
+        <img
+          src="/estrelas-roxo.svg"
+          alt=""
+          className="absolute right-[8%] top-10 h-9 w-9 opacity-15 animate-float-2"
+          aria-hidden="true"
+        />
+        <img
+          src="/pimenta-roxo.svg"
+          alt=""
+          className="absolute bottom-20 left-[6%] h-10 w-10 opacity-10 animate-float-4"
+          aria-hidden="true"
+        />
+      </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10">
-          {/* Brand */}
-          <div className="lg:col-span-4 space-y-5">
-            <a href="/">
-              <img src="/nacho-man-logo-roxo-inteira.svg" alt="NachoMan" className="h-32 w-auto" />
-            </a>
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mt-2">
-              Indústria de alimentos para food service. Produção, molhos, empanados, proteínas prontas e armazenagem refrigerada.
+      <div className="relative mx-auto max-w-7xl px-4 py-12 md:py-14">
+        <div className="mb-10 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_0.9fr]">
+          <div className="rounded-2xl border border-border bg-background/35 p-6 md:p-7">
+            <Link href="/" className="inline-flex">
+              <img
+                src="/nacho-man-logo-roxo-inteira.svg"
+                alt="Nacho Man"
+                className="h-24 w-auto"
+              />
+            </Link>
+            <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground">
+              Mexican food pronta para abastecer sua cozinha: congelados, molhos,
+              temperos e combos com compra simples e finalizacao pelo WhatsApp.
             </p>
-            {/* Social */}
-            <div className="flex items-center gap-3">
-              <a href="#" className="h-9 w-9 rounded-full bg-foreground/5 border border-border flex items-center justify-center text-muted-foreground hover:bg-lime hover:text-background hover:border-lime transition-all" aria-label="Instagram">
-                <Instagram className="h-4 w-4" />
-              </a>
-              <a href="#" className="h-9 w-9 rounded-full bg-foreground/5 border border-border flex items-center justify-center text-muted-foreground hover:bg-lime hover:text-background hover:border-lime transition-all" aria-label="TikTok">
-                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.34-6.34V8.87a8.16 8.16 0 004.76 1.52V6.94a4.84 4.84 0 01-1-.25z" /></svg>
-              </a>
-              <a href="#" className="h-9 w-9 rounded-full bg-foreground/5 border border-border flex items-center justify-center text-muted-foreground hover:bg-lime hover:text-background hover:border-lime transition-all" aria-label="YouTube">
-                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" /></svg>
-              </a>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              {socialLinks.map((social) => (
+                <a
+                  key={social.label}
+                  href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-foreground/5 text-muted-foreground transition-all hover:border-lime hover:bg-lime hover:text-background"
+                  aria-label={social.label}
+                >
+                  <social.icon className="h-4 w-4" aria-hidden="true" />
+                </a>
+              ))}
             </div>
           </div>
 
-          {/* Services */}
-          <div className="lg:col-span-2">
-            <h4 className="text-[10px] font-black text-purple-medium tracking-[0.2em] mb-4">SERVIÇOS</h4>
-            <ul className="space-y-2.5">
-              {links.services.map((item, i) => (
-                <li key={i}>
-                  <a href={item.href} className="text-sm text-muted-foreground hover:text-lime transition-colors">{item.label}</a>
-                </li>
-              ))}
-            </ul>
+          <div className="rounded-2xl border border-lime/25 bg-lime p-6 text-background md:p-7">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-background/10">
+              <MessageCircle className="h-6 w-6" aria-hidden="true" />
+            </div>
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-background/70">
+              Atendimento comercial
+            </p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight">
+              Precisa montar um pedido?
+            </h2>
+            <p className="mt-3 text-sm font-medium leading-relaxed text-background/75">
+              Envie sua lista, tire duvidas ou finalize o carrinho com nosso time.
+            </p>
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group mt-6 inline-flex min-h-11 items-center justify-center gap-3 rounded-full bg-background px-5 py-3 text-sm font-black tracking-wider text-lime transition-all hover:shadow-[0_0_20px_rgba(10,10,10,0.2)]"
+              aria-label="Iniciar atendimento pelo WhatsApp"
+            >
+              CHAMAR NO WHATSAPP
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+            </a>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-8 border-t border-border/60 pt-9 md:grid-cols-2 lg:grid-cols-12">
+          <FooterLinkGroup title="Comprar" links={shopLinks} className="lg:col-span-3" />
+          <FooterLinkGroup title="Nacho Man" links={companyLinks} className="lg:col-span-2" />
+
+          <div className="lg:col-span-4">
+            <h3 className="mb-4 text-[10px] font-black uppercase tracking-[0.25em] text-purple-medium">
+              Contato
+            </h3>
+            <div className="grid gap-3">
+              <ContactLine icon={Phone} label="WhatsApp" value={whatsappDisplay} />
+              <ContactLine icon={Mail} label="Email" value="contato@nachoman.com.br" />
+              <ContactLine icon={MapPin} label="Localizacao" value="Sao Paulo, SP" />
+            </div>
           </div>
 
-          {/* Segments */}
-          <div className="lg:col-span-2">
-            <h4 className="text-[10px] font-black text-purple-medium tracking-[0.2em] mb-4">SEGMENTOS</h4>
-            <ul className="space-y-2.5">
-              {links.segments.map((item, i) => (
-                <li key={i}>
-                  <a href={item.href} className="text-sm text-muted-foreground hover:text-lime transition-colors">{item.label}</a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Institutional */}
-          <div className="lg:col-span-2">
-            <h4 className="text-[10px] font-black text-purple-medium tracking-[0.2em] mb-4">INSTITUCIONAL</h4>
-            <ul className="space-y-2.5">
-              {links.institutional.map((item, i) => (
-                <li key={i}>
-                  <a href={item.href} className="text-sm text-muted-foreground hover:text-lime transition-colors">{item.label}</a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Contact */}
-          <div className="lg:col-span-2">
-            <h4 className="text-[10px] font-black text-purple-medium tracking-[0.2em] mb-4">FALE COMERCIAL</h4>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Phone className="h-3.5 w-3.5 text-lime shrink-0" />
-                <span>(47) 9 9999-9999</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Mail className="h-3.5 w-3.5 text-lime shrink-0" />
-                <span>comercial@nachoman.com.br</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5 text-lime shrink-0" />
-                <span>Blumenau - SC</span>
+          <div className="lg:col-span-3">
+            <h3 className="mb-4 text-[10px] font-black uppercase tracking-[0.25em] text-purple-medium">
+              Pedido online
+            </h3>
+            <div className="rounded-2xl border border-border bg-background/35 p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-lime/25 bg-lime/10">
+                  <ShoppingBag className="h-5 w-5 text-lime" aria-hidden="true" />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-foreground">Carrinho + WhatsApp</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    Adicione itens e envie o resumo completo para o atendimento.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Bottom */}
-        <div className="mt-12 pt-8 border-t border-border/50 text-center">
-          <p className="text-xs text-muted-foreground/60">
-            © {year} NachoMan Mexican Food. Todos os direitos reservados.
+        <div className="mt-10 flex flex-col gap-3 border-t border-border/60 pt-6 text-xs text-muted-foreground/70 md:flex-row md:items-center md:justify-between">
+          <p>© {year} Nacho Man Mexican Food. Todos os direitos reservados.</p>
+          <p className="font-semibold text-muted-foreground/60">
+            Congelados, molhos, temperos e combos mexicanos.
           </p>
         </div>
       </div>
     </footer>
+  )
+}
+
+function FooterLinkGroup({
+  title,
+  links,
+  className = "",
+}: {
+  title: string
+  links: { label: string; href: string }[]
+  className?: string
+}) {
+  return (
+    <div className={className}>
+      <h3 className="mb-4 text-[10px] font-black uppercase tracking-[0.25em] text-purple-medium">
+        {title}
+      </h3>
+      <ul className="space-y-2.5">
+        {links.map((item) => (
+          <li key={item.href}>
+            <Link
+              href={item.href}
+              className="inline-flex min-h-8 items-center text-sm font-medium text-muted-foreground transition-colors hover:text-lime"
+            >
+              {item.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function ContactLine({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Phone
+  label: string
+  value: string
+}) {
+  return (
+    <div className="flex items-center gap-3 text-sm">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-background/35">
+        <Icon className="h-4 w-4 text-lime" aria-hidden="true" />
+      </div>
+      <div>
+        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+          {label}
+        </p>
+        <p className="font-semibold text-foreground">{value}</p>
+      </div>
+    </div>
   )
 }

@@ -2,9 +2,13 @@
 
 import { X, Minus, Plus, Trash2, ShoppingBag, MessageCircle } from "lucide-react"
 import { useCartStore } from "@/lib/cart-store"
-import { useEffect, useState } from "react"
-
-const WHATSAPP_NUMBER = "5562985329181"
+import { formatPrice } from "@/lib/format"
+import {
+  generateWhatsAppMessage,
+  buildWhatsAppUrl,
+  STORE_WHATSAPP_NUMBER,
+} from "@/lib/whatsapp"
+import { useEffect, useRef, useState, useCallback } from "react"
 
 export function CartDrawer() {
   const { items, isOpen, closeCart, removeItem, updateQuantity, totalItems, totalPrice, clearCart } =
@@ -13,59 +17,127 @@ export function CartDrawer() {
   // Controls the animated state (delayed close for exit animation)
   const [visible, setVisible] = useState(false)
   const [animating, setAnimating] = useState(false)
+  const [popupBlockedMessage, setPopupBlockedMessage] = useState(false)
+
+  // Refs for focus management
+  const drawerRef = useRef<HTMLDivElement>(null)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const triggerRef = useRef<Element | null>(null)
+  const titleId = "cart-drawer-title"
 
   useEffect(() => {
     if (isOpen) {
+      // Store the element that triggered the drawer open
+      triggerRef.current = document.activeElement
       setVisible(true)
+      setPopupBlockedMessage(false)
       document.body.style.overflow = "hidden"
       // Small delay to trigger enter animation
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => setAnimating(true))
+        requestAnimationFrame(() => {
+          setAnimating(true)
+          // Focus the close button after animation starts
+          closeButtonRef.current?.focus()
+        })
       })
     } else {
       setAnimating(false)
       document.body.style.overflow = ""
+      // Restore focus to the element that triggered the drawer
+      if (triggerRef.current && triggerRef.current instanceof HTMLElement) {
+        triggerRef.current.focus()
+      }
       const timeout = setTimeout(() => setVisible(false), 300)
       return () => clearTimeout(timeout)
     }
   }, [isOpen])
 
-  if (!visible) return null
+  // Handle Escape key to close drawer
+  useEffect(() => {
+    if (!isOpen) return
 
-  const formattedTotal = totalPrice().toFixed(2).replace(".", ",")
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        closeCart()
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [isOpen, closeCart])
+
+  // Focus trap: cycle Tab within the drawer
+  const handleFocusTrap = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key !== "Tab") return
+
+      const drawer = drawerRef.current
+      if (!drawer) return
+
+      const focusableElements = drawer.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+
+      if (focusableElements.length === 0) return
+
+      const firstElement = focusableElements[0]
+      const lastElement = focusableElements[focusableElements.length - 1]
+
+      if (e.shiftKey) {
+        // Shift+Tab: if on first element, wrap to last
+        if (document.activeElement === firstElement) {
+          e.preventDefault()
+          lastElement.focus()
+        }
+      } else {
+        // Tab: if on last element, wrap to first
+        if (document.activeElement === lastElement) {
+          e.preventDefault()
+          firstElement.focus()
+        }
+      }
+    },
+    []
+  )
 
   function handleWhatsAppCheckout() {
     if (items.length === 0) return
 
-    const itemsList = items
-      .map(
-        (item, i) =>
-          `${i + 1}. ${item.name} — Qtd: ${item.quantity} — R$ ${(item.price * item.quantity).toFixed(2).replace(".", ",")}`
-      )
-      .join("\n")
+    const message = generateWhatsAppMessage(items)
+    const url = buildWhatsAppUrl(STORE_WHATSAPP_NUMBER, message)
 
-    const message = `🌮 *Novo Pedido — NachoMan*\n\n${itemsList}\n\n💰 *Total: R$ ${formattedTotal}*\n\nOlá! Gostaria de finalizar esse pedido.`
+    const newWindow = window.open(url, "_blank")
 
-    const encoded = encodeURIComponent(message)
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encoded}`
-
-    window.open(url, "_blank")
-    clearCart()
-    closeCart()
+    if (newWindow === null) {
+      // Popup was blocked — keep items in cart, show message
+      setPopupBlockedMessage(true)
+    } else {
+      // Success — clear cart and close drawer
+      clearCart()
+      closeCart()
+    }
   }
+
+  if (!visible) return null
 
   return (
     <>
       {/* Overlay */}
       <div
-        className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-50 transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/70 backdrop-blur-sm z-50 transition-opacity duration-300 ${
           animating ? "opacity-100" : "opacity-0"
         }`}
         onClick={closeCart}
+        aria-hidden="true"
       />
 
       {/* Drawer */}
       <div
+        ref={drawerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        onKeyDown={handleFocusTrap}
         className={`fixed top-0 right-0 h-full w-full max-w-md bg-background border-l border-border/30 z-50 flex flex-col shadow-2xl transition-transform duration-300 ease-out ${
           animating ? "translate-x-0" : "translate-x-full"
         }`}
@@ -74,7 +146,10 @@ export function CartDrawer() {
         <div className="flex items-center justify-between p-5 border-b border-border/20">
           <div className="flex items-center gap-3">
             <ShoppingBag className="h-5 w-5 text-lime" />
-            <h2 className="text-lg font-black text-foreground tracking-tight">
+            <h2
+              id={titleId}
+              className="text-lg font-black text-foreground tracking-tight"
+            >
               CARRINHO
             </h2>
             <span className="text-xs font-bold text-muted-foreground">
@@ -82,8 +157,9 @@ export function CartDrawer() {
             </span>
           </div>
           <button
+            ref={closeButtonRef}
             onClick={closeCart}
-            className="h-9 w-9 rounded-full bg-foreground/5 flex items-center justify-center text-foreground/70 hover:bg-foreground/10 transition-colors"
+            className="h-11 w-11 rounded-full bg-foreground/5 flex items-center justify-center text-foreground/70 hover:bg-foreground/10 transition-colors"
             aria-label="Fechar carrinho"
           >
             <X className="h-5 w-5" />
@@ -102,7 +178,7 @@ export function CartDrawer() {
               </p>
               <button
                 onClick={closeCart}
-                className="text-xs font-black text-lime tracking-wider hover:underline"
+                className="min-h-11 px-4 text-xs font-black text-lime tracking-wider hover:underline"
               >
                 CONTINUAR COMPRANDO
               </button>
@@ -124,7 +200,7 @@ export function CartDrawer() {
           )}
         </div>
 
-        {/* Footer */}
+        {/* Footer — hidden when cart is empty */}
         {items.length > 0 && (
           <div
             className={`border-t border-border/20 p-5 space-y-4 transition-all duration-300 ${
@@ -134,9 +210,32 @@ export function CartDrawer() {
           >
             {/* Total */}
             <div className="flex items-center justify-between">
-              <span className="text-sm font-bold text-muted-foreground">TOTAL</span>
-              <span className="text-2xl font-black text-lime">R$ {formattedTotal}</span>
+              <span className="text-sm font-bold text-muted-foreground">
+                TOTAL ({totalItems()} {totalItems() === 1 ? "item" : "itens"})
+              </span>
+              <span className="text-2xl font-black text-lime">
+                {formatPrice(totalPrice())}
+              </span>
             </div>
+
+            {/* Popup blocked message */}
+            {popupBlockedMessage && (
+              <p className="text-xs text-center text-red-400 font-semibold">
+                O redirecionamento foi bloqueado pelo navegador. Permita pop-ups ou{" "}
+                <a
+                  href={buildWhatsAppUrl(
+                    STORE_WHATSAPP_NUMBER,
+                    generateWhatsAppMessage(items)
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline text-lime"
+                >
+                  clique aqui
+                </a>{" "}
+                para abrir o WhatsApp.
+              </p>
+            )}
 
             {/* WhatsApp CTA */}
             <button
@@ -166,8 +265,6 @@ function CartItemCard({
   onRemove: () => void
   onUpdateQuantity: (qty: number) => void
 }) {
-  const subtotal = (item.price * item.quantity).toFixed(2).replace(".", ",")
-
   return (
     <div className="flex gap-4 p-3 rounded-xl bg-graphite border border-border/20 hover:border-purple-medium/30 transition-colors">
       {/* Image */}
@@ -183,37 +280,45 @@ function CartItemCard({
           </h4>
           <button
             onClick={onRemove}
-            className="text-muted-foreground hover:text-red-400 transition-colors shrink-0"
-            aria-label="Remover item"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-muted-foreground hover:text-red-400 transition-colors shrink-0 -mr-2 -mt-2"
+            aria-label={`Remover ${item.name}`}
           >
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
 
+        <p className="text-xs text-muted-foreground">
+          {formatPrice(item.price)} un.
+        </p>
+
         <div className="flex items-center justify-between">
           {/* Quantity controls */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => onUpdateQuantity(item.quantity - 1)}
-              className="h-7 w-7 rounded-md bg-background/80 border border-border/30 flex items-center justify-center text-foreground/70 hover:border-lime/50 transition-colors"
-              aria-label="Diminuir quantidade"
+              disabled={item.quantity <= 1}
+              className="h-11 w-11 sm:h-8 sm:w-8 rounded-md bg-background/80 border border-border/30 flex items-center justify-center text-foreground/70 hover:border-lime/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border/30"
+              aria-label={`Diminuir quantidade de ${item.name}`}
             >
-              <Minus className="h-3 w-3" />
+              <Minus className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
             </button>
             <span className="w-8 text-center text-sm font-bold text-foreground">
               {item.quantity}
             </span>
             <button
               onClick={() => onUpdateQuantity(item.quantity + 1)}
-              className="h-7 w-7 rounded-md bg-background/80 border border-border/30 flex items-center justify-center text-foreground/70 hover:border-lime/50 transition-colors"
-              aria-label="Aumentar quantidade"
+              disabled={item.quantity >= 99}
+              className="h-11 w-11 sm:h-8 sm:w-8 rounded-md bg-background/80 border border-border/30 flex items-center justify-center text-foreground/70 hover:border-lime/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border/30"
+              aria-label={`Aumentar quantidade de ${item.name}`}
             >
-              <Plus className="h-3 w-3" />
+              <Plus className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
             </button>
           </div>
 
           {/* Subtotal */}
-          <p className="text-sm font-black text-lime">R$ {subtotal}</p>
+          <p className="text-sm font-black text-lime">
+            {formatPrice(item.price * item.quantity)}
+          </p>
         </div>
       </div>
     </div>

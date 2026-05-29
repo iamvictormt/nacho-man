@@ -386,3 +386,33 @@ export function getProductsByCategory(category: string): Product[] {
 export function getCategories(): string[] {
   return [...new Set(allProducts.map((p) => p.subcategory))]
 }
+
+/**
+ * Returns up to `max` related products from the same category/subcategory,
+ * excluding the current product. Prioritizes same subcategory, then same category.
+ */
+export function getRelatedProducts(
+  current: Product,
+  allProductsList: Product[],
+  max: number = 4
+): Product[] {
+  // First, get products from the same subcategory (excluding current)
+  const sameSubcategory = allProductsList.filter(
+    (p) => p.slug !== current.slug && p.subcategory === current.subcategory
+  )
+
+  if (sameSubcategory.length >= max) {
+    return sameSubcategory.slice(0, max)
+  }
+
+  // Fill remaining slots with products from the same category (but different subcategory)
+  const sameCategory = allProductsList.filter(
+    (p) =>
+      p.slug !== current.slug &&
+      p.category === current.category &&
+      p.subcategory !== current.subcategory
+  )
+
+  const combined = [...sameSubcategory, ...sameCategory]
+  return combined.slice(0, max)
+}

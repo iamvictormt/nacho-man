@@ -72,6 +72,14 @@
   }
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
+  }
+  a,
+  button,
+  input,
+  select,
+  textarea {
+    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime;
   }
   button {
     @apply cursor-pointer;
@@ -117,6 +125,11 @@
 @keyframes float-slow-4 {
   0%, 100% { transform: translate(0, 0); }
   50% { transform: translate(-10px, -12px); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 
 @keyframes hero-orbit {

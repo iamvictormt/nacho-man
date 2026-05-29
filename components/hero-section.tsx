@@ -22,8 +22,41 @@ export function HeroSection() {
       {/* Ambient glow orbs */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-[20%] right-[15%] h-[400px] w-[400px] rounded-full bg-purple-medium/12 blur-[130px]" />
-       </div>
- 
+      </div>
+
+      {/* Mobile decorative SVGs (visible on small screens) */}
+      <div className="absolute inset-0 pointer-events-none lg:hidden">
+        <img
+          src="/caveira-roxo.svg"
+          alt=""
+          className="absolute top-[8%] right-[5%] h-[60px] w-[60px] opacity-15 hero-pulse"
+          aria-hidden="true"
+        />
+        <img
+          src="/pimenta-roxo.svg"
+          alt=""
+          className="absolute top-[15%] right-[30%] h-[40px] w-[40px] opacity-12 animate-float-4"
+          aria-hidden="true"
+        />
+        <img
+          src="/cacto-roxo.svg"
+          alt=""
+          className="absolute bottom-[20%] right-[8%] h-[50px] w-[50px] opacity-12 animate-float-3"
+          aria-hidden="true"
+        />
+        <img
+          src="/burrito-pegando-fogo-roxo.svg"
+          alt=""
+          className="absolute bottom-[30%] right-[25%] h-[45px] w-[45px] opacity-10 animate-float-2"
+          aria-hidden="true"
+        />
+        <img
+          src="/chapeu-roxo.svg"
+          alt=""
+          className="absolute top-[40%] right-[3%] h-[35px] w-[35px] opacity-10 animate-float-1"
+          aria-hidden="true"
+        />
+      </div>
 
       {/* Right side — Mexican icons composition (desktop) */}
       <div className="absolute right-0 top-0 bottom-0 hidden lg:flex items-center pointer-events-none w-[50%]">
@@ -137,15 +170,15 @@ export function HeroSection() {
       <div className="relative mx-auto max-w-7xl px-4 md:py-24 w-full">
         <div className="max-w-5xl space-y-8">
 
-          {/* Headline */}
-          <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black leading-[0.92] tracking-tight">
-            <span className="text-foreground">PRODUÇÃO DE</span><br />
-            <span className="text-foreground">ALIMENTOS</span><br />
-            <span className="text-foreground">CONGELADOS</span><br />
-            <span className="text-lime neon-glow italic">PARA FOOD SERVICE.</span>
+          {/* Headline — bold uppercase, font-weight 900 */}
+          <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black uppercase leading-[0.92] tracking-tight">
+            <span className="text-foreground">Produção de</span><br />
+            <span className="text-foreground">Alimentos</span><br />
+            <span className="text-foreground">Congelados</span><br />
+            <span className="text-lime neon-glow italic">Para Food Service.</span>
           </h1>
 
-          {/* Subtitle */}
+          {/* Subtitle — max 200 characters, descriptive */}
           <p className="text-muted-foreground text-base md:text-lg max-w-lg leading-relaxed">
             Molhos, empanados e proteínas prontas. Armazenagem refrigerada com controle total de temperatura e rastreabilidade.
           </p>
@@ -160,10 +193,10 @@ export function HeroSection() {
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
             <Link
-              href="/sobre"
+              href="/produtos"
               className="inline-flex items-center gap-3 border-2 border-purple-medium/40 text-foreground px-7 py-3.5 rounded-full font-bold text-sm tracking-wider hover:border-purple-medium hover:text-purple-medium transition-all duration-300"
             >
-              CONHEÇA A FÁBRICA
+              VER PRODUTOS
             </Link>
           </div>
         </div>

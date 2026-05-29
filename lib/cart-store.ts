@@ -57,12 +57,17 @@ export const useCartStore = create<CartStore>()(
       isOpen: false,
 
       addItem: (item) => {
+        // Reject silently if item has no name or no valid price
+        if (!item.name.trim() || !Number.isFinite(item.price) || item.price < 0) return
+
         set((state) => {
           const existing = state.items.find((i) => i.name === item.name)
           if (existing) {
             return {
               items: state.items.map((i) =>
-                i.name === item.name ? { ...i, quantity: i.quantity + 1 } : i
+                i.name === item.name
+                  ? { ...i, quantity: Math.min(i.quantity + 1, 99) }
+                  : i
               ),
             }
           }
@@ -77,13 +82,16 @@ export const useCartStore = create<CartStore>()(
       },
 
       updateQuantity: (name, quantity) => {
+        // Treat values <= 0 as removal
         if (quantity <= 0) {
           get().removeItem(name)
           return
         }
+        // Clamp quantity to max 99
+        const clamped = Math.min(quantity, 99)
         set((state) => ({
           items: state.items.map((i) =>
-            i.name === name ? { ...i, quantity } : i
+            i.name === name ? { ...i, quantity: clamped } : i
           ),
         }))
       },
