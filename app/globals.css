@@ -193,6 +193,26 @@
 }
 .animate-bounce-once { animation: bounce-once 0.4s ease-out; }
 
+@keyframes topbar-vertical-ticker {
+  0%, 18% { transform: translateY(0); }
+  25%, 43% { transform: translateY(-1rem); }
+  50%, 68% { transform: translateY(-2rem); }
+  75%, 93% { transform: translateY(-3rem); }
+  100% { transform: translateY(0); }
+}
+
+.topbar-vertical-ticker {
+  animation: topbar-vertical-ticker 10s ease-in-out infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topbar-vertical-ticker {
+    animation: none;
+    transform: translateY(0);
+  }
+}
+
 /* Hide scrollbar */
 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .hide-scrollbar::-webkit-scrollbar { display: none; }
