@@ -15,10 +15,10 @@ export interface FilterState {
  * - tags: product.tag must be in the provided tags array
  * - search: case-insensitive partial match on name or description (min 2 chars to activate)
  */
-export function filterProducts(
-  products: Product[],
+export function filterProducts<T extends Product>(
+  products: T[],
   filters: FilterState
-): Product[] {
+): T[] {
   return products.filter((product) => {
     // Category filter
     if (filters.category !== null && product.category !== filters.category) {
@@ -62,10 +62,10 @@ export function filterProducts(
  * - "price-asc": lowest price first
  * - "price-desc": highest price first
  */
-export function sortProducts(
-  products: Product[],
+export function sortProducts<T extends Product>(
+  products: T[],
   sort: FilterState["sort"]
-): Product[] {
+): T[] {
   const sorted = [...products]
 
   switch (sort) {

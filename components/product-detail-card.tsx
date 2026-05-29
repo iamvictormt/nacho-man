@@ -5,26 +5,17 @@ import Image from "next/image"
 import Link from "next/link"
 import { Check, Eye, ShoppingCart } from "lucide-react"
 import { useCartStore } from "@/lib/cart-store"
+import type { CatalogProduct } from "@/lib/products"
 
-export interface ProductDetail {
-  slug: string
-  name: string
-  subtitle?: string
-  price: string
-  image: string
-  features: string[]
-  applications: string[]
-}
-
-export function ProductDetailCard({ product }: { product: ProductDetail }) {
+export function ProductDetailCard({ product }: { product: CatalogProduct }) {
   const [added, setAdded] = useState(false)
   const addItem = useCartStore((s) => s.addItem)
   const openCart = useCartStore((s) => s.openCart)
 
   function handleAddToCart() {
     addItem({
-      name: product.name,
-      price: parsePrice(product.price),
+      name: product.displayName,
+      price: product.price,
       image: product.image,
     })
     setAdded(true)
@@ -37,7 +28,7 @@ export function ProductDetailCard({ product }: { product: ProductDetail }) {
       <div className="relative h-44 overflow-hidden sm:h-48">
         <Image
           src={product.image}
-          alt={product.name}
+          alt={product.displayName}
           fill
           sizes="(max-width: 767px) 100vw, 33vw"
           className="object-cover"
@@ -47,7 +38,7 @@ export function ProductDetailCard({ product }: { product: ProductDetail }) {
       <div className="flex flex-1 flex-col space-y-4 p-5">
         <div>
           <h3 className="text-base font-black uppercase leading-tight text-foreground sm:text-lg">
-            {product.name}
+            {product.displayName}
           </h3>
           {product.subtitle && (
             <p className="mt-1 text-xs font-bold text-muted-foreground">{product.subtitle}</p>
@@ -65,7 +56,7 @@ export function ProductDetailCard({ product }: { product: ProductDetail }) {
           <p className="text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">
             Preço
           </p>
-          <p className="mt-1 text-3xl font-black text-lime">{product.price}</p>
+          <p className="mt-1 text-3xl font-black text-lime">{product.priceLabel}</p>
         </div>
         <div className="flex-1">
           <p className="text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">
@@ -90,7 +81,7 @@ export function ProductDetailCard({ product }: { product: ProductDetail }) {
                 ? "bg-purple-medium text-white shadow-[0_0_20px_rgba(91,45,130,0.35)]"
                 : "bg-lime text-background hover:shadow-[0_0_20px_rgba(230,230,59,0.3)]"
             }`}
-            aria-label={`Adicionar ${product.name} ao carrinho`}
+            aria-label={`Adicionar ${product.displayName} ao carrinho`}
           >
             {added ? <Check className="h-4 w-4" aria-hidden="true" /> : <ShoppingCart className="h-4 w-4" aria-hidden="true" />}
             {added ? "ADICIONADO" : "ADICIONAR"}
@@ -106,9 +97,4 @@ export function ProductDetailCard({ product }: { product: ProductDetail }) {
       </div>
     </article>
   )
-}
-
-function parsePrice(price: string): number {
-  const numeric = price.replace(/[^\d,]/g, "").replace(",", ".")
-  return Number(numeric)
 }

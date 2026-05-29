@@ -1,3 +1,5 @@
+import { productDetails } from "./product-details"
+
 export interface Product {
   slug: string
   name: string
@@ -9,6 +11,14 @@ export interface Product {
   image: string
   tag: string | null
   tagColor: string
+}
+
+export type CatalogProduct = Product & {
+  displayName: string
+  subtitle?: string
+  priceLabel: string
+  features: string[]
+  applications: string[]
 }
 
 export const allProducts: Product[] = [
@@ -373,8 +383,8 @@ export const allProducts: Product[] = [
   },
 ]
 
-export function getProductBySlug(slug: string): Product | undefined {
-  return allProducts.find((p) => p.slug === slug)
+export function getProductBySlug(slug: string): CatalogProduct | undefined {
+  return catalogProducts.find((p) => p.slug === slug)
 }
 
 export function getProductsByCategory(category: string): Product[] {
@@ -387,15 +397,43 @@ export function getCategories(): string[] {
   return [...new Set(allProducts.map((p) => p.subcategory))]
 }
 
+const productDetailsBySlug = new Map(
+  productDetails.map((product) => [product.slug, product])
+)
+
+export const catalogProducts: CatalogProduct[] = allProducts.map((product) => {
+  const detail = productDetailsBySlug.get(product.slug)
+
+  return {
+    ...product,
+    displayName: detail?.name ?? product.name,
+    subtitle: detail?.subtitle,
+    priceLabel: detail?.price ?? formatCatalogPrice(product.price),
+    features: detail?.features ?? [product.description],
+    applications: detail?.applications ?? [],
+  }
+})
+
+export const catalogProductsBySlug = new Map(
+  catalogProducts.map((product) => [product.slug, product])
+)
+
+function formatCatalogPrice(price: number): string {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(price)
+}
+
 /**
  * Returns up to `max` related products from the same category/subcategory,
  * excluding the current product. Prioritizes same subcategory, then same category.
  */
-export function getRelatedProducts(
-  current: Product,
-  allProductsList: Product[],
+export function getRelatedProducts<T extends Product>(
+  current: T,
+  allProductsList: T[],
   max: number = 4
-): Product[] {
+): T[] {
   // First, get products from the same subcategory (excluding current)
   const sameSubcategory = allProductsList.filter(
     (p) => p.slug !== current.slug && p.subcategory === current.subcategory

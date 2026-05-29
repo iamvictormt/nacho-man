@@ -2,15 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
-import { ShoppingBag, ArrowRight, PackageX } from "lucide-react"
+import { ShoppingBag, ArrowRight } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { ProductDetailCard } from "@/components/product-detail-card"
 import { FilterSidebar } from "@/components/filter-sidebar"
 import { SearchBar } from "@/components/search-bar"
 import { SortSelect, type SortOption } from "@/components/sort-select"
-import { allProducts } from "@/lib/products"
-import { productDetailsBySlug } from "@/lib/product-details"
+import { catalogProducts } from "@/lib/products"
 import { filterProducts, sortProducts, type FilterState } from "@/lib/filters"
 
 export default function ProdutosPage() {
@@ -34,7 +32,7 @@ export default function ProdutosPage() {
   }, [])
 
   const filteredAndSorted = useMemo(() => {
-    const filtered = filterProducts(allProducts, filters)
+    const filtered = filterProducts(catalogProducts, filters)
     return sortProducts(filtered, filters.sort)
   }, [filters])
 
@@ -133,22 +131,20 @@ export default function ProdutosPage() {
               {/* Product grid or empty state */}
               {filteredAndSorted.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">
-                  {filteredAndSorted.map((product) => {
-                    const detailedProduct = productDetailsBySlug.get(product.slug)
-
-                    return detailedProduct ? (
-                      <ProductDetailCard key={product.slug} product={detailedProduct} />
-                    ) : null
-                  })}
+                  {filteredAndSorted.map((product) => (
+                    <ProductDetailCard key={product.slug} product={product} />
+                  ))}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
               <div className="relative h-32 w-32 rounded-full bg-lime/10 border border-lime/20 flex items-center justify-center">
-                    <Image
+                    <img
                       src="/garrafa-pimenta-fundo-amarelo.svg"
                       alt=""
                       width={88}
                       height={88}
+                  loading="eager"
+                  decoding="sync"
                   className="h-24 w-24 object-contain p-2 opacity-50"
                       aria-hidden="true"
                     />

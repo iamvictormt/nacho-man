@@ -13,8 +13,33 @@ import {
   Store,
 } from "lucide-react"
 import { ProductDetailCard } from "@/components/product-detail-card"
-import { productDetails } from "@/lib/product-details"
+import { catalogProductsBySlug } from "@/lib/products"
+import { absoluteUrl } from "@/lib/seo"
 import { buildWhatsAppUrl, STORE_WHATSAPP_NUMBER } from "@/lib/whatsapp"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Alimentos Prontos para sua Operação",
+  description:
+    "Carnes congeladas, molhos, temperos e kits prontos para restaurantes, hamburguerias, eventos e revendedores.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Alimentos Prontos para sua Operação | Nacho Factory",
+    description:
+      "Produzimos carnes congeladas, molhos, temperos e kits prontos para operações de food service.",
+    url: "/",
+    images: [
+      {
+        url: absoluteUrl("/embalagens-3.webp"),
+        width: 1200,
+        height: 630,
+        alt: "Produtos prontos Nacho Factory",
+      },
+    ],
+  },
+}
 
 const heroStats = [
   { value: "30+", label: "Produtos" },
@@ -88,212 +113,41 @@ const categories = [
   },
 ]
 
-const products = [
-  {
-    name: "CARNE BARBACOA DESFIADA 1,5kg",
-    price: "R$ 71",
-    image: "/carne.webp",
-    features: ["Carne bovina desfiada", "Cozimento lento", "Pronta para servir", "Congelada", "Rende até 15 porções de 100g"],
-    applications: ["Tacos", "Burritos", "Nachos", "Hambúrgueres", "Pizzas", "Saladas"],
-  },
-  {
-    name: "CHILI BEANS 1,5KG",
-    price: "R$ 49,00",
-    image: "/carne.webp",
-    features: ["Receita tradicional mexicana", "Carne bovina e feijão temperados", "Pronto para servir", "Congelado", "Rende até 15 porções de 100g"],
-    applications: ["Nachos", "Tacos", "Burritos", "Batatas Fritas", "Pizzas"],
-  },
-  {
-    name: "COSTELINHA DESFIADA 1,5KG",
-    price: "R$ 57,00",
-    image: "/costelinha.webp",
-    features: ["Costelinha suína cozida lentamente ao molho barbecue", "Extremamente suculenta", "Pronta para servir", "Congelada", "Rende até 15 porções 100g"],
-    applications: ["Tacos", "Burritos", "Sanduíches", "Hambúrgueres", "Nachos", "Pizzas"],
-  },
-  {
-    name: "CHILI VEG 1KG",
-    price: "R$ 22,00",
-    image: "/embalagens.webp",
-    features: ["Proteína vegetal sabor mexicano", "Levemente apimentado", "Pronto para servir", "Congelado", "Excelente opção vegetariana"],
-    applications: ["Tacos", "Burritos", "Nachos", "Bowls", "Wraps", "Pizzas", "Saladas"],
-  },
-  {
-    name: "FRANGO DESFIADO AO MOLHO 1,5KG",
-    price: "R$ 59,00",
-    image: "/carne-embalada.webp",
-    features: ["Frango extremamente macio", "Molho especial de tomate e mostarda", "Pronto para servir", "Congelado", "Rende até 30 coxinhas recheadas"],
-    applications: ["Tacos", "Burritos", "Sanduíches", "Batatas", "Wraps", "Coxinhas", "Pastéis", "Risoles", "Pastelão", "Recheios salgados em geral"],
-  },
-  {
-    name: "FRIJOLES REFRITOS 1KG",
-    price: "R$ 16,80",
-    image: "/produtos-congelados.webp",
-    features: ["Feijão mexicano cremoso", "Receita tradicional", "Pronto para servir", "Congelado", "Alto rendimento"],
-    applications: ["Nachos", "Tacos", "Burritos", "Tostadas", "Pratos Mexicanos"],
-  },
-  {
-    name: "BASE ARROZ MEXICANO 100G",
-    price: "R$ 4,60",
-    image: "/produtos-congelados.webp",
-    features: ["Preparo rápido", "Rende até 900g de arroz pronto", "Receita exclusiva Nacho Man", "Fácil padronização"],
-    applications: ["Bowls", "Pratos Executivos", "Mexicanos", "Delivery"],
-  },
-  {
-    name: "FRANGO EMPANADO HOT",
-    subtitle: "10 unidades • 120g cada",
-    price: "R$ 44,00",
-    image: "/produtos-congelados.webp",
-    features: ["Crocante por fora", "Suculento por dentro", "Levemente picante", "Congelado"],
-    applications: ["Porções", "Combos", "Lanches", "Delivery", "Burritos"],
-  },
-  {
-    name: "CHURROS PALITO 1KG",
-    price: "R$ 14,40",
-    image: "/embalagens-2.webp",
-    features: ["Formato ideal para porções", "Fácil preparo", "Só fritar e finalizar", "Congelado"],
-    applications: ["Sobremesas", "Festas", "Food Service", "Delivery"],
-  },
-  {
-    name: "MINI CHURROS SEM RECHEIO 1KG",
-    price: "R$ 14,40",
-    image: "/embalagens-3.webp",
-    features: ["Mini churros de 10cm", "Congelados", "Só fritar e rechear", "Excelente rentabilidade"],
-    applications: ["Sobremesas", "Cafeterias", "Eventos", "Delivery"],
-  },
-  {
-    name: "SALSA JALAPEÑO 200ML",
-    price: "R$ 14,00",
-    image: "/molhos.webp",
-    features: ["Sabor intenso", "Levemente defumada", "Receita mexicana", "Pronta para uso"],
-    applications: ["Tacos", "Nachos", "Hambúrgueres", "Batatas", "Porções"],
-  },
-  {
-    name: "SALSA JALAPEÑO 2L",
-    price: "R$ 74,90",
-    image: "/molhos.webp",
-    features: ["Embalagem econômica", "Food Service", "Alto rendimento", "Pronta para uso"],
-    applications: ["Restaurantes", "Hamburguerias", "Dark Kitchens", "Franquias"],
-  },
-  {
-    name: "SALSA GHOST PEPPER 200ML",
-    price: "R$ 16,50",
-    image: "/molhos.webp",
-    features: ["Extremamente picante", "Produzida com Ghost Pepper", "Para amantes de pimenta", "Pronta para uso"],
-    applications: ["Hambúrgueres", "Tacos", "Porções", "Desafios gastronômicos"],
-  },
-  {
-    name: "SALSA HOT PICKLES 200ML",
-    price: "R$ 14,00",
-    image: "/molhos.webp",
-    features: ["Agridoce e picante", "Sabor marcante de picles", "Pronta para uso", "Receita exclusiva"],
-    applications: ["Hambúrgueres", "Hot Dogs", "Batatas", "Sanduíches"],
-  },
-  {
-    name: "SALSA HOT PICKLES 1L",
-    price: "R$ 34,80",
-    image: "/molhos.webp",
-    features: ["Versão econômica", "Alto rendimento", "Food Service", "Pronta para uso"],
-    applications: ["Hamburguerias", "Lanchonetes", "Restaurantes"],
-  },
-  {
-    name: "SALSA NEGRA 200ML",
-    price: "R$ 14,00",
-    image: "/molhos.webp",
-    features: ["Perfil defumado", "Sabor intenso", "Receita exclusiva", "Pronta para uso"],
-    applications: ["Carnes", "Hambúrgueres", "Tacos", "Costelas"],
-  },
-  {
-    name: "SALSA HABANERO PIÑA 200ML",
-    price: "R$ 12,00",
-    image: "/molhos.webp",
-    features: ["Abacaxi com habanero", "Agridoce e picante", "Sabor tropical", "Pronta para uso"],
-    applications: ["Tacos", "Peixes", "Frango", "Hambúrgueres"],
-  },
-  {
-    name: "SALSA ROJA 1L",
-    price: "R$ 32,00",
-    image: "/molhos.webp",
-    features: ["Receita tradicional mexicana", "Equilíbrio perfeito de sabor", "Food Service", "Pronta para uso"],
-    applications: ["Tacos", "Burritos", "Nachos", "Pratos Mexicanos"],
-  },
-  {
-    name: "MOLHO SWEET CHILI 200ML",
-    price: "R$ 12,00",
-    image: "/molhos.webp",
-    features: ["Agridoce levemente picante", "Muito versátil", "Pronta para uso", "Alta aceitação"],
-    applications: ["Frango", "Batatas", "Porções", "Hambúrgueres"],
-  },
-  {
-    name: "MOLHO SWEET CHILI 2L",
-    price: "R$ 39,50",
-    image: "/molhos.webp",
-    features: ["Versão profissional", "Alto rendimento", "Food Service", "Excelente custo-benefício"],
-    applications: ["Restaurantes", "Hamburguerias", "Dark Kitchens"],
-  },
-  {
-    name: "SALSA VERDE 300ML",
-    price: "R$ 14,90",
-    image: "/molhos.webp",
-    features: ["Receita mexicana tradicional", "Refrescante e levemente ácida", "Pronta para uso", "Muito versátil"],
-    applications: ["Tacos", "Burritos", "Nachos", "Carnes"],
-  },
-  {
-    name: "SALSA VERDE 600ML",
-    price: "R$ 21,90",
-    image: "/molhos.webp",
-    features: ["Embalagem econômica", "Alto rendimento", "Food Service", "Pronta para uso"],
-    applications: ["Restaurantes", "Lanchonetes", "Franquias"],
-  },
-  {
-    name: "KIT BASE BACON MAYO",
-    price: "R$ 25,00",
-    image: "/embalagens.webp",
-    features: ["Produza até 2 litros", "Receita exclusiva", "Fácil preparo", "Alta lucratividade"],
-    applications: ["Hambúrgueres", "Batatas", "Sanduíches", "Porções"],
-  },
-  {
-    name: "KIT BASE CHIPOTLE",
-    price: "R$ 19,00",
-    image: "/embalagens-3.webp",
-    features: ["Produza até 2 litros", "Sabor defumado mexicano", "Fácil preparo", "Excelente rendimento"],
-    applications: ["Hambúrgueres", "Tacos", "Sanduíches", "Batatas"],
-  },
-  {
-    name: "CHAMOY (GELEIA) 500G",
-    price: "R$ 21,00",
-    image: "/molhos.webp",
-    features: ["Molho mexicano agridoce", "Levemente picante", "Ideal para drinks", "Também usado em sobremesas e frutas"],
-    applications: ["Drinks", "Sorvetes", "Frutas (manga, laranja, abacaxi)", "Sobremesas"],
-  },
-  {
-    name: "AÇÚCAR ESPECIAL PARA CHURROS 500G",
-    price: "R$ 7,00",
-    image: "/embalagens-2.webp",
-    features: ["Mistura pronta", "Sabor autêntico", "Fácil aplicação", "Padronização garantida"],
-    applications: ["Churros", "Sonhos", "Rosquinhas"],
-  },
-  {
-    name: "SAL ESPECIAL PARA BATATA 500G",
-    price: "R$ 12,00",
-    image: "/embalagens.webp",
-    features: ["Tempero exclusivo", "Alta aderência", "Sabor intenso", "Pronto para uso"],
-    applications: ["Batata Frita", "Batata Rústica", "Porções"],
-  },
-  {
-    name: "SAL ESPECIAL PARA CHIPS 500G",
-    price: "R$ 6,00",
-    image: "/embalagens-3.webp",
-    features: ["Tempero exclusivo", "Realça sabor", "Fácil aplicação", "Excelente rendimento"],
-    applications: ["Chips", "Snacks", "Batatas"],
-  },
-  {
-    name: "TAJÍN 250G",
-    price: "R$ 32,00",
-    image: "/molhos.webp",
-    features: ["Tempero mexicano original", "Toque cítrico e picante", "Muito versátil", "Alto rendimento"],
-    applications: ["Frutas", "Drinks", "Batatas", "Milho", "Petiscos"],
-  },
+const homeBestSellerSlugs = [
+  "carne-barbacoa-1-5kg",
+  "carne-chili-beans-1-5kg",
+  "carne-costelinha-1-5kg",
+  "chili-veg-1kg",
+  "frango-desfiado-ao-molho-1-5kg",
+  "frijoles-refritos-1kg",
+  "base-arroz-mexicano-100g",
+  "frango-empanado-hot-10un",
+  "churros-palito-1kg",
+  "mini-churros-sem-recheio-1kg",
+  "salsa-jalapeno-200ml",
+  "salsa-jalapeno-2l",
+  "salsa-ghost-pepper-200ml",
+  "salsa-hot-pickles-200ml",
+  "salsa-hot-pickles-1l",
+  "salsa-negra-200ml",
+  "salsa-habanero-pina-200ml",
+  "salsa-roja-1l",
+  "salsa-sweet-chili-200ml",
+  "salsa-sweet-chili-2l",
+  "salsa-verde-300ml",
+  "salsa-verde-600ml",
+  "kit-base-bacon-mayo",
+  "kit-base-molho-chipotle",
+  "chamoy-geleia-500g",
+  "acucar-especial-churros-500g",
+  "sal-temperado-batata-500g",
+  "sal-temperado-chips-500g",
+  "tajin-250g",
 ]
+
+const homeBestSellerProducts = homeBestSellerSlugs
+  .map((slug) => catalogProductsBySlug.get(slug))
+  .filter((product) => product !== undefined)
 
 const factoryFeatures = [
   { value: "700m²", label: "Estrutura" },
@@ -373,7 +227,7 @@ export default function Home() {
 
       <section className="bg-background py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-4">
-          <SectionHeader eyebrow="Operações atendidas" title="PARA QUEM É" />
+          <SectionHeader eyebrow="Para cozinhas que precisam vender com padrão e velocidade" title="PARA QUEM É" />
           <div className="mt-9 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             {audiences.map((audience) => (
               <div key={audience.title} className="border border-border bg-graphite p-5">
@@ -390,10 +244,7 @@ export default function Home() {
 
       <section className="border-y border-border bg-graphite py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-4">
-          <SectionHeader eyebrow="Linhas de produtos" title="CATEGORIAS" />
-          <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Visualmente fica muito mais fácil entender.
-          </p>
+          <SectionHeader eyebrow="Organize seu pedido por linha de produção" title="CATEGORIAS" />
           <div className="mt-9 grid grid-cols-1 gap-5 lg:grid-cols-3">
             {categories.map((category) => (
               <Link key={category.title} href={category.href} className="group relative isolate block overflow-hidden border border-border bg-background transition-[border-color,box-shadow] duration-300 hover:border-lime/40 hover:shadow-[0_0_24px_rgba(230,230,59,0.1)]">
@@ -420,10 +271,10 @@ export default function Home() {
 
       <section className="bg-background py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-4">
-          <SectionHeader eyebrow="Produtos mais vendidos" title="PRODUTOS" />
+          <SectionHeader eyebrow="Itens com maior saída para operações de food service" title="PRODUTOS MAIS VENDIDOS" />
           <div className="mt-9 grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
-            {productDetails.map((product) => (
-              <ProductDetailCard key={product.name} product={product} />
+            {homeBestSellerProducts.map((product) => (
+              <ProductDetailCard key={product.slug} product={product} />
             ))}
           </div>
         </div>
@@ -432,7 +283,7 @@ export default function Home() {
       <section className="border-y border-border bg-graphite py-16 md:py-20">
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 lg:grid-cols-[0.92fr_1.08fr]">
           <div className="space-y-6">
-            <SectionHeader eyebrow="Conheça a fábrica" title="CONHEÇA A NACHO FACTORY" />
+            <SectionHeader eyebrow="Estrutura própria para produzir, congelar e armazenar" title="CONHEÇA A FÁBRICA" />
             <div className="space-y-4 border-l-2 border-lime pl-5">
               <p className="text-base leading-relaxed text-foreground md:text-lg">
                 O que começou em uma pequena cozinha para abastecer a Rede Nacho Man evoluiu para uma indústria com mais de 700m² de estrutura.
@@ -473,7 +324,7 @@ export default function Home() {
 
       <section className="bg-background py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-4">
-          <SectionHeader eyebrow="Processo de compra" title="COMO FUNCIONA" />
+          <SectionHeader eyebrow="Do carrinho online à entrega no seu negócio" title="COMO FUNCIONA" />
           <div className="mt-9 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             {processSteps.map((step, index) => (
               <div key={step.title} className="border border-border bg-graphite p-5">
@@ -489,7 +340,7 @@ export default function Home() {
       <section className="border-y border-border bg-graphite py-16 md:py-20">
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 lg:grid-cols-[0.9fr_1.1fr]">
           <div>
-            <SectionHeader eyebrow="Prova social" title="QUEM CONFIA NA NACHO FACTORY" />
+            <SectionHeader eyebrow="Volume, recorrência e estrutura industrial" title="Prova social" />
             <div className="mt-7 space-y-3">
               {trustStats.map((stat) => (
                 <div key={stat} className="flex items-center gap-3 border border-border bg-background/45 p-4">
@@ -519,7 +370,7 @@ export default function Home() {
       <section className="bg-lime py-14 text-background">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-background/65">Atendimento Comercial</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-background/65">Fale com nosso time comercial</p>
             <h2 className="mt-2 text-3xl font-black uppercase leading-tight md:text-4xl">
               SOLICITE UM ORÇAMENTO PELO WHATSAPP
             </h2>

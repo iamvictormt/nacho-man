@@ -10,24 +10,24 @@ const topics = [
     icon: ShoppingCart,
     title: "Fazer um Pedido",
     description: "Envie seu pedido diretamente pelo WhatsApp de forma rápida e prática.",
-    message: "Olá! Gostaria de fazer um pedido pelo site Nacho Man.",
+    message: "Olá! Gostaria de fazer um pedido pelo site da Nacho Factory.",
   },
   {
     icon: HelpCircle,
     title: "Dúvidas sobre Produtos",
     description: "Tire suas dúvidas sobre ingredientes, preparo ou disponibilidade.",
-    message: "Olá! Tenho uma dúvida sobre os produtos da Nacho Man.",
+    message: "Olá! Tenho uma dúvida sobre os produtos da Nacho Factory.",
   },
   {
     icon: Handshake,
     title: "Parceria Comercial",
     description: "Interessado em revender ou fazer parceria? Fale com nosso time.",
-    message: "Olá! Gostaria de saber sobre parcerias comerciais com a Nacho Man.",
+    message: "Olá! Gostaria de saber sobre parcerias comerciais com a Nacho Factory.",
   },
 ]
 
-const FORMATTED_WHATSAPP = "(11) 9 9999-9999"
-const BUSINESS_HOURS = "Seg-Sex, 8h-18h"
+const FORMATTED_WHATSAPP = "+55 47 9726-9146"
+const BUSINESS_HOURS = "SEG A SEX das 7h às 12h - 13h às 17h30"
 const LOCATION = "Blumenau, SC"
 
 export default function ContatoPage() {
@@ -151,13 +151,13 @@ export default function ContatoPage() {
                   </p>
                 </div>
                 <button
-                  onClick={() => openWhatsApp("Olá! Vim pelo site da Nacho Man e gostaria de mais informações.")}
+                  onClick={() => openWhatsApp("Olá! Vim pelo site da Nacho Factory e gostaria de mais informações.")}
                   className="w-full flex items-center justify-center gap-3 bg-[#25D366] text-white font-black text-sm tracking-wider py-4 rounded-full hover:shadow-[0_0_20px_rgba(37,211,102,0.3)] transition-all duration-300"
                 >
                   INICIAR CONVERSA
                 </button>
                 <p className="text-[10px] text-muted-foreground">
-                  Resposta em até 30 minutos no horário comercial
+                  Atendimento em horário comercial
                 </p>
               </div>
             </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowRight, Flame, Snowflake, Utensils } from "lucide-react"
+import { ArrowRight, Flame, Package, Snowflake, Utensils } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -22,12 +22,12 @@ const categories = [
     href: "/produtos?category=SECO",
   },
   {
-    icon: Flame,
-    title: "COMBOS PROMOCIONAIS",
+    icon: Package,
+    title: "BASES & INSUMOS",
     description:
-      "Kits especiais com desconto exclusivo. Monte seu estoque com economia e variedade garantida.",
+      "Bases, temperos e kits de preparo para padronizar receitas e agilizar a rotina da cozinha.",
     image: "/camara-fria.webp",
-    href: "/combos",
+    href: "/produtos?category=Kits",
   },
 ]
 

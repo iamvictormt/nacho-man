@@ -181,11 +181,13 @@ export function CartDrawer() {
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
               <div className="relative h-32 w-32 rounded-full bg-lime/10 border border-lime/20 flex items-center justify-center">
-                <Image
+                <img
                   src="/burrito-pegando-fogo-fundo-amarelo.svg"
                   alt=""
                   width={76}
                   height={76}
+                  loading="eager"
+                  decoding="sync"
                   className="h-24 w-24 object-contain p-2 opacity-50"
                   aria-hidden="true"
                 />

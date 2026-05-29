@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowRight, Factory, Flame, Snowflake } from "lucide-react"
+import { ArrowRight, Factory, Flame, Package } from "lucide-react"
 import Link from "next/link"
 
 const banners = [
@@ -44,18 +44,18 @@ const banners = [
     minHeight: "min-h-[130px]",
   },
   {
-    id: "combos",
+    id: "bases",
     image: null,
     alt: "",
-    icon: Snowflake,
-    label: "COMBOS ESPECIAIS",
+    icon: Package,
+    label: "BASES & INSUMOS",
     labelColor: "text-background/70",
-    title: "KITS &",
-    titleHighlight: "COMBOS",
+    title: "KITS DE",
+    titleHighlight: "PREPARO",
     highlightColor: "text-background",
-    description: "Monte seu pedido com economia. Combos prontos para food service.",
-    link: "/combos",
-    linkText: "VER COMBOS",
+    description: "Padronize receitas com bases, temperos e insumos prontos para operação.",
+    link: "/produtos?category=Kits",
+    linkText: "VER INSUMOS",
     linkColor: "text-background",
     borderHover: "",
     hoverShadow: "hover:shadow-[0_0_30px_rgba(230,230,59,0.2)]",
@@ -158,7 +158,7 @@ export function PromoBanners() {
               </div>
             </div>
 
-            {/* Banner 3 - Combos (highlight) */}
+            {/* Banner 3 - Bases (highlight) */}
             <div
               className={`relative group overflow-hidden rounded-2xl bg-lime border border-lime/50 ${banners[2].hoverShadow} transition-all duration-500 ${banners[2].minHeight}`}
             >
@@ -174,7 +174,7 @@ export function PromoBanners() {
 
               <div className="relative h-full flex flex-col justify-center p-6 space-y-2">
                 <div className="flex items-center gap-2">
-                  <Snowflake className="h-4 w-4 text-background" />
+                  <Package className="h-4 w-4 text-background" />
                   <span className="text-[9px] font-black tracking-[0.2em] text-background/70">
                     {banners[2].label}
                   </span>

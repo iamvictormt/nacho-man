@@ -15,10 +15,9 @@ import {
   Snowflake,
 } from "lucide-react"
 import { useCartStore } from "@/lib/cart-store"
-import { getProductBySlug, getRelatedProducts, allProducts } from "@/lib/products"
-import { productDetailsBySlug } from "@/lib/product-details"
+import { getProductBySlug, getRelatedProducts, catalogProducts } from "@/lib/products"
 import { formatPrice } from "@/lib/format"
-import { ProductCard } from "@/components/product-card"
+import { ProductDetailCard } from "@/components/product-detail-card"
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -32,7 +31,6 @@ export default function ProductDetailPage() {
   const params = useParams()
   const slug = params.slug as string
   const product = getProductBySlug(slug)
-  const productDetail = productDetailsBySlug.get(slug)
 
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
@@ -53,7 +51,7 @@ export default function ProductDetailPage() {
     )
   }
 
-  const relatedProducts = getRelatedProducts(product, allProducts, 4)
+  const relatedProducts = getRelatedProducts(product, catalogProducts, 4)
   const careInfo =
     product.category === "CONGELADO"
       ? [
@@ -70,9 +68,9 @@ export default function ProductDetailPage() {
   function handleAdd() {
     for (let i = 0; i < quantity; i++) {
       addItem({
-        name: productDetail?.name ?? product!.name,
+        name: product!.displayName,
         price: product!.price,
-        image: productDetail?.image ?? product!.image,
+        image: product!.image,
       })
     }
     setAdded(true)
@@ -151,10 +149,10 @@ export default function ProductDetailPage() {
 
               {/* Name */}
               <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tight leading-tight">
-                {productDetail?.name ?? product.name}
+                {product.displayName}
               </h1>
-              {productDetail?.subtitle && (
-                <p className="text-sm font-bold text-lime">{productDetail.subtitle}</p>
+              {product.subtitle && (
+                <p className="text-sm font-bold text-lime">{product.subtitle}</p>
               )}
 
               {/* Description */}
@@ -162,38 +160,36 @@ export default function ProductDetailPage() {
                 {product.description}
               </p>
 
-              {productDetail && (
-                <div className="grid grid-cols-1 gap-5 border-y border-border/50 py-5 md:grid-cols-2">
-                  <div>
-                    <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">
-                      Características
-                    </p>
-                    <ul className="space-y-2">
-                      {productDetail.features.map((feature) => (
-                        <li key={feature} className="flex gap-2 text-sm text-muted-foreground">
-                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-lime" aria-hidden="true" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">
-                      Aplicações
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {productDetail.applications.map((application) => (
-                        <span
-                          key={application}
-                          className="border border-border bg-graphite px-2.5 py-1 text-[11px] font-bold text-muted-foreground"
-                        >
-                          {application}
-                        </span>
-                      ))}
-                    </div>
+              <div className="grid grid-cols-1 gap-5 border-y border-border/50 py-5 md:grid-cols-2">
+                <div>
+                  <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">
+                    Características
+                  </p>
+                  <ul className="space-y-2">
+                    {product.features.map((feature) => (
+                      <li key={feature} className="flex gap-2 text-sm text-muted-foreground">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-lime" aria-hidden="true" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">
+                    Aplicações
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {product.applications.map((application) => (
+                      <span
+                        key={application}
+                        className="border border-border bg-graphite px-2.5 py-1 text-[11px] font-bold text-muted-foreground"
+                      >
+                        {application}
+                      </span>
+                    ))}
                   </div>
                 </div>
-              )}
+              </div>
 
               {/* Weight */}
               <div className="space-y-1">
@@ -291,9 +287,9 @@ export default function ProductDetailPage() {
             <h2 className="text-xl md:text-2xl font-black text-foreground tracking-tight mb-8">
               PRODUTOS <span className="text-lime">RELACIONADOS</span>
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">
               {relatedProducts.map((relatedProduct) => (
-                <ProductCard key={relatedProduct.slug} product={relatedProduct} />
+                <ProductDetailCard key={relatedProduct.slug} product={relatedProduct} />
               ))}
             </div>
           </div>

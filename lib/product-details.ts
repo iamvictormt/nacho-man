@@ -1,10 +1,18 @@
-import type { ProductDetail } from "@/components/product-detail-card"
+type ProductDetail = {
+  slug: string
+  name: string
+  subtitle?: string
+  price: string
+  image: string
+  features: string[]
+  applications: string[]
+}
 
 export const productDetails: ProductDetail[] = [
   {
     slug: "carne-barbacoa-1-5kg",
     name: "CARNE BARBACOA DESFIADA 1,5kg",
-    price: "R$ 71",
+    price: "R$ 71,00",
     image: "/carne.webp",
     features: ["Carne bovina desfiada", "Cozimento lento", "Pronta para servir", "Congelada", "Rende até 15 porções de 100g"],
     applications: ["Tacos", "Burritos", "Nachos", "Hambúrgueres", "Pizzas", "Saladas"],
@@ -235,7 +243,3 @@ export const productDetails: ProductDetail[] = [
     applications: ["Frutas", "Drinks", "Batatas", "Milho", "Petiscos"],
   },
 ]
-
-export const productDetailsBySlug = new Map(
-  productDetails.map((product) => [product.slug, product])
-)
