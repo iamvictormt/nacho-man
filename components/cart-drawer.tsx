@@ -1,7 +1,16 @@
 "use client"
 
 import Image from "next/image"
-import { X, Minus, Plus, Trash2, ShoppingBag, MessageCircle } from "lucide-react"
+import {
+  CheckCircle2,
+  MessageCircle,
+  Minus,
+  Plus,
+  ShieldCheck,
+  ShoppingBag,
+  Trash2,
+  X,
+} from "lucide-react"
 import { useCartStore } from "@/lib/cart-store"
 import { formatPrice } from "@/lib/format"
 import {
@@ -224,6 +233,17 @@ export function CartDrawer() {
               <span className="text-2xl font-black text-lime">
                 {formatPrice(totalPrice())}
               </span>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2 rounded-2xl border border-border/50 bg-graphite/70 p-3">
+              <div className="flex items-center gap-2 text-[11px] font-semibold text-muted-foreground">
+                <ShieldCheck className="h-4 w-4 text-lime" aria-hidden="true" />
+                Sem pagamento online: você confirma tudo no WhatsApp.
+              </div>
+              <div className="flex items-center gap-2 text-[11px] font-semibold text-muted-foreground">
+                <CheckCircle2 className="h-4 w-4 text-lime" aria-hidden="true" />
+                Itens, quantidades e total já vão organizados na mensagem.
+              </div>
             </div>
 
             {/* Popup blocked message */}

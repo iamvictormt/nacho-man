@@ -27,6 +27,7 @@ const categoryCards = [
     description: "Carnes, acompanhamentos e sobremesas prontas para finalizar.",
     href: "/produtos?category=CONGELADO",
     image: "/produtos-congelados.webp",
+    brandIcon: "/cacto-roxo.svg",
     icon: Snowflake,
     accent: "text-lime",
   },
@@ -35,6 +36,7 @@ const categoryCards = [
     description: "Salsas, bases, kits e temperos para dar assinatura mexicana ao pedido.",
     href: "/produtos?category=SECO",
     image: "/molhos.webp",
+    brandIcon: "/molho-roxo.svg",
     icon: Flame,
     accent: "text-purple-medium",
   },
@@ -43,6 +45,7 @@ const categoryCards = [
     description: "Seleções prontas com economia para montar estoque ou abastecer eventos.",
     href: "/combos",
     image: "/embalagens-3.webp",
+    brandIcon: "/burrito-pegando-fogo-roxo.svg",
     icon: PackageCheck,
     accent: "text-lime",
   },
@@ -205,6 +208,14 @@ export default function Home() {
                   className="object-cover transition-transform duration-700 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
+                <Image
+                  src={category.brandIcon}
+                  alt=""
+                  width={96}
+                  height={96}
+                  className="absolute right-4 top-4 h-20 w-20 object-contain opacity-20 transition-transform duration-500 group-hover:scale-110"
+                  aria-hidden="true"
+                />
                 <div className="absolute bottom-0 left-0 right-0 p-5">
                   <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-background/80 backdrop-blur">
                     <category.icon className={`h-5 w-5 ${category.accent}`} aria-hidden="true" />

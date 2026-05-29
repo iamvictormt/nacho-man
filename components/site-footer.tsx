@@ -79,7 +79,7 @@ export function SiteFooter() {
               <img
                 src="/nacho-man-logo-roxo-inteira.svg"
                 alt="Nacho Man"
-                className="h-24 w-auto"
+                className="h-28 w-auto"
               />
             </Link>
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground">
@@ -139,7 +139,7 @@ export function SiteFooter() {
             <div className="grid gap-3">
               <ContactLine icon={Phone} label="WhatsApp" value={whatsappDisplay} />
               <ContactLine icon={Mail} label="Email" value="contato@nachoman.com.br" />
-              <ContactLine icon={MapPin} label="Localizacao" value="Sao Paulo, SP" />
+              <ContactLine icon={MapPin} label="Localizacao" value="Blumenau, SC" />
             </div>
           </div>
 
@@ -164,7 +164,7 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-10 flex flex-col gap-3 border-t border-border/60 pt-6 text-xs text-muted-foreground/70 md:flex-row md:items-center md:justify-between">
-          <p>© {year} Nacho Man Mexican Food. Todos os direitos reservados.</p>
+          <p>© {year} Nacho Man. Todos os direitos reservados.</p>
           <p className="font-semibold text-muted-foreground/60">
             Congelados, molhos, temperos e combos mexicanos.
           </p>

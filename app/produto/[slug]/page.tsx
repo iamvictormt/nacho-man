@@ -4,7 +4,16 @@ import { useParams } from "next/navigation"
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ShoppingCart, Check, Minus, Plus } from "lucide-react"
+import {
+  Check,
+  ChefHat,
+  Clock3,
+  Minus,
+  Plus,
+  ShieldCheck,
+  ShoppingCart,
+  Snowflake,
+} from "lucide-react"
 import { useCartStore } from "@/lib/cart-store"
 import { getProductBySlug, getRelatedProducts, allProducts } from "@/lib/products"
 import { formatPrice } from "@/lib/format"
@@ -43,6 +52,18 @@ export default function ProductDetailPage() {
   }
 
   const relatedProducts = getRelatedProducts(product, allProducts, 4)
+  const careInfo =
+    product.category === "CONGELADO"
+      ? [
+          { icon: Snowflake, title: "Conservacao", text: "Mantenha congelado a -18°C ate o preparo." },
+          { icon: ChefHat, title: "Preparo", text: "Aqueça ou finalize conforme sua operacao e porcione ainda quente." },
+          { icon: Clock3, title: "Praticidade", text: "Produto pensado para reduzir tempo de cozinha e padronizar pedidos." },
+        ]
+      : [
+          { icon: ShieldCheck, title: "Armazenamento", text: "Guarde em local seco, fresco e protegido da luz direta." },
+          { icon: ChefHat, title: "Uso", text: "Aplique em finalizacoes, molhos, porcoes, tacos, bowls e sanduiches." },
+          { icon: Clock3, title: "Rendimento", text: "Ideal para reposicao rapida e uso recorrente no atendimento." },
+        ]
 
   function handleAdd() {
     for (let i = 0; i < quantity; i++) {
@@ -199,6 +220,22 @@ export default function ProductDetailPage() {
                     </>
                   )}
                 </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 border-t border-border/50 pt-6 sm:grid-cols-3">
+                {careInfo.map((item) => (
+                  <div key={item.title} className="rounded-2xl border border-border bg-graphite p-4">
+                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-lime/25 bg-lime/10">
+                      <item.icon className="h-4 w-4 text-lime" aria-hidden="true" />
+                    </div>
+                    <p className="text-[10px] font-black uppercase tracking-wider text-foreground">
+                      {item.title}
+                    </p>
+                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                      {item.text}
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

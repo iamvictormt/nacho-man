@@ -19,7 +19,7 @@ export const allCombos: Combo[] = [
       { productSlug: "carne-costelinha-1-5kg", quantity: 1 },
     ],
     promoPrice: 149.9,
-    image: "/placeholder.svg?height=400&width=400",
+    image: "/carne.webp",
     inStock: true,
   },
   {
@@ -32,7 +32,7 @@ export const allCombos: Combo[] = [
       { productSlug: "salsa-habanero-pina-200ml", quantity: 1 },
     ],
     promoPrice: 39.9,
-    image: "/placeholder.svg?height=400&width=400",
+    image: "/molhos.webp",
     inStock: true,
   },
   {
@@ -45,7 +45,7 @@ export const allCombos: Combo[] = [
       { productSlug: "salsa-jalapeno-200ml", quantity: 2 },
     ],
     promoPrice: 199.9,
-    image: "/placeholder.svg?height=400&width=400",
+    image: "/embalagens.webp",
     inStock: true,
   },
   {
@@ -57,7 +57,7 @@ export const allCombos: Combo[] = [
       { productSlug: "acucar-especial-churros-500g", quantity: 1 },
     ],
     promoPrice: 34.9,
-    image: "/placeholder.svg?height=400&width=400",
+    image: "/embalagens-2.webp",
     inStock: true,
   },
 ]

@@ -30,7 +30,7 @@ export function Navbar() {
           <img
             src="/nacho-man-logo-amarelo.svg"
             alt="NachoMan"
-            className="h-12 md:h-18 w-auto"
+            className="h-14 md:h-18 w-auto"
           />
         </Link>
 
