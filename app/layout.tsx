@@ -5,6 +5,7 @@ import { TopBar } from '@/components/top-bar'
 import { Navbar } from '@/components/navbar'
 import { SiteFooter } from '@/components/site-footer'
 import { CartDrawerWrapper } from '@/components/cart-drawer-wrapper'
+import { HashScrollHandler } from '@/components/hash-scroll-handler'
 import './globals.css'
 
 const montserrat = Montserrat({
@@ -29,6 +30,7 @@ export default function RootLayout({
       <body className={`${montserrat.className} font-sans antialiased`}>
         <TopBar />
         <Navbar />
+        <HashScrollHandler />
         <main>{children}</main>
         <SiteFooter />
         <CartDrawerWrapper />

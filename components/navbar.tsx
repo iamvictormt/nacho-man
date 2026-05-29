@@ -23,7 +23,7 @@ export function Navbar() {
   useEffect(() => { setMounted(true) }, [])
 
   return (
-    <nav className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur-md border-b border-border">
+    <nav data-site-navbar className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur-md border-b border-border">
       <div className="mx-auto max-w-7xl flex items-center justify-between px-4 h-22">
         {/* Logo */}
         <Link href="/" className="flex items-center">
