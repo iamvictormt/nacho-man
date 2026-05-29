@@ -2,6 +2,7 @@
 
 import { X, Minus, Plus, Trash2, ShoppingBag, MessageCircle } from "lucide-react"
 import { useCartStore } from "@/lib/cart-store"
+import { useEffect, useState } from "react"
 
 const WHATSAPP_NUMBER = "5562985329181"
 
@@ -9,7 +10,27 @@ export function CartDrawer() {
   const { items, isOpen, closeCart, removeItem, updateQuantity, totalItems, totalPrice, clearCart } =
     useCartStore()
 
-  if (!isOpen) return null
+  // Controls the animated state (delayed close for exit animation)
+  const [visible, setVisible] = useState(false)
+  const [animating, setAnimating] = useState(false)
+
+  useEffect(() => {
+    if (isOpen) {
+      setVisible(true)
+      document.body.style.overflow = "hidden"
+      // Small delay to trigger enter animation
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setAnimating(true))
+      })
+    } else {
+      setAnimating(false)
+      document.body.style.overflow = ""
+      const timeout = setTimeout(() => setVisible(false), 300)
+      return () => clearTimeout(timeout)
+    }
+  }, [isOpen])
+
+  if (!visible) return null
 
   const formattedTotal = totalPrice().toFixed(2).replace(".", ",")
 
@@ -37,12 +58,18 @@ export function CartDrawer() {
     <>
       {/* Overlay */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 transition-opacity"
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-50 transition-opacity duration-300 ${
+          animating ? "opacity-100" : "opacity-0"
+        }`}
         onClick={closeCart}
       />
 
       {/* Drawer */}
-      <div className="fixed top-0 right-0 h-full w-full max-w-md bg-background border-l border-border/30 z-50 flex flex-col shadow-2xl">
+      <div
+        className={`fixed top-0 right-0 h-full w-full max-w-md bg-background border-l border-border/30 z-50 flex flex-col shadow-2xl transition-transform duration-300 ease-out ${
+          animating ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-border/20">
           <div className="flex items-center gap-3">
@@ -81,20 +108,30 @@ export function CartDrawer() {
               </button>
             </div>
           ) : (
-            items.map((item) => (
-              <CartItemCard
+            items.map((item, index) => (
+              <div
                 key={item.name}
-                item={item}
-                onRemove={() => removeItem(item.name)}
-                onUpdateQuantity={(qty) => updateQuantity(item.name, qty)}
-              />
+                className={`transition-all duration-300 ${animating ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0"}`}
+                style={{ transitionDelay: animating ? `${100 + index * 60}ms` : "0ms" }}
+              >
+                <CartItemCard
+                  item={item}
+                  onRemove={() => removeItem(item.name)}
+                  onUpdateQuantity={(qty) => updateQuantity(item.name, qty)}
+                />
+              </div>
             ))
           )}
         </div>
 
         {/* Footer */}
         {items.length > 0 && (
-          <div className="border-t border-border/20 p-5 space-y-4">
+          <div
+            className={`border-t border-border/20 p-5 space-y-4 transition-all duration-300 ${
+              animating ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+            }`}
+            style={{ transitionDelay: animating ? "200ms" : "0ms" }}
+          >
             {/* Total */}
             <div className="flex items-center justify-between">
               <span className="text-sm font-bold text-muted-foreground">TOTAL</span>
@@ -132,10 +169,10 @@ function CartItemCard({
   const subtotal = (item.price * item.quantity).toFixed(2).replace(".", ",")
 
   return (
-    <div className="flex gap-4 p-3 rounded-xl bg-graphite border border-border/20">
+    <div className="flex gap-4 p-3 rounded-xl bg-graphite border border-border/20 hover:border-purple-medium/30 transition-colors">
       {/* Image */}
-      <div className="h-20 w-20 rounded-lg bg-background/50 flex items-center justify-center shrink-0 overflow-hidden">
-        <img src={item.image} alt={item.name} className="h-16 w-16 object-contain" />
+      <div className="h-20 w-20 rounded-lg bg-background/50 shrink-0 overflow-hidden">
+        <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
       </div>
 
       {/* Info */}

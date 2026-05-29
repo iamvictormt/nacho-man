@@ -1,6 +1,7 @@
 "use client"
 
 import { create } from "zustand"
+import { persist, createJSONStorage } from "zustand/middleware"
 
 export interface CartItem {
   name: string
@@ -23,48 +24,83 @@ interface CartStore {
   totalPrice: () => number
 }
 
-export const useCartStore = create<CartStore>((set, get) => ({
-  items: [],
-  isOpen: false,
-
-  addItem: (item) => {
-    set((state) => {
-      const existing = state.items.find((i) => i.name === item.name)
-      if (existing) {
-        return {
-          items: state.items.map((i) =>
-            i.name === item.name ? { ...i, quantity: i.quantity + 1 } : i
-          ),
-        }
+// Custom storage that uses cookies with 1 year expiration
+const cookieStorage = {
+  getItem: (name: string): string | null => {
+    if (typeof document === "undefined") return null
+    const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"))
+    if (match) {
+      try {
+        return decodeURIComponent(match[2])
+      } catch {
+        return null
       }
-      return { items: [...state.items, { ...item, quantity: 1 }] }
-    })
-  },
-
-  removeItem: (name) => {
-    set((state) => ({
-      items: state.items.filter((i) => i.name !== name),
-    }))
-  },
-
-  updateQuantity: (name, quantity) => {
-    if (quantity <= 0) {
-      get().removeItem(name)
-      return
     }
-    set((state) => ({
-      items: state.items.map((i) =>
-        i.name === name ? { ...i, quantity } : i
-      ),
-    }))
+    return null
   },
+  setItem: (name: string, value: string): void => {
+    if (typeof document === "undefined") return
+    // 365 days expiration
+    const maxAge = 365 * 24 * 60 * 60
+    document.cookie = `${name}=${encodeURIComponent(value)};path=/;max-age=${maxAge};SameSite=Lax`
+  },
+  removeItem: (name: string): void => {
+    if (typeof document === "undefined") return
+    document.cookie = `${name}=;path=/;max-age=0`
+  },
+}
 
-  clearCart: () => set({ items: [] }),
-  toggleCart: () => set((state) => ({ isOpen: !state.isOpen })),
-  openCart: () => set({ isOpen: true }),
-  closeCart: () => set({ isOpen: false }),
+export const useCartStore = create<CartStore>()(
+  persist(
+    (set, get) => ({
+      items: [],
+      isOpen: false,
 
-  totalItems: () => get().items.reduce((acc, item) => acc + item.quantity, 0),
-  totalPrice: () =>
-    get().items.reduce((acc, item) => acc + item.price * item.quantity, 0),
-}))
+      addItem: (item) => {
+        set((state) => {
+          const existing = state.items.find((i) => i.name === item.name)
+          if (existing) {
+            return {
+              items: state.items.map((i) =>
+                i.name === item.name ? { ...i, quantity: i.quantity + 1 } : i
+              ),
+            }
+          }
+          return { items: [...state.items, { ...item, quantity: 1 }] }
+        })
+      },
+
+      removeItem: (name) => {
+        set((state) => ({
+          items: state.items.filter((i) => i.name !== name),
+        }))
+      },
+
+      updateQuantity: (name, quantity) => {
+        if (quantity <= 0) {
+          get().removeItem(name)
+          return
+        }
+        set((state) => ({
+          items: state.items.map((i) =>
+            i.name === name ? { ...i, quantity } : i
+          ),
+        }))
+      },
+
+      clearCart: () => set({ items: [] }),
+      toggleCart: () => set((state) => ({ isOpen: !state.isOpen })),
+      openCart: () => set({ isOpen: true }),
+      closeCart: () => set({ isOpen: false }),
+
+      totalItems: () => get().items.reduce((acc, item) => acc + item.quantity, 0),
+      totalPrice: () =>
+        get().items.reduce((acc, item) => acc + item.price * item.quantity, 0),
+    }),
+    {
+      name: "nachoman-cart",
+      storage: createJSONStorage(() => cookieStorage),
+      partialize: (state) => ({ items: state.items }), // only persist items, not isOpen
+    }
+  )
+)

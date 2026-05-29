@@ -7,14 +7,11 @@ import { CartDrawerWrapper } from "@/components/cart-drawer-wrapper"
 import {
   Factory,
   Snowflake,
-  Warehouse,
-  Scale,
   ArrowRight,
   ShieldCheck,
   ClipboardCheck,
   Users,
   Zap,
-  TrendingUp,
   MapPin,
 } from "lucide-react"
 
@@ -24,34 +21,35 @@ export default function SobrePage() {
       <TopBar />
       <Navbar />
 
-      {/* Hero - Estilo diferente: texto centralizado, sem grid */}
-      <section className="relative py-28 md:py-36 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-purple-dark/30 via-background to-background" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-purple-medium/8 blur-[150px]" />
+      {/* Hero */}
+      <section className="relative py-28 md:py-36 overflow-hidden bg-graphite border-b border-border">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 right-0 h-[400px] w-[400px] rounded-full bg-purple-medium/20 blur-[120px]" />
+          <div className="absolute bottom-0 left-0 h-[300px] w-[300px] rounded-full bg-purple-medium/10 blur-[100px]" />
+        </div>
+        {/* Neon lines */}
+        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-purple-medium/50 via-lime/30 to-purple-medium/50" />
+        <div className="absolute top-[30%] left-0 w-[30%] h-px bg-gradient-to-r from-purple-medium/30 to-transparent" />
 
-        {/* Poucos SVGs sutis nos cantos */}
-        <img src="/cacto-roxo.svg" alt="" className="absolute top-12 right-12 h-14 w-14 opacity-10 rotate-12 animate-float-2 pointer-events-none" aria-hidden="true" />
-        <img src="/pimenta-roxo.svg" alt="" className="absolute bottom-16 left-12 h-10 w-10 opacity-10 -rotate-6 animate-float-4 pointer-events-none" aria-hidden="true" />
+        {/* Floating icons */}
+        <img src="/cacto-roxo.svg" alt="" className="absolute top-12 right-12 h-14 w-14 opacity-20 animate-float-2 pointer-events-none" aria-hidden="true" />
+        <img src="/pimenta-roxo.svg" alt="" className="absolute bottom-16 left-12 h-10 w-10 opacity-20 animate-float-4 pointer-events-none" aria-hidden="true" />
+        <img src="/estrelas-roxo.svg" alt="" className="absolute top-[50%] right-[20%] h-8 w-8 opacity-15 animate-float-1 pointer-events-none" aria-hidden="true" />
 
         <div className="relative mx-auto max-w-3xl px-4 text-center">
-          <div className="inline-flex items-center gap-2 bg-lime/10 border border-lime/20 rounded-full px-4 py-1.5 mb-8">
-            <MapPin className="h-3 w-3 text-lime" />
-            <span className="text-xs font-bold text-lime tracking-wider">BLUMENAU - SC</span>
-          </div>
-
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-foreground tracking-tight leading-[0.95]">
             QUEM É A<br />
-            <span className="text-lime neon-glow">NACHO FACTORY ALIMENTOS</span>
+            <span className="text-lime neon-glow italic">NACHO FACTORY</span>
           </h1>
 
           <p className="text-muted-foreground text-lg md:text-xl mt-8 max-w-2xl mx-auto leading-relaxed">
-            Uma indústria especializada na produção de alimentos para restaurantes, cafeterias, empresas de alimentação e marcas próprias.
+            Uma indústria especializada na produção de alimentos congelados para restaurantes, cafeterias, dark kitchens e marcas próprias.
           </p>
         </div>
       </section>
 
-      {/* Diferenciais - Faixa horizontal */}
-      <section className="py-6 bg-graphite border-y border-border/20">
+      {/* Diferenciais */}
+      <section className="py-6 bg-background border-b border-border">
         <div className="mx-auto max-w-7xl px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
@@ -74,150 +72,191 @@ export default function SobrePage() {
         </div>
       </section>
 
-      {/* O Que Produzimos */}
+      {/* Quem Somos */}
       <section className="py-20">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
-            {/* Texto à esquerda */}
-            <div className="lg:col-span-2 space-y-5">
-              <span className="text-[10px] font-black tracking-[0.3em] text-lime">O QUE PRODUZIMOS</span>
-              <h2 className="text-3xl font-black text-foreground tracking-tight">
-                SOLUÇÕES PRONTAS<br />PARA O SEU <span className="text-lime">NEGÓCIO</span>
-              </h2>
-              <p className="text-muted-foreground leading-relaxed">
-                Produtos práticos e saborosos, desenvolvidos para a rotina do food service.
-              </p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="relative rounded-2xl overflow-hidden border border-border">
+              <img
+                src="/local-nacho-factory.webp"
+                alt="Nacho Factory Alimentos - Blumenau SC"
+                className="w-full h-auto md:h-[600px] object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
+              <div className="absolute bottom-4 left-4 flex items-center gap-2 bg-background/80 backdrop-blur-sm rounded-full px-3 py-1.5 border border-border">
+                <MapPin className="h-3 w-3 text-lime" />
+                <span className="text-[10px] font-bold text-foreground tracking-wider">BLUMENAU - SC</span>
+              </div>
             </div>
 
-            {/* Grid de produtos */}
-            <div className="lg:col-span-3 grid grid-cols-2 md:grid-cols-3 gap-3">
-              {[
-                { icon: "/pimenta-roxo.svg", name: "Molhos de pimentas" },
-                { icon: "/molho-roxo.svg", name: "Maioneses e molhos especiais" },
-                { icon: "/burrito-pegando-fogo-roxo.svg", name: "Proteínas cozidas e desfiadas" },
-                { icon: "/abacate-roxo.svg", name: "Empanados" },
-                { icon: "/burrito-roxo.svg", name: "Bases e preparos" },
-                { icon: "/coracao-pegando-fogo-roxo.svg", name: "E muito mais!" },
-              ].map((item, i) => (
-                <div
-                  key={i}
-                  className="group flex flex-col items-center gap-3 p-5 rounded-2xl bg-graphite border border-border/30 hover:border-lime/30 transition-all duration-300 text-center"
-                >
-                  <img src={item.icon} alt="" className="h-12 w-12 opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" aria-hidden="true" />
-                  <span className="text-[11px] font-bold text-foreground/80">{item.name}</span>
-                </div>
-              ))}
+            <div className="space-y-6">
+              <span className="text-[10px] font-black tracking-[0.3em] text-lime">QUEM SOMOS</span>
+              <h2 className="text-3xl md:text-4xl font-black text-foreground tracking-tight leading-tight">
+                INDÚSTRIA DE ALIMENTOS<br />FEITA PARA O SEU NEGÓCIO<br /><span className="text-lime neon-glow">CRESCER.</span>
+              </h2>
+              <p className="text-muted-foreground leading-relaxed">
+                A Nacho Factory Alimentos é uma indústria especializada na produção de alimentos congelados para restaurantes, cafeterias, dark kitchens e marcas próprias. Oferecemos também armazenagem refrigerada para produtos de terceiros.
+              </p>
+              <ul className="space-y-3">
+                {[
+                  "Produção de molhos, empanados e proteínas prontas",
+                  "Armazenagem refrigerada e congelada para terceiros",
+                  "Processos padronizados e controle de qualidade",
+                  "Segurança alimentar e rastreabilidade total",
+                  "Capacidade para pequenos e grandes volumes",
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div className="h-5 w-5 rounded-full bg-lime/10 border border-lime/30 flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="text-[8px] text-lime font-bold">✓</span>
+                    </div>
+                    <span className="text-sm text-foreground/80">{item}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Congelados + Infraestrutura - Layout lado a lado */}
-      <section className="py-20 bg-graphite border-y border-border/20">
-        <div className="mx-auto max-w-7xl px-4 space-y-16">
-          {/* Congelados */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-5">
-              <div className="inline-flex items-center gap-2 bg-purple-medium/15 border border-purple-medium/25 rounded-full px-3 py-1">
-                <Snowflake className="h-3 w-3 text-purple-medium" />
-                <span className="text-[10px] font-bold text-purple-medium tracking-wider">CONGELADOS</span>
-              </div>
-              <h2 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">
-                QUALIDADE QUE<br /><span className="text-lime">VOCÊ CONGELA</span>
-              </h2>
-              <p className="text-muted-foreground leading-relaxed">
-                Mais sabor, praticidade e vida útil para o seu dia a dia. Congelamos qualidade para você servir o melhor sempre.
-              </p>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { value: "−18°C", sub: "armazenagem" },
-                { value: "100%", sub: "rastreável" },
-                { value: "365d", sub: "validade" },
-              ].map((item, i) => (
-                <div key={i} className="text-center p-5 rounded-2xl bg-background/50 border border-border/30">
-                  <p className="text-xl font-black text-lime">{item.value}</p>
-                  <p className="text-[9px] font-semibold text-muted-foreground tracking-wider mt-1">{item.sub}</p>
-                </div>
-              ))}
-            </div>
+      {/* O Que Produzimos */}
+      <section className="py-20 bg-graphite border-y border-border relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-purple-medium/40 via-lime/20 to-purple-medium/40" />
+        <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-medium/20 to-transparent" />
+        <div className="absolute top-[20%] right-0 h-60 w-60 rounded-full bg-purple-medium/10 blur-[100px] pointer-events-none" />
+        <img src="/maraca-roxo.svg" alt="" className="absolute top-[10%] right-[5%] h-10 w-10 opacity-15 animate-float-1 pointer-events-none" aria-hidden="true" />
+
+        <div className="relative mx-auto max-w-7xl px-4">
+          <div className="text-center mb-12">
+            <span className="text-[10px] font-black tracking-[0.3em] text-lime">O QUE PRODUZIMOS</span>
+            <h2 className="text-3xl md:text-4xl font-black text-foreground tracking-tight mt-2">
+              SOLUÇÕES PRONTAS PARA O SEU <span className="text-lime neon-glow">FOOD SERVICE</span>
+            </h2>
           </div>
 
-          {/* Divider */}
-          <div className="border-t border-border/20" />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {[
+              { image: "/molhos.webp", name: "Molhos & Salsas" },
+              { image: "/carne.webp", name: "Proteínas Cozidas" },
+              { image: "/costelinha.webp", name: "Carnes Desfiadas" },
+              { image: "/produtos-congelados.webp", name: "Congelados" },
+              { image: "/carne-embalada.webp", name: "Embalados" },
+              { image: "/embalagens.webp", name: "Food Service" },
+            ].map((item, i) => (
+              <div key={i} className="group relative rounded-2xl overflow-hidden border border-border hover:border-lime/30 transition-all duration-300">
+                <img src={item.image} alt={item.name} className="w-full h-full md:h-100 object-cover transition-transform duration-700 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent" />
+                <div className="absolute bottom-4 left-4">
+                  <span className="text-xs font-black text-foreground tracking-wider">{item.name}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-          {/* Infraestrutura */}
-          <div>
-            <div className="text-center mb-10">
-              <span className="text-[10px] font-black tracking-[0.3em] text-lime">INFRAESTRUTURA</span>
-              <h2 className="text-2xl md:text-3xl font-black text-foreground tracking-tight mt-2">
-                ESTRUTURA DE PONTA
+      {/* Armazenagem */}
+      <section className="py-20">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-5">
+                          <span className="text-[10px] font-black tracking-[0.3em] text-lime">ARMAZENAGEM REFRIGERADA</span>
+
+              <h2 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">
+                CONTROLE TOTAL DE<br /><span className="text-lime neon-glow">TEMPERATURA</span>
               </h2>
+              <p className="text-muted-foreground leading-relaxed">
+                Estrutura completa para armazenagem de produtos de terceiros com segurança, controle de temperatura e rastreabilidade. Câmaras frias modernas para manter a qualidade dos seus produtos.
+              </p>
+              <div className="grid grid-cols-3 gap-3 pt-4">
+                {[
+                  { value: "−18°C", sub: "congelados" },
+                  { value: "0~5°C", sub: "refrigerados" },
+                  { value: "24/7", sub: "monitoramento" },
+                ].map((item, i) => (
+                  <div key={i} className="text-center p-4 rounded-2xl bg-graphite border border-border hover:border-lime/30 transition-colors">
+                    <p className="text-xl font-black text-lime">{item.value}</p>
+                    <p className="text-[9px] font-semibold text-muted-foreground tracking-wider mt-1">{item.sub}</p>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {[
-                {
-                  icon: Warehouse,
-                  title: "ARMAZENAGEM",
-                  description: "Estrutura completa para produtos de terceiros com segurança e controle de temperatura.",
-                },
-                {
-                  icon: Snowflake,
-                  title: "CÂMARAS FRIAS",
-                  description: "Tecnologia moderna para manter a qualidade e segurança dos seus produtos.",
-                },
-                {
-                  icon: Scale,
-                  title: "ESCALA",
-                  description: "De pequenas demandas a grandes volumes com o mesmo padrão de qualidade.",
-                },
-              ].map((item, i) => (
-                <div
-                  key={i}
-                  className="group p-6 rounded-2xl bg-background/50 border border-border/30 hover:border-lime/30 transition-all duration-300 space-y-4"
-                >
-                  <div className="h-11 w-11 rounded-xl bg-lime/10 border border-lime/20 flex items-center justify-center group-hover:bg-lime/20 transition-colors">
-                    <item.icon className="h-5 w-5 text-lime" />
-                  </div>
+            <div className="relative rounded-2xl overflow-hidden border border-border">
+              <img src="/camara-fria.webp" alt="Câmara fria" className="w-full h-[600px] object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-background/40 via-transparent to-transparent" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Infraestrutura */}
+      <section className="py-20 bg-graphite border-y border-border">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="text-center mb-12">
+            <span className="text-[10px] font-black tracking-[0.3em] text-lime">INFRAESTRUTURA</span>
+            <h2 className="text-2xl md:text-3xl font-black text-foreground tracking-tight mt-2">ESTRUTURA DE PONTA</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {[
+              { title: "PRODUÇÃO INDUSTRIAL", description: "Equipamentos modernos e processos padronizados para produção em escala.", image: "/estrutura.webp" },
+              { title: "CÂMARAS FRIAS", description: "Armazenagem refrigerada e congelada com controle 24/7 e rastreabilidade.", image: "/camara-fria.webp" },
+              { title: "ESCALA E CONFIANÇA", description: "Capacidade para atender desde pequenas demandas até grandes volumes.", image: "/embalagens-2.webp" },
+            ].map((item, i) => (
+              <div key={i} className="group rounded-2xl overflow-hidden border border-border hover:border-lime/30 transition-all duration-300 bg-background">
+                <div className="relative h-82 overflow-hidden">
+                  <img src={item.image} alt={item.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+                </div>
+                <div className="p-6 space-y-2">
                   <h3 className="text-[11px] font-black text-foreground tracking-wider">{item.title}</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Final - Simples e direto */}
-      <section className="py-24 relative overflow-hidden">
-        <div className="absolute top-0 right-0 h-60 w-60 rounded-full bg-lime/5 blur-[100px]" />
-        <div className="absolute bottom-0 left-0 h-48 w-48 rounded-full bg-purple-medium/8 blur-[80px]" />
+      {/* Galeria */}
+      <section className="py-16">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="mb-8">
+            <span className="text-[10px] font-black tracking-[0.3em] text-lime">PRODUÇÃO</span>
+            <h2 className="text-2xl font-black text-foreground tracking-tight mt-1">DO PROCESSO AO PRODUTO</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {["/embalagens.webp", "/embalagens-2.webp", "/embalagens-3.webp", "/carne-embalada.webp"].map((img, i) => (
+              <div key={i} className="relative rounded-2xl overflow-hidden border border-border aspect-square group">
+                <img src={img} alt="Processo de produção" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-24 relative overflow-hidden bg-graphite border-t border-border">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 right-0 h-60 w-60 rounded-full bg-purple-medium/20 blur-[100px]" />
+          <div className="absolute bottom-0 left-0 h-48 w-48 rounded-full bg-purple-medium/10 blur-[80px]" />
+        </div>
+        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-purple-medium/40 via-lime/30 to-purple-medium/40" />
 
         <div className="relative mx-auto max-w-3xl px-4 text-center space-y-6">
           <h2 className="text-2xl md:text-4xl font-black text-foreground tracking-tight leading-tight">
             MENOS PREOCUPAÇÃO COM PRODUÇÃO.<br />
-            <span className="text-lime neon-glow">MAIS TEMPO PARA CRESCER.</span>
+            MAIS TEMPO PARA O QUE IMPORTA:<br />
+            <span className="text-lime neon-glow italic">FAZER O SEU NEGÓCIO CRESCER.</span>
           </h2>
-
           <p className="text-muted-foreground max-w-md mx-auto">
             Vamos produzir o próximo sucesso juntos? Fale com nosso time comercial.
           </p>
-
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-            <a
-              href="/contato"
-              className="inline-flex items-center justify-center gap-3 bg-lime text-background px-8 py-4 rounded-full font-black text-sm tracking-wider hover:scale-105 transition-transform duration-300 group"
-            >
-              FALE CONOSCO
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            <a href="/contato" className="group inline-flex items-center justify-center gap-3 bg-lime text-background px-8 py-4 rounded-full font-black text-sm tracking-wider hover:shadow-[0_0_30px_rgba(200,255,0,0.3)] transition-all duration-300">
+              SOLICITAR ORÇAMENTO <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </a>
-            <a
-              href="https://wa.me/5547999999999"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-3 border-2 border-foreground/20 text-foreground px-8 py-4 rounded-full font-bold text-sm tracking-wider hover:border-lime hover:text-lime transition-all duration-300"
-            >
+            <a href="https://wa.me/5547999999999" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-3 border-2 border-purple-medium/40 text-foreground px-8 py-4 rounded-full font-bold text-sm tracking-wider hover:border-purple-medium hover:text-purple-medium transition-all duration-300">
               WHATSAPP
             </a>
           </div>

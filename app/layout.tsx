@@ -10,8 +10,8 @@ const montserrat = Montserrat({
 })
 
 export const metadata: Metadata = {
-  title: 'Nacho Factory | Marketplace - Comida Mexicana Congelada, Molhos e Temperos',
-  description: 'Carnes, molhos artesanais, temperos e congelados mexicanos prontos para uso. Barbacoa, Salsas, Churros, Tajín e muito mais. Entrega para todo Brasil.',
+  title: 'Nacho Factory | Indústria de Alimentos Congelados para Food Service',
+  description: 'Produção de alimentos congelados, molhos, empanados e proteínas prontas para food service. Armazenagem refrigerada em Blumenau-SC.',
 }
 
 export default function RootLayout({
