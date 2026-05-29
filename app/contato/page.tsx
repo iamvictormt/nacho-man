@@ -28,7 +28,7 @@ const topics = [
 
 const FORMATTED_WHATSAPP = "(11) 9 9999-9999"
 const BUSINESS_HOURS = "Seg-Sex, 8h-18h"
-const LOCATION = "São Paulo, SP"
+const LOCATION = "Blumenau, SC"
 
 export default function ContatoPage() {
   const [popupBlocked, setPopupBlocked] = useState(false)

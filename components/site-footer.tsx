@@ -19,7 +19,7 @@ const shopLinks = [
 ]
 
 const companyLinks = [
-  { label: "Inicio", href: "/" },
+  { label: "Início", href: "/" },
   { label: "Sobre", href: "/sobre" },
   { label: "Contato", href: "/contato" },
 ]
@@ -84,7 +84,7 @@ export function SiteFooter() {
             </Link>
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground">
               Mexican food pronta para abastecer sua cozinha: congelados, molhos,
-              temperos e combos com compra simples e finalizacao pelo WhatsApp.
+              temperos e combos com compra simples e finalização pelo WhatsApp.
             </p>
             <div className="mt-5 flex flex-wrap items-center gap-3">
               {socialLinks.map((social) => (
@@ -113,7 +113,7 @@ export function SiteFooter() {
               Precisa montar um pedido?
             </h2>
             <p className="mt-3 text-sm font-medium leading-relaxed text-background/75">
-              Envie sua lista, tire duvidas ou finalize o carrinho com nosso time.
+              Envie sua lista, tire dúvidas ou finalize o carrinho com nosso time.
             </p>
             <a
               href={whatsappUrl}
@@ -129,21 +129,10 @@ export function SiteFooter() {
         </div>
 
         <div className="grid grid-cols-1 gap-8 border-t border-border/60 pt-9 md:grid-cols-2 lg:grid-cols-12">
-          <FooterLinkGroup title="Comprar" links={shopLinks} className="lg:col-span-3" />
-          <FooterLinkGroup title="Nacho Man" links={companyLinks} className="lg:col-span-2" />
+          <FooterLinkGroup title="Comprar" links={shopLinks} className="lg:col-span-4" />
+          <FooterLinkGroup title="Nacho Man" links={companyLinks} className="lg:col-span-4" />
 
           <div className="lg:col-span-4">
-            <h3 className="mb-4 text-[10px] font-black uppercase tracking-[0.25em] text-purple-medium">
-              Contato
-            </h3>
-            <div className="grid gap-3">
-              <ContactLine icon={Phone} label="WhatsApp" value={whatsappDisplay} />
-              <ContactLine icon={Mail} label="Email" value="contato@nachoman.com.br" />
-              <ContactLine icon={MapPin} label="Localizacao" value="Blumenau, SC" />
-            </div>
-          </div>
-
-          <div className="lg:col-span-3">
             <h3 className="mb-4 text-[10px] font-black uppercase tracking-[0.25em] text-purple-medium">
               Pedido online
             </h3>

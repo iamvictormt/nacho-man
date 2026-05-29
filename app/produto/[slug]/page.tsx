@@ -55,14 +55,14 @@ export default function ProductDetailPage() {
   const careInfo =
     product.category === "CONGELADO"
       ? [
-          { icon: Snowflake, title: "Conservacao", text: "Mantenha congelado a -18°C ate o preparo." },
-          { icon: ChefHat, title: "Preparo", text: "Aqueça ou finalize conforme sua operacao e porcione ainda quente." },
+          { icon: Snowflake, title: "Conservação", text: "Mantenha congelado a -18°C até o preparo." },
+          { icon: ChefHat, title: "Preparo", text: "Aqueça ou finalize conforme sua operação e porcione ainda quente." },
           { icon: Clock3, title: "Praticidade", text: "Produto pensado para reduzir tempo de cozinha e padronizar pedidos." },
         ]
       : [
           { icon: ShieldCheck, title: "Armazenamento", text: "Guarde em local seco, fresco e protegido da luz direta." },
-          { icon: ChefHat, title: "Uso", text: "Aplique em finalizacoes, molhos, porcoes, tacos, bowls e sanduiches." },
-          { icon: Clock3, title: "Rendimento", text: "Ideal para reposicao rapida e uso recorrente no atendimento." },
+          { icon: ChefHat, title: "Uso", text: "Aplique em finalizações, molhos, porções, tacos, bowls e sanduíches." },
+          { icon: Clock3, title: "Rendimento", text: "Ideal para reposição rápida e uso recorrente no atendimento." },
         ]
 
   function handleAdd() {
