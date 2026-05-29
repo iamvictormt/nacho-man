@@ -5,11 +5,12 @@ import Link from "next/link"
 import Image from "next/image"
 import { ShoppingBag, ArrowRight, PackageX } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
-import { ProductCard } from "@/components/product-card"
+import { ProductDetailCard } from "@/components/product-detail-card"
 import { FilterSidebar } from "@/components/filter-sidebar"
 import { SearchBar } from "@/components/search-bar"
 import { SortSelect, type SortOption } from "@/components/sort-select"
 import { allProducts } from "@/lib/products"
+import { productDetailsBySlug } from "@/lib/product-details"
 import { filterProducts, sortProducts, type FilterState } from "@/lib/filters"
 
 export default function ProdutosPage() {
@@ -131,10 +132,14 @@ export default function ProdutosPage() {
 
               {/* Product grid or empty state */}
               {filteredAndSorted.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {filteredAndSorted.map((product) => (
-                    <ProductCard key={product.slug} product={product} />
-                  ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">
+                  {filteredAndSorted.map((product) => {
+                    const detailedProduct = productDetailsBySlug.get(product.slug)
+
+                    return detailedProduct ? (
+                      <ProductDetailCard key={product.slug} product={detailedProduct} />
+                    ) : null
+                  })}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-20 text-center">

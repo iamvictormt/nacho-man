@@ -97,7 +97,7 @@ export default function SobrePage() {
       </section>
 
       {/* Galeria da Fábrica */}
-      <section className="py-20 bg-graphite border-y border-border relative overflow-hidden">
+      <section id="estrutura" className="scroll-mt-28 py-20 bg-graphite border-y border-border relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-purple-medium/40 via-lime/20 to-purple-medium/40" />
         <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-medium/20 to-transparent" />
         <div className="absolute top-[20%] right-0 h-60 w-60 rounded-full bg-purple-medium/10 blur-[100px] pointer-events-none" />
@@ -134,7 +134,7 @@ export default function SobrePage() {
       </section>
 
       {/* Armazenagem Refrigerada */}
-      <section className="py-20">
+      <section id="armazenagem" className="scroll-mt-28 py-20">
         <div className="mx-auto max-w-7xl px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-5">
@@ -193,7 +193,7 @@ export default function SobrePage() {
             <a href="/contato" className="group inline-flex items-center justify-center gap-3 bg-lime text-background px-8 py-4 rounded-full font-black text-sm tracking-wider hover:shadow-[0_0_30px_rgba(200,255,0,0.3)] transition-all duration-300">
               SOLICITAR ORÇAMENTO <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </a>
-            <a href="https://wa.me/5547999999999" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-3 border-2 border-purple-medium/40 text-foreground px-8 py-4 rounded-full font-bold text-sm tracking-wider hover:border-purple-medium hover:text-purple-medium transition-all duration-300">
+            <a href="https://wa.me/554797269146" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-3 border-2 border-purple-medium/40 text-foreground px-8 py-4 rounded-full font-bold text-sm tracking-wider hover:border-purple-medium hover:text-purple-medium transition-all duration-300">
               WHATSAPP
             </a>
           </div>

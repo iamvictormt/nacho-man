@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { useCartStore } from "@/lib/cart-store"
 import { getProductBySlug, getRelatedProducts, allProducts } from "@/lib/products"
+import { productDetailsBySlug } from "@/lib/product-details"
 import { formatPrice } from "@/lib/format"
 import { ProductCard } from "@/components/product-card"
 import {
@@ -31,6 +32,7 @@ export default function ProductDetailPage() {
   const params = useParams()
   const slug = params.slug as string
   const product = getProductBySlug(slug)
+  const productDetail = productDetailsBySlug.get(slug)
 
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
@@ -67,7 +69,11 @@ export default function ProductDetailPage() {
 
   function handleAdd() {
     for (let i = 0; i < quantity; i++) {
-      addItem({ name: product!.name, price: product!.price, image: product!.image })
+      addItem({
+        name: productDetail?.name ?? product!.name,
+        price: product!.price,
+        image: productDetail?.image ?? product!.image,
+      })
     }
     setAdded(true)
     openCart()
@@ -145,13 +151,49 @@ export default function ProductDetailPage() {
 
               {/* Name */}
               <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tight leading-tight">
-                {product.name}
+                {productDetail?.name ?? product.name}
               </h1>
+              {productDetail?.subtitle && (
+                <p className="text-sm font-bold text-lime">{productDetail.subtitle}</p>
+              )}
 
               {/* Description */}
               <p className="text-muted-foreground leading-relaxed">
                 {product.description}
               </p>
+
+              {productDetail && (
+                <div className="grid grid-cols-1 gap-5 border-y border-border/50 py-5 md:grid-cols-2">
+                  <div>
+                    <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">
+                      Características
+                    </p>
+                    <ul className="space-y-2">
+                      {productDetail.features.map((feature) => (
+                        <li key={feature} className="flex gap-2 text-sm text-muted-foreground">
+                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-lime" aria-hidden="true" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">
+                      Aplicações
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {productDetail.applications.map((application) => (
+                        <span
+                          key={application}
+                          className="border border-border bg-graphite px-2.5 py-1 text-[11px] font-bold text-muted-foreground"
+                        >
+                          {application}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Weight */}
               <div className="space-y-1">
