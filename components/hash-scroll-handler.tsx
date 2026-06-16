@@ -136,11 +136,15 @@ export function HashScrollHandler() {
 
       if (samePage) {
         if (window.location.hash === url.hash) {
+          const shouldWaitForMenu = isMobileMenuExpanded()
           cancelPendingScroll()
-          if (isMobileMenuExpanded()) {
-            closeMobileMenu()
-            scrollWhenLayoutIsReady(url.hash)
-          }
+          if (isAlreadyAtHash(url.hash) && !shouldWaitForMenu) return
+
+          closeMobileMenu()
+          pendingScrollTimer = window.setTimeout(
+            () => scrollToHash(url.hash),
+            shouldWaitForMenu ? MAX_LAYOUT_WAIT_MS : 0
+          )
           return
         }
 

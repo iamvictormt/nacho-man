@@ -105,6 +105,14 @@ function FooterItem({
     )
   }
 
+  if (item.href.startsWith("/#")) {
+    return (
+      <a href={item.href} className={className}>
+        {item.label}
+      </a>
+    )
+  }
+
   return (
     <Link href={item.href} className={className}>
       {item.label}

@@ -2,6 +2,7 @@
 
 import { ShoppingCart } from "lucide-react"
 import { useState, useEffect } from "react"
+import type { MouseEvent } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { useCartStore } from "@/lib/cart-store"
@@ -14,6 +15,26 @@ const navLinks = [
   { label: "SOBRE", href: "/#sobre" },
   { label: "CONTATO", href: "/#contato" },
 ]
+
+const SECTION_OVERLAP = 28
+
+function getNavbarMainHeight() {
+  const navbarMain = document.querySelector<HTMLElement>("[data-site-navbar-main]")
+  return navbarMain?.getBoundingClientRect().height ?? 88
+}
+
+function scrollToHomeSection(hash: string) {
+  const target = document.getElementById(hash.replace(/^#/, ""))
+  if (!target) return
+
+  const targetTop = target.getBoundingClientRect().top + window.scrollY
+  const viewportTop = Math.max(0, getNavbarMainHeight() - SECTION_OVERLAP)
+
+  window.scrollTo({
+    top: Math.max(0, targetTop - viewportTop),
+    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+  })
+}
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -77,6 +98,28 @@ export function Navbar() {
     return href === `/#${activeHomeSection}`
   }
 
+  const handleNavLinkClick = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
+    const url = new URL(href, window.location.origin)
+
+    if (url.hash.length <= 1 || url.pathname !== window.location.pathname || url.search !== window.location.search) {
+      setMobileOpen(false)
+      return
+    }
+
+    event.preventDefault()
+    event.stopPropagation()
+
+    setMobileOpen(false)
+
+    const currentUrl = `${url.pathname}${url.search}${url.hash}`
+    if (window.location.pathname + window.location.search + window.location.hash !== currentUrl) {
+      window.history.pushState(null, "", currentUrl)
+      window.dispatchEvent(new HashChangeEvent("hashchange"))
+    }
+
+    window.setTimeout(() => scrollToHomeSection(url.hash), mobileOpen ? 360 : 0)
+  }
+
   return (
     <nav data-site-navbar className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur-md border-b border-border">
       <div data-site-navbar-main className="mx-auto max-w-7xl flex items-center justify-between px-4 h-22">
@@ -97,6 +140,7 @@ export function Navbar() {
               <Link
                 key={link.label}
                 href={link.href}
+                onClick={(event) => handleNavLinkClick(event, link.href)}
                 className={`text-[11px] font-bold tracking-[0.1em] transition-colors duration-200 relative ${
                   isActive
                     ? "text-lime"
@@ -167,7 +211,7 @@ export function Navbar() {
               <Link
                 key={link.label}
                 href={link.href}
-                onClick={() => setMobileOpen(false)}
+                onClick={(event) => handleNavLinkClick(event, link.href)}
                 className={`block py-3 text-lg font-black tracking-wide transition-all duration-300 ${
                   isActive ? "text-lime" : "text-foreground hover:text-lime"
                 } ${mobileOpen ? "translate-x-0 opacity-100" : "-translate-x-4 opacity-0"}`}

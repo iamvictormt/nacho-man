@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import type { LucideIcon } from "lucide-react"
-import { PageHeader } from "@/components/page-header"
 import { buildWhatsAppUrl, STORE_WHATSAPP_NUMBER } from "@/lib/whatsapp"
 import {
   ArrowRight,
@@ -10,7 +9,6 @@ import {
   Handshake,
   HelpCircle,
   MapPin,
-  MessageCircle,
   Phone,
   ShoppingCart,
 } from "lucide-react"
@@ -59,17 +57,28 @@ export function HomeContactSection() {
 
   return (
     <section id="contato" className="bg-background">
-      <PageHeader
-        label="Fale com nosso time"
-        title="CONTATO"
-        description="Solicite um orçamento, tire dúvidas ou faça seu pedido diretamente pelo WhatsApp."
-        icon={MessageCircle}
-      />
+      <section className="relative overflow-hidden border-b border-border bg-background py-16 md:py-24">
+        <div className="absolute left-0 top-0 h-px w-full bg-gradient-to-r from-purple-medium/40 via-lime/30 to-purple-medium/40" />
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 lg:grid-cols-[0.85fr_1.15fr] lg:items-end">
+          <div>
+            <span className="inline-flex items-center gap-3 text-xs font-black uppercase leading-relaxed tracking-[0.16em] text-lime sm:text-[13px]">
+              <span className="h-px w-8 shrink-0 bg-lime/70" aria-hidden="true" />
+              Fale com nosso time
+            </span>
+            <h2 className="mt-2 max-w-3xl text-3xl font-black uppercase tracking-tight text-foreground md:text-5xl">
+              Contato
+            </h2>
+          </div>
+          <p className="max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg">
+            Solicite um orçamento, tire dúvidas ou faça seu pedido diretamente pelo WhatsApp.
+          </p>
+        </div>
+      </section>
 
-      <section className="py-16">
+      <section className="py-16 md:py-24">
         <div className="mx-auto max-w-7xl px-4">
           {popupBlocked && (
-            <div className="mb-8 space-y-2 rounded-xl border border-purple-medium/30 bg-purple-medium/10 p-4 text-center">
+            <div className="mb-8 space-y-2 rounded-lg border border-purple-medium/30 bg-purple-medium/10 p-4 text-center">
               <p className="text-sm font-semibold text-foreground">
                 O pop-up foi bloqueado pelo navegador.
               </p>
@@ -101,10 +110,10 @@ export function HomeContactSection() {
                   <button
                     key={topic.title}
                     onClick={() => openWhatsApp(topic.message)}
-                    className="group flex w-full items-center gap-4 rounded-xl border border-border bg-graphite p-4 text-left transition-all hover:border-lime/30 hover:shadow-[0_0_15px_rgba(200,255,0,0.05)]"
+                    className="group flex w-full items-center gap-4 rounded-lg border border-border bg-graphite p-4 text-left transition-all hover:border-lime/30 hover:shadow-[0_0_15px_rgba(239,255,13,0.05)]"
                     aria-label={`${topic.title} - Abrir WhatsApp`}
                   >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-lime/20 bg-lime/10">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-lime/20 bg-lime/10">
                       <topic.icon className="h-5 w-5 text-lime" aria-hidden="true" />
                     </div>
                     <div className="flex-1">
@@ -124,7 +133,7 @@ export function HomeContactSection() {
             </div>
 
             <div className="flex items-start justify-center">
-              <div className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-border bg-graphite p-8 text-center">
+              <div className="relative w-full max-w-sm overflow-hidden rounded-lg border border-border bg-graphite p-8 text-center">
                 <div className="absolute left-0 top-0 h-px w-full bg-gradient-to-r from-transparent via-[#25D366]/50 to-transparent" />
 
                 <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#25D366] shadow-[0_0_30px_rgba(37,211,102,0.3)]">
