@@ -16,7 +16,7 @@ export function SearchBar({ value, onChange }: SearchBarProps) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Buscar produtos..."
-        className="w-full h-11 pl-10 pr-12 rounded-full bg-graphite border border-border text-sm text-foreground placeholder:text-muted-foreground focus:border-lime/50 focus:shadow-[0_0_10px_rgba(230,230,59,0.1)] transition-all duration-300"
+        className="w-full h-11 pl-10 pr-12 rounded-full bg-graphite border border-border text-sm text-foreground placeholder:text-muted-foreground focus:border-lime/50 focus:shadow-[0_0_10px_rgba(239,255,13,0.1)] transition-all duration-300"
         aria-label="Buscar produtos"
       />
       {value.length > 0 && (

@@ -1,5 +1,5 @@
-import Image from "next/image"
-import Link from "next/link"
+import Image from 'next/image';
+import Link from 'next/link';
 import {
   ArrowRight,
   BadgeCheck,
@@ -11,153 +11,146 @@ import {
   PackageCheck,
   Pizza,
   Store,
-} from "lucide-react"
-import { ProductDetailCard } from "@/components/product-detail-card"
-import { catalogProductsBySlug } from "@/lib/products"
-import { absoluteUrl } from "@/lib/seo"
-import { buildWhatsAppUrl, STORE_WHATSAPP_NUMBER } from "@/lib/whatsapp"
-import type { Metadata } from "next"
+} from 'lucide-react';
+import { ProductDetailCard } from '@/components/product-detail-card';
+import { HomeAboutSection } from '@/components/home-about-section';
+import { HomeContactSection } from '@/components/home-contact-section';
+import { catalogProductsBySlug } from '@/lib/products';
+import { absoluteUrl } from '@/lib/seo';
+import { buildWhatsAppUrl, STORE_WHATSAPP_NUMBER } from '@/lib/whatsapp';
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Alimentos Prontos para sua Operação",
+  title: 'Alimentos Prontos para sua Operação',
   description:
-    "Carnes congeladas, molhos, temperos e kits prontos para restaurantes, hamburguerias, eventos e revendedores.",
+    'Carnes congeladas, molhos, temperos e kits prontos para restaurantes, hamburguerias, eventos e revendedores.',
   alternates: {
-    canonical: "/",
+    canonical: '/',
   },
   openGraph: {
-    title: "Alimentos Prontos para sua Operação | Nacho Factory",
-    description:
-      "Produzimos carnes congeladas, molhos, temperos e kits prontos para operações de food service.",
-    url: "/",
+    title: 'Alimentos Prontos para sua Operação | Nacho Factory',
+    description: 'Produzimos carnes congeladas, molhos, temperos e kits prontos para operações de food service.',
+    url: '/',
     images: [
       {
-        url: absoluteUrl("/embalagens-3.webp"),
+        url: absoluteUrl('/embalagens-3.webp'),
         width: 1200,
         height: 630,
-        alt: "Produtos prontos Nacho Factory",
+        alt: 'Produtos prontos Nacho Factory',
       },
     ],
   },
-}
+};
 
 const heroStats = [
-  { value: "30+", label: "Produtos" },
-  { value: "700m²", label: "Estrutura Industrial" },
-  { value: "-18°C", label: "Armazenagem Congelada e Seca" },
-  { value: "100%", label: "Pronto para uso" },
-]
+  { value: '30+', label: 'Produtos' },
+  { value: '700m²', label: 'Estrutura Industrial' },
+  { value: '-18°C', label: 'Armazenagem Congelada e Seca' },
+  { value: '100%', label: 'Pronto para uso' },
+];
 
 const audiences = [
   {
-    title: "Restaurantes",
-    description: "Reduza tempo de preparo, padronize receitas e economize com mão de obra.",
+    title: 'Restaurantes',
+    description: 'Reduza tempo de preparo, padronize receitas e economize com mão de obra.',
     icon: ChefHat,
   },
   {
-    title: "Hamburguerias e Pizzarias",
-    description: "Molhos, carnes e acompanhamentos prontos.",
+    title: 'Hamburguerias e Pizzarias',
+    description: 'Molhos, carnes e acompanhamentos prontos.',
     icon: Pizza,
   },
   {
-    title: "Franquias",
-    description: "Produtos prontos para aquecer e vender.",
+    title: 'Franquias',
+    description: 'Produtos prontos para aquecer e vender.',
     icon: Building2,
   },
   {
-    title: "Revendedores",
-    description: "Produtos congelados e molhos para revenda.",
+    title: 'Revendedores',
+    description: 'Produtos congelados e molhos para revenda.',
     icon: Store,
   },
-]
+];
 
 const categories = [
   {
-    title: "Carnes Prontas",
-    image: "/product-images/carne barbacoa.webp",
-    href: "/produtos?category=Carnes",
+    title: 'Carnes Prontas',
+    image: '/product-images/carne barbacoa.webp',
+    href: '/produtos?category=Carnes',
     items: [
-      "Carne de Panela - Barbacoa",
-      "Carne Chili Beans",
-      "Carne Costelinha ao barbecue",
-      "Carne Chili Veg",
-      "Frango Desfiado ao molho",
-      "Frango Empanado Hot",
+      'Carne de Panela - Barbacoa',
+      'Carne Chili Beans',
+      'Carne Costelinha ao barbecue',
+      'Carne Chili Veg',
+      'Frango Desfiado ao molho',
+      'Frango Empanado Hot',
     ],
   },
   {
-    title: "Molhos e Salsas",
-    image: "/product-images/salsa ghost pepper.webp",
-    href: "/produtos?category=Molhos",
-    items: [
-      "Sweet Chili",
-      "Habanero",
-      "Jalapeño",
-      "Salsa Verde",
-      "Salsa Roja",
-      "Hot Picles",
-      "Ghost Pepper",
-    ],
+    title: 'Molhos e Salsas',
+    image: '/product-images/salsa ghost pepper.webp',
+    href: '/produtos?category=Molhos',
+    items: ['Sweet Chili', 'Habanero', 'Jalapeño', 'Salsa Verde', 'Salsa Roja', 'Hot Picles', 'Ghost Pepper'],
   },
   {
-    title: "Bases e Insumos",
-    image: "/product-images/kit bacon mayo.webp",
-    href: "/produtos?category=Kits",
+    title: 'Bases e Insumos',
+    image: '/product-images/kit bacon mayo.webp',
+    href: '/produtos?category=Kits',
     items: [
-      "Açúcar para Churros",
-      "Kit Maionese de Bacon",
-      "Kit Maionese de Chipotle defumada",
-      "Base de Arroz Mexicano",
-      "Feijão Cozido - Frijoles",
+      'Açúcar para Churros',
+      'Kit Maionese de Bacon',
+      'Kit Maionese de Chipotle defumada',
+      'Base de Arroz Mexicano',
+      'Feijão Cozido - Frijoles',
     ],
   },
-]
+];
 
 const homeBestSellerSlugs = [
-  "carne-bovina-desfiada-artesanal",
-  "chili-de-carne-com-feijao",
-  "carne-suina-desfiada-com-barbecue",
-  "feijao-cremoso-temperado",
-  "jalapeno-2l",
-  "sweet-chili-2l",
-]
+  'carne-bovina-desfiada-artesanal',
+  'chili-de-carne-com-feijao',
+  'carne-suina-desfiada-com-barbecue',
+  'feijao-cremoso-temperado',
+  'jalapeno-2l',
+  'sweet-chili-2l',
+];
 
 const homeBestSellerProducts = homeBestSellerSlugs
   .map((slug) => catalogProductsBySlug.get(slug))
-  .filter((product) => product !== undefined)
+  .filter((product) => product !== undefined);
 
 const factoryFeatures = [
-  { value: "700m²", label: "Estrutura" },
-  { value: "-18°C", label: "Câmara fria" },
-  { value: "Ultra", label: "Túnel de ultracongelamento" },
-  { value: "Própria", label: "Produção própria" },
-  { value: "Estoque", label: "Congelado e seco" },
-]
+  { value: '700m²', label: 'Estrutura' },
+  { value: '-18°C', label: 'Câmara fria' },
+  { value: 'Ultra', label: 'Túnel de ultracongelamento' },
+  { value: 'Própria', label: 'Produção própria' },
+  { value: 'Estoque', label: 'Congelado e seco' },
+];
 
 const trustStats = [
-  "Mais de 15 toneladas produzidas por mês",
-  "Mais de 30 clientes Recorrentes",
-  "Mais de 30 unidades da Rede Nacho Man abastecidas",
-]
+  'Mais de 15 toneladas produzidas por mês',
+  'Mais de 30 clientes Recorrentes',
+  'Mais de 30 unidades da Rede Nacho Man abastecidas',
+];
 
-const qualityItems = ["Câmara fria", "Ultracongelamento", "Equipamentos de Ponta", "Controle de qualidade"]
+const qualityItems = ['Câmara fria', 'Ultracongelamento', 'Equipamentos de Ponta', 'Controle de qualidade'];
 
 const processSteps = [
-  { title: "Escolha os produtos", description: "Monte seu carrinho com os itens desejados." },
-  { title: "Receba orçamento", description: "Nosso time valida estoque e frete." },
-  { title: "Confirme condições", description: "Alinhe pedido mínimo, pagamento e prazo com o comercial." },
-  { title: "Receba no seu negócio", description: "Produtos congelados entregues prontos para uso." },
-]
+  { title: 'Escolha os produtos', description: 'Monte seu carrinho com os itens desejados.' },
+  { title: 'Receba orçamento', description: 'Nosso time valida estoque e frete.' },
+  { title: 'Confirme condições', description: 'Alinhe pedido mínimo, pagamento e prazo com o comercial.' },
+  { title: 'Receba no seu negócio', description: 'Produtos congelados entregues prontos para uso.' },
+];
 
 export default function Home() {
   const whatsappUrl = buildWhatsAppUrl(
     STORE_WHATSAPP_NUMBER,
-    "Olá! Vim pelo site da Nacho Factory e gostaria de solicitar um orçamento."
-  )
+    'Olá! Vim pelo site da Nacho Factory e gostaria de solicitar um orçamento.',
+  );
 
   return (
     <>
-      <section className="relative overflow-hidden border-b border-border bg-background">
+      <section id="inicio" className="relative overflow-hidden border-b border-border bg-background">
         <div className="absolute inset-0">
           <Image src="/embalagens-3.webp" alt="" fill priority sizes="100vw" className="object-cover" />
           <div className="absolute inset-0 bg-background/55" />
@@ -173,18 +166,31 @@ export default function Home() {
             </div>
             <div className="space-y-4">
               <h1 className="max-w-4xl text-4xl font-black uppercase leading-[0.95] text-foreground sm:text-5xl lg:text-6xl xl:text-7xl">
-                ALIMENTOS PRONTOS<br />PARA SUA<br /><span className="text-lime neon-glow">OPERAÇÃO.</span>
+                ALIMENTOS PRONTOS
+                <br />
+                PARA SUA
+                <br />
+                <span className="text-lime neon-glow">OPERAÇÃO.</span>
               </h1>
               <p className="max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg">
-                Produzimos carnes congeladas, molhos, temperos e kits prontos para restaurantes, hamburguerias, eventos e revendedores.
+                Produzimos carnes congeladas, molhos, temperos e kits prontos para restaurantes, hamburguerias, eventos
+                e revendedores.
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Link href="/produtos" className="group inline-flex min-h-11 items-center justify-center gap-3 rounded-full bg-lime px-7 py-3.5 text-sm font-black tracking-wider text-background transition-all duration-300 hover:shadow-[0_0_30px_rgba(230,230,59,0.35)]">
+              <Link
+                href="/produtos"
+                className="group inline-flex min-h-11 items-center justify-center gap-3 rounded-full bg-lime px-7 py-3.5 text-sm font-black tracking-wider text-background transition-all duration-300 hover:shadow-[0_0_30px_rgba(239,255,13,0.35)]"
+              >
                 VER CATÁLOGO
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
               </Link>
-              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center justify-center gap-3 rounded-full border-2 border-purple-medium/50 px-7 py-3.5 text-sm font-bold tracking-wider text-foreground transition-all duration-300 hover:border-purple-medium hover:text-purple-medium">
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 items-center justify-center gap-3 rounded-full border-2 border-purple-medium/50 px-7 py-3.5 text-sm font-bold tracking-wider text-foreground transition-all duration-300 hover:border-purple-medium hover:text-purple-medium"
+              >
                 <MessageCircle className="h-4 w-4" aria-hidden="true" />
                 SOLICITAR ORÇAMENTO
               </a>
@@ -195,7 +201,9 @@ export default function Home() {
             {heroStats.map((stat) => (
               <div key={stat.label} className="border border-border bg-graphite/85 p-5 backdrop-blur">
                 <p className="text-3xl font-black text-lime md:text-4xl">{stat.value}</p>
-                <p className="mt-2 text-[10px] font-bold uppercase leading-relaxed tracking-wider text-muted-foreground">{stat.label}</p>
+                <p className="mt-2 text-[10px] font-bold uppercase leading-relaxed tracking-wider text-muted-foreground">
+                  {stat.label}
+                </p>
               </div>
             ))}
           </div>
@@ -224,10 +232,19 @@ export default function Home() {
           <SectionHeader eyebrow="Organize seu pedido por linha de produção" title="CATEGORIAS" />
           <div className="mt-9 grid grid-cols-1 gap-5 lg:grid-cols-3">
             {categories.map((category) => (
-              <Link key={category.title} href={category.href} className="group relative isolate block overflow-hidden border border-border bg-background transition-[border-color,box-shadow] duration-300 hover:border-lime/40 hover:shadow-[0_0_24px_rgba(230,230,59,0.1)]">
-                <div className="relative h-56 overflow-hidden bg-background [transform:translateZ(0)]">
-                  <Image src={category.image} alt={category.title} fill sizes="(max-width: 1023px) 100vw, 33vw" className="scale-[1.02] object-cover transition-transform duration-500 ease-out [backface-visibility:hidden] group-hover:scale-[1.08]" />
-                  <div className="absolute inset-[-1px] bg-gradient-to-t from-background via-background/45 to-transparent" />
+              <Link
+                key={category.title}
+                href={category.href}
+                className="group relative isolate block overflow-hidden border border-border bg-background transition-[border-color,box-shadow] duration-300 hover:border-lime/40 hover:shadow-[0_0_24px_rgba(239,255,13,0.1)]"
+              >
+                <div className="relative h-72 overflow-hidden bg-graphite [transform:translateZ(0)] sm:h-102">
+                  <Image
+                    src={category.image}
+                    alt={category.title}
+                    fill
+                    sizes="(max-width: 767px) 100vw, 33vw"
+                    className="object-cover transition-transform duration-500 ease-out [backface-visibility:hidden] group-hover:scale-[1.05]"
+                  />
                 </div>
                 <div className="relative bg-background p-5">
                   <h3 className="text-xl font-black uppercase text-foreground">{category.title}</h3>
@@ -248,7 +265,10 @@ export default function Home() {
 
       <section className="bg-background py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-4">
-          <SectionHeader eyebrow="Itens com maior saída para operações de food service" title="PRODUTOS MAIS VENDIDOS" />
+          <SectionHeader
+            eyebrow="Itens com maior saída para operações de food service"
+            title="PRODUTOS MAIS VENDIDOS"
+          />
           <div className="mt-9 grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
             {homeBestSellerProducts.map((product) => (
               <ProductDetailCard key={product.slug} product={product} />
@@ -263,10 +283,12 @@ export default function Home() {
             <SectionHeader eyebrow="Estrutura própria para produzir, congelar e armazenar" title="CONHEÇA A FÁBRICA" />
             <div className="space-y-4 border-l-2 border-lime pl-5">
               <p className="text-base leading-relaxed text-foreground md:text-lg">
-                O que começou em uma pequena cozinha para abastecer a Rede Nacho Man evoluiu para uma indústria com mais de 700m² de estrutura.
+                O que começou em uma pequena cozinha para abastecer a Rede Nacho Man evoluiu para uma indústria com mais
+                de 700m² de estrutura.
               </p>
               <p className="text-sm leading-relaxed text-muted-foreground md:text-base">
-                Produzimos molhos, carnes, acompanhamentos e receitas exclusivas para operações de food service em todo o Brasil.
+                Produzimos molhos, carnes, acompanhamentos e receitas exclusivas para operações de food service em todo
+                o Brasil.
               </p>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -279,20 +301,32 @@ export default function Home() {
                 </div>
               ))}
             </div>
-            <Link href="/sobre#estrutura" className="inline-flex min-h-11 items-center justify-center gap-3 rounded-full bg-lime px-7 py-3.5 text-sm font-black tracking-wider text-background transition-all duration-300 hover:shadow-[0_0_30px_rgba(230,230,59,0.3)]">
+            <Link
+              href="#estrutura"
+              className="inline-flex min-h-11 items-center justify-center gap-3 rounded-full bg-lime px-7 py-3.5 text-sm font-black tracking-wider text-background transition-all duration-300 hover:shadow-[0_0_30px_rgba(239,255,13,0.3)]"
+            >
               VER ESTRUTURA
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { src: "/estrutura.webp", alt: "Estrutura industrial Nacho Factory" },
-              { src: "/camara-fria.webp", alt: "Câmara fria Nacho Factory" },
-              { src: "/tacho-industrial.webp", alt: "Tacho industrial de produção" },
-              { src: "/porta-industrial.webp", alt: "Área industrial da Nacho Factory" },
+              { src: '/estrutura.webp', alt: 'Estrutura industrial Nacho Factory' },
+              { src: '/camara-fria.webp', alt: 'Câmara fria Nacho Factory' },
+              { src: '/tacho-industrial.webp', alt: 'Tacho industrial de produção' },
+              { src: '/porta-industrial.webp', alt: 'Área industrial da Nacho Factory' },
             ].map((image) => (
-              <div key={image.src} className="relative aspect-square overflow-hidden border border-border bg-background">
-                <Image src={image.src} alt={image.alt} fill sizes="(max-width: 1023px) 50vw, 25vw" className="object-cover" />
+              <div
+                key={image.src}
+                className="relative aspect-square overflow-hidden border border-border bg-background"
+              >
+                <Image
+                  src={image.src}
+                  alt={image.alt}
+                  fill
+                  sizes="(max-width: 1023px) 50vw, 25vw"
+                  className="object-cover"
+                />
               </div>
             ))}
           </div>
@@ -347,28 +381,42 @@ export default function Home() {
       <section className="bg-lime py-14 text-background">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-background/65">Fale com nosso time comercial</p>
+            <p className="text-xs font-black uppercase leading-relaxed tracking-[0.14em] text-background/70 sm:text-[13px]">
+              Fale com nosso time comercial
+            </p>
             <h2 className="mt-2 text-3xl font-black uppercase leading-tight md:text-4xl">
               SOLICITE UM ORÇAMENTO PELO WHATSAPP
             </h2>
           </div>
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center justify-center gap-3 rounded-full bg-background px-7 py-3.5 text-sm font-black tracking-wider text-lime transition-all hover:shadow-[0_0_24px_rgba(10,10,10,0.18)]">
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-12 items-center justify-center gap-3 rounded-full bg-background px-7 py-3.5 text-sm font-black tracking-wider text-lime transition-all hover:shadow-[0_0_24px_rgba(10,10,10,0.18)]"
+          >
             <MessageCircle className="h-4 w-4" aria-hidden="true" />
             CHAMAR NO WHATSAPP
           </a>
         </div>
       </section>
+
+      <HomeAboutSection />
+
+      <HomeContactSection />
     </>
-  )
+  );
 }
 
 function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
     <div>
-      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-lime">{eyebrow}</span>
+      <span className="inline-flex max-w-full items-center gap-3 text-xs font-black uppercase leading-relaxed tracking-[0.16em] text-lime sm:text-[13px]">
+        <span className="h-px w-8 shrink-0 bg-lime/70" aria-hidden="true" />
+        <span className="max-w-3xl">{eyebrow}</span>
+      </span>
       <h2 className="mt-2 max-w-3xl text-3xl font-black uppercase tracking-tight text-foreground md:text-4xl">
         {title}
       </h2>
     </div>
-  )
+  );
 }

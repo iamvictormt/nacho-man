@@ -65,8 +65,8 @@ export function NewsletterSection() {
         {/* Action buttons */}
         <div className="flex flex-col sm:flex-row gap-4 mt-10 justify-center">
           <Link
-            href="/contato"
-            className="group inline-flex items-center justify-center gap-3 bg-lime text-background font-black text-sm px-8 py-4 rounded-full hover:shadow-[0_0_30px_rgba(230,230,59,0.3)] transition-all duration-300"
+            href="/#contato"
+            className="group inline-flex items-center justify-center gap-3 bg-lime text-background font-black text-sm px-8 py-4 rounded-full hover:shadow-[0_0_30px_rgba(239,255,13,0.3)] transition-all duration-300"
           >
             SOLICITAR ORÇAMENTO
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />

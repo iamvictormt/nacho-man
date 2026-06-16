@@ -36,7 +36,7 @@ export function PageHeader({ label, title, description, icon: Icon, emoji }: Pag
             </div>
           )}
           {emoji && <span className="text-xl">{emoji}</span>}
-          <span className="text-[10px] font-black tracking-[0.3em] text-lime uppercase">{label}</span>
+          <span className="text-xs font-black uppercase leading-relaxed tracking-[0.16em] text-lime sm:text-[13px]">{label}</span>
         </div>
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-foreground tracking-tight">
           {title}

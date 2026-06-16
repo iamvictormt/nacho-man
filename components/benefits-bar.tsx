@@ -17,7 +17,11 @@ export function BenefitsBar() {
       <div className="mx-auto max-w-7xl px-4">
         {/* Header */}
         <div className="text-center mb-12">
-          <span className="text-[10px] font-bold text-lime tracking-[0.3em] uppercase">Por que a Nacho Factory</span>
+          <span className="inline-flex items-center justify-center gap-3 text-xs font-black uppercase leading-relaxed tracking-[0.16em] text-lime sm:text-[13px]">
+            <span className="h-px w-8 shrink-0 bg-lime/70" aria-hidden="true" />
+            Por que a Nacho Factory
+            <span className="h-px w-8 shrink-0 bg-lime/70" aria-hidden="true" />
+          </span>
           <h2 className="text-2xl md:text-3xl font-black tracking-tight mt-2">
             DIFERENCIAIS DA NOSSA <span className="text-lime neon-glow">OPERAÇÃO</span>
           </h2>

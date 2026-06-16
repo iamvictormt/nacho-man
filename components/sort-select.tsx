@@ -21,7 +21,7 @@ export function SortSelect({ value, onChange }: SortSelectProps) {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as SortOption)}
-        className="min-h-11 bg-graphite border border-border text-[11px] font-bold text-muted-foreground tracking-wider pl-4 pr-8 py-2 rounded-full appearance-none cursor-pointer hover:border-lime/40 hover:text-foreground transition-all duration-300 focus:border-lime/50 focus:shadow-[0_0_10px_rgba(230,230,59,0.1)]"
+        className="min-h-11 bg-graphite border border-border text-[11px] font-bold text-muted-foreground tracking-wider pl-4 pr-8 py-2 rounded-full appearance-none cursor-pointer hover:border-lime/40 hover:text-foreground transition-all duration-300 focus:border-lime/50 focus:shadow-[0_0_10px_rgba(239,255,13,0.1)]"
         aria-label="Ordenar produtos"
       >
         {SORT_OPTIONS.map((option) => (

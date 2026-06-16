@@ -186,8 +186,8 @@ export function HeroSection() {
           {/* CTAs */}
           <div className="flex flex-wrap gap-4 pt-2">
             <Link
-              href="/contato"
-              className="group inline-flex items-center gap-3 bg-lime text-background px-7 py-3.5 rounded-full font-black text-sm tracking-wider hover:shadow-[0_0_30px_rgba(230,230,59,0.4)] transition-all duration-300"
+              href="/#contato"
+              className="group inline-flex items-center gap-3 bg-lime text-background px-7 py-3.5 rounded-full font-black text-sm tracking-wider hover:shadow-[0_0_30px_rgba(239,255,13,0.4)] transition-all duration-300"
             >
               SOLICITAR ORÇAMENTO
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />

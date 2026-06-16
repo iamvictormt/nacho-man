@@ -61,7 +61,10 @@ export function FeaturedProducts() {
         {/* Header */}
         <div className="flex items-end justify-between mb-10">
           <div>
-            <span className="text-[10px] font-bold text-lime tracking-[0.3em] uppercase">Catálogo</span>
+            <span className="inline-flex items-center gap-3 text-xs font-black uppercase leading-relaxed tracking-[0.16em] text-lime sm:text-[13px]">
+              <span className="h-px w-8 shrink-0 bg-lime/70" aria-hidden="true" />
+              Catálogo
+            </span>
             <h2 className="text-2xl md:text-3xl font-black tracking-tight mt-1">
               NOSSOS PRODUTOS
             </h2>

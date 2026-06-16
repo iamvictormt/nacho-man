@@ -5,13 +5,13 @@ export const metadata: Metadata = {
   description:
     "Fale com o atendimento comercial da Nacho Factory pelo WhatsApp ou e-mail para solicitar orçamento.",
   alternates: {
-    canonical: "/contato",
+    canonical: "/",
   },
   openGraph: {
     title: "Contato Comercial | Nacho Factory",
     description:
       "Solicite orçamento para produtos prontos, produção terceirizada e armazenagem.",
-    url: "/contato",
+    url: "/",
   },
 }
 

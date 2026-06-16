@@ -77,8 +77,10 @@ export function CategoriesSection() {
       <div className="relative mx-auto max-w-7xl px-4">
         {/* Header */}
         <div className="text-center mb-14">
-          <span className="text-[10px] font-bold text-lime tracking-[0.3em] uppercase">
+          <span className="inline-flex items-center justify-center gap-3 text-xs font-black uppercase leading-relaxed tracking-[0.16em] text-lime sm:text-[13px]">
+            <span className="h-px w-8 shrink-0 bg-lime/70" aria-hidden="true" />
             Categorias
+            <span className="h-px w-8 shrink-0 bg-lime/70" aria-hidden="true" />
           </span>
           <h2 className="text-3xl md:text-4xl font-black tracking-tight mt-2">
             EXPLORE NOSSO{" "}
@@ -100,7 +102,7 @@ export function CategoriesSection() {
                 className={`group relative rounded-2xl overflow-hidden border border-border bg-graphite transition-all duration-500 hover:-translate-y-1 ${
                   isPurple
                     ? "hover:border-purple-medium/60 hover:shadow-[0_0_25px_rgba(91,45,130,0.25),0_0_50px_rgba(91,45,130,0.1)]"
-                    : "hover:border-lime/50 hover:shadow-[0_0_25px_rgba(230,230,59,0.2),0_0_50px_rgba(230,230,59,0.08)]"
+                    : "hover:border-lime/50 hover:shadow-[0_0_25px_rgba(239,255,13,0.2),0_0_50px_rgba(239,255,13,0.08)]"
                 }`}
               >
                 {/* Image */}

@@ -25,8 +25,8 @@ export function ProductDetailCard({ product }: { product: CatalogProduct }) {
   }
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-lg border border-border/90 bg-background transition-all duration-300 hover:border-lime/35 hover:shadow-[0_0_28px_rgba(230,230,59,0.12)]">
-      <div className="relative h-72 overflow-hidden bg-graphite [transform:translateZ(0)] sm:h-80">
+    <article className="group flex h-full flex-col overflow-hidden rounded-lg border border-border/90 bg-background transition-all duration-300 hover:border-lime/35 hover:shadow-[0_0_28px_rgba(239,255,13,0.12)]">
+      <div className="relative h-72 overflow-hidden bg-graphite [transform:translateZ(0)] sm:h-102">
         <Image
           src={product.image}
           alt={product.displayName}
@@ -34,8 +34,7 @@ export function ProductDetailCard({ product }: { product: CatalogProduct }) {
           sizes="(max-width: 767px) 100vw, 33vw"
           className="object-cover transition-transform duration-500 ease-out [backface-visibility:hidden] group-hover:scale-[1.05]"
         />
-        <div className="absolute inset-[-1px] bg-gradient-to-t from-background via-background/45 to-transparent" />
-        <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-[0.18em]">
+         <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-[0.18em]">
           <span className="rounded-full border border-lime/25 bg-background/78 px-3 py-1 text-lime backdrop-blur">
             {product.subcategory}
           </span>
@@ -98,7 +97,7 @@ export function ProductDetailCard({ product }: { product: CatalogProduct }) {
             className={`inline-flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-full px-3 py-3 text-[11px] font-black tracking-wide transition-all duration-300 sm:text-xs ${
               added
                 ? "bg-purple-medium text-white shadow-[0_0_20px_rgba(91,45,130,0.35)]"
-                : "bg-lime text-background hover:shadow-[0_0_20px_rgba(230,230,59,0.3)]"
+                : "bg-lime text-background hover:shadow-[0_0_20px_rgba(239,255,13,0.3)]"
             }`}
             aria-label={`Adicionar ${product.displayName} ao carrinho`}
           >

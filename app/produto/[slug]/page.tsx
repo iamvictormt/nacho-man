@@ -267,7 +267,7 @@ export default function ProductDetailPage() {
                   className={`flex min-h-14 flex-1 items-center justify-center gap-3 rounded-full px-6 py-4 text-xs font-black tracking-wider transition-all duration-300 sm:text-sm ${
                     added
                       ? "bg-purple-medium text-white shadow-[0_0_25px_rgba(91,45,130,0.4)]"
-                      : "bg-lime text-background hover:shadow-[0_0_30px_rgba(230,230,59,0.4)]"
+                      : "bg-lime text-background hover:shadow-[0_0_30px_rgba(239,255,13,0.4)]"
                   }`}
                   aria-label={
                     added

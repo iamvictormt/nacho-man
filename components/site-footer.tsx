@@ -9,10 +9,10 @@ const productLinks = [
 ]
 
 const structureLinks = [
-  { label: "Produção terceirizada", href: "/sobre#estrutura" },
-  { label: "Armazenagem", href: "/sobre#armazenagem" },
-  { label: "Locação de Câmara Fria", href: "/sobre#armazenagem" },
-  { label: "Desenvolvimento de Receitas", href: "/sobre#estrutura" },
+  { label: "Produção terceirizada", href: "/#estrutura" },
+  { label: "Armazenagem", href: "/#armazenagem" },
+  { label: "Locação de Câmara Fria", href: "/#armazenagem" },
+  { label: "Desenvolvimento de Receitas", href: "/#estrutura" },
 ]
 
 function formatWhatsAppDisplay(number: string): string {

@@ -78,7 +78,7 @@ export function FilterSidebar({
               onClick={() => onCategoryChange(category === cat ? null : cat)}
               className={`min-h-11 px-4 py-2 rounded-full text-[10px] font-black tracking-wider transition-all duration-300 ${
                 category === cat
-                  ? "bg-lime text-background shadow-[0_0_15px_rgba(230,230,59,0.3)]"
+                  ? "bg-lime text-background shadow-[0_0_15px_rgba(239,255,13,0.3)]"
                   : "bg-graphite border border-border text-muted-foreground hover:border-lime/40 hover:text-foreground"
               }`}
               aria-pressed={category === cat}

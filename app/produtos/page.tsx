@@ -174,7 +174,7 @@ export default function ProdutosPage() {
                   {hasActiveFilters && (
                     <button
                       onClick={handleClearAll}
-                      className="px-6 py-3 rounded-full bg-lime text-background text-sm font-black tracking-wider hover:shadow-[0_0_20px_rgba(230,230,59,0.3)] transition-all duration-300"
+                      className="px-6 py-3 rounded-full bg-lime text-background text-sm font-black tracking-wider hover:shadow-[0_0_20px_rgba(239,255,13,0.3)] transition-all duration-300"
                     >
                       Limpar filtros
                     </button>
@@ -197,7 +197,7 @@ export default function ProdutosPage() {
             Desenvolvemos produtos, bases e receitas sob medida para padronizar a sua operação.
           </p>
           <Link
-            href="/contato"
+            href="/#contato"
             className="group inline-flex items-center gap-3 bg-lime text-background px-8 py-4 rounded-full font-black text-sm tracking-wider hover:shadow-[0_0_30px_rgba(200,255,0,0.3)] transition-all duration-300"
           >
             FALE COM O COMERCIAL

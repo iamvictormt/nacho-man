@@ -45,7 +45,7 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <Link
       href={`/produto/${product.slug}`}
-      className="group block overflow-hidden rounded-lg border border-border/90 bg-background transition-all duration-500 hover:border-lime/40 hover:shadow-[0_0_24px_rgba(230,230,59,0.12)]"
+      className="group block overflow-hidden rounded-lg border border-border/90 bg-background transition-all duration-500 hover:border-lime/40 hover:shadow-[0_0_24px_rgba(239,255,13,0.12)]"
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-graphite [transform:translateZ(0)]">
         <Image
@@ -118,7 +118,7 @@ export function ProductCard({ product }: ProductCardProps) {
             className={`inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full px-3 text-[11px] font-black tracking-wide transition-all duration-300 ${
               added
                 ? "bg-purple-medium text-white shadow-[0_0_20px_rgba(91,45,130,0.5)]"
-                : "bg-lime text-background hover:shadow-[0_0_15px_rgba(230,230,59,0.4)]"
+                : "bg-lime text-background hover:shadow-[0_0_15px_rgba(239,255,13,0.4)]"
             }`}
             aria-label={`Adicionar ${product.name} ao carrinho`}
           >

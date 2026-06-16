@@ -10,7 +10,7 @@
   --card-foreground: #ffffff;
   --popover: #141414;
   --popover-foreground: #ffffff;
-  --primary: #E6E63B;
+  --primary: #EFFF0D;
   --primary-foreground: #0a0a0a;
   --secondary: #1a1a1a;
   --secondary-foreground: #ffffff;
@@ -22,14 +22,14 @@
   --destructive-foreground: oklch(0.577 0.245 27.325);
   --border: #2a2a2a;
   --input: #2a2a2a;
-  --ring: #E6E63B;
+  --ring: #EFFF0D;
   --radius: 0.75rem;
-  --lime: #E6E63B;
-  --lime-dark: #b8b82f;
+  --lime: #EFFF0D;
+  --lime-dark: #c7d400;
   --graphite: #141414;
   --purple-dark: #1a0f2e;
   --purple-medium: #5B2D82;
-  --neon-green: #E6E63B;
+  --neon-green: #EFFF0D;
 }
 
 @theme inline {
@@ -69,7 +69,7 @@
 @layer base {
   html {
     scroll-behavior: smooth;
-    scroll-padding-top: 152px;
+    scroll-padding-top: 60px;
   }
   * {
     @apply border-border outline-ring/50;
@@ -107,7 +107,7 @@
   box-shadow: 0 0 20px rgba(91, 45, 130, 0.3), 0 0 50px rgba(91, 45, 130, 0.15);
 }
 .neon-glow {
-  text-shadow: 0 0 10px rgba(230, 219, 59, 0.4), 0 0 30px rgba(230, 230, 59, 0.2);
+  text-shadow: 0 0 10px rgba(239, 255, 13, 0.4), 0 0 30px rgba(239, 255, 13, 0.2);
 }
 .neon-glow-purple {
   text-shadow: 0 0 10px rgba(91, 45, 130, 0.5), 0 0 30px rgba(91, 45, 130, 0.25);

@@ -6,13 +6,13 @@ export const metadata: Metadata = {
   description:
     "Conheça a Nacho Factory: indústria com mais de 700m², câmara fria, túnel de ultracongelamento, produção própria e estoque.",
   alternates: {
-    canonical: "/sobre",
+    canonical: "/",
   },
   openGraph: {
     title: "Conheça a Fábrica | Nacho Factory",
     description:
       "Estrutura industrial para produção de molhos, carnes, acompanhamentos e receitas exclusivas para food service.",
-    url: "/sobre",
+    url: "/",
     images: [
       {
         url: absoluteUrl("/estrutura.webp"),

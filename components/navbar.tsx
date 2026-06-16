@@ -6,28 +6,84 @@ import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { useCartStore } from "@/lib/cart-store"
 
+const HOME_NAV_SECTIONS = ["inicio", "sobre", "contato"] as const
+
 const navLinks = [
-  { label: "INÍCIO", href: "/" },
+  { label: "INÍCIO", href: "/#inicio" },
   { label: "PRODUTOS", href: "/produtos" },
-  { label: "SOBRE", href: "/sobre" },
-  { label: "CONTATO", href: "/contato" },
+  { label: "SOBRE", href: "/#sobre" },
+  { label: "CONTATO", href: "/#contato" },
 ]
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [activeHomeSection, setActiveHomeSection] = useState<(typeof HOME_NAV_SECTIONS)[number]>("inicio")
   const pathname = usePathname()
   const { totalItems, openCart } = useCartStore()
 
   useEffect(() => { setMounted(true) }, [])
+  useEffect(() => {
+    function closeMobileMenu() {
+      setMobileOpen(false)
+    }
+
+    window.addEventListener("nacho-close-mobile-menu", closeMobileMenu)
+    return () => window.removeEventListener("nacho-close-mobile-menu", closeMobileMenu)
+  }, [])
+
+  useEffect(() => {
+    if (pathname !== "/") return
+
+    function updateActiveSection() {
+      const navbar = document.querySelector<HTMLElement>("[data-site-navbar]")
+      const navbarMain = document.querySelector<HTMLElement>("[data-site-navbar-main]")
+      const viewportAnchor =
+        window.scrollY +
+        (navbarMain?.getBoundingClientRect().height ?? navbar?.getBoundingClientRect().height ?? 0) +
+        24
+
+      let currentSection: (typeof HOME_NAV_SECTIONS)[number] = "inicio"
+
+      for (const section of HOME_NAV_SECTIONS) {
+        const element = document.getElementById(section)
+        if (!element) continue
+
+        const sectionTop = element.getBoundingClientRect().top + window.scrollY
+        if (sectionTop <= viewportAnchor) {
+          currentSection = section
+        }
+      }
+
+      setActiveHomeSection(currentSection)
+    }
+
+    updateActiveSection()
+    window.addEventListener("scroll", updateActiveSection, { passive: true })
+    window.addEventListener("resize", updateActiveSection)
+    window.addEventListener("hashchange", updateActiveSection)
+
+    return () => {
+      window.removeEventListener("scroll", updateActiveSection)
+      window.removeEventListener("resize", updateActiveSection)
+      window.removeEventListener("hashchange", updateActiveSection)
+    }
+  }, [pathname])
+
+  const isLinkActive = (href: string) => {
+    if (href === "/produtos") return pathname === href || pathname.startsWith("/produto/")
+    if (pathname !== "/") return false
+
+    return href === `/#${activeHomeSection}`
+  }
 
   return (
     <nav data-site-navbar className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur-md border-b border-border">
-      <div className="mx-auto max-w-7xl flex items-center justify-between px-4 h-22">
+      <div data-site-navbar-main className="mx-auto max-w-7xl flex items-center justify-between px-4 h-22">
         {/* Logo */}
-        <Link href="/" className="flex items-center">
+        <Link href="/#inicio" className="flex items-center">
           <img
-            src="/nacho-man-logo-amarelo.svg"
+            src="/nacho-man-logo.png"
             alt="NachoMan"
             className="h-14 md:h-18 w-auto"
           />
@@ -36,7 +92,7 @@ export function Navbar() {
         {/* Desktop Nav */}
         <div className="hidden lg:flex items-center gap-6">
           {navLinks.map((link) => {
-            const isActive = pathname === link.href
+            const isActive = isLinkActive(link.href)
             return (
               <Link
                 key={link.label}
@@ -106,7 +162,7 @@ export function Navbar() {
       >
         <div className="bg-background border-t border-border px-6 py-6 space-y-1">
           {navLinks.map((link, index) => {
-            const isActive = pathname === link.href
+            const isActive = isLinkActive(link.href)
             return (
               <Link
                 key={link.label}
