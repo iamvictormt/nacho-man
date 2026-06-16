@@ -5,20 +5,29 @@ import { formatPrice } from "./format"
 export const STORE_WHATSAPP_NUMBER = "554797269146"
 
 /**
- * Gera mensagem formatada para envio via WhatsApp com os itens do carrinho.
- * Inclui saudação, lista numerada com nome, quantidade e subtotal por item, e total geral.
+ * Gera mensagem formatada para envio via WhatsApp com os itens do orçamento.
+ * Inclui saudação, lista numerada com nome, quantidade e subtotal estimado por item.
  */
 export function generateWhatsAppMessage(items: CartItem[]): string {
-  const greeting = "Olá! Gostaria de fazer o seguinte pedido:"
+  const greeting = "Olá! Gostaria de solicitar um orçamento com os seguintes itens:"
 
   const itemLines = items.map((item, index) => {
     const subtotal = item.price * item.quantity
-    return `${index + 1}. ${item.name} - Qtd: ${item.quantity} - ${formatPrice(subtotal)}`
+    const unit = item.priceUnit ? ` ${item.priceUnit}` : " un."
+    return `${index + 1}. ${item.name} - Qtd: ${item.quantity}${unit} - estimado: ${formatPrice(subtotal)}`
   })
 
   const total = items.reduce((acc, item) => acc + item.price * item.quantity, 0)
 
-  const lines = [greeting, "", ...itemLines, "", `*Total: ${formatPrice(total)}*`]
+  const lines = [
+    greeting,
+    "",
+    ...itemLines,
+    "",
+    `*Total estimado: ${formatPrice(total)}*`,
+    "",
+    "Podem confirmar disponibilidade, pedido mínimo, entrega e condições comerciais?",
+  ]
 
   return lines.join("\n")
 }

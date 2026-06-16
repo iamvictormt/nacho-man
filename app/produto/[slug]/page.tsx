@@ -8,10 +8,10 @@ import {
   Check,
   ChefHat,
   Clock3,
+  MessageCircle,
   Minus,
   Plus,
   ShieldCheck,
-  ShoppingCart,
   Snowflake,
 } from "lucide-react"
 import { useCartStore } from "@/lib/cart-store"
@@ -64,12 +64,19 @@ export default function ProductDetailPage() {
           { icon: ChefHat, title: "Uso", text: "Aplique em finalizações, molhos, porções, tacos, bowls e sanduíches." },
           { icon: Clock3, title: "Rendimento", text: "Ideal para reposição rápida e uso recorrente no atendimento." },
         ]
+  const commercialInfo = [
+    { label: "Linha", value: product.category === "CONGELADO" ? "Congelado food service" : "Seco food service" },
+    { label: "Indicado para", value: product.applications.slice(0, 3).join(", ") || product.subcategory },
+    { label: "Unidade", value: product.priceUnit === "KG" ? "Cotação por quilo" : "Cotação por unidade" },
+    { label: "Fechamento", value: "Condições confirmadas pelo comercial" },
+  ]
 
   function handleAdd() {
     for (let i = 0; i < quantity; i++) {
       addItem({
         name: product!.displayName,
         price: product!.price,
+        priceUnit: product!.priceUnit,
         image: product!.image,
       })
     }
@@ -114,9 +121,9 @@ export default function ProductDetailPage() {
       {/* Product detail */}
       <section className="py-10">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+          <div className="grid grid-cols-1 gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
             {/* Image */}
-            <div className="relative rounded-2xl overflow-hidden border border-border bg-graphite aspect-square">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-lg border border-border/90 bg-graphite [transform:translateZ(0)] lg:sticky lg:top-28">
               <Image
                 src={product.image}
                 alt={product.name}
@@ -125,24 +132,26 @@ export default function ProductDetailPage() {
                 priority
                 className="object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-graphite/30 via-transparent to-transparent" />
-              {product.tag && (
-                <span
-                  className={`absolute top-4 left-4 text-[10px] font-black tracking-wider px-3 py-1 rounded-full ${product.tagColor}`}
-                >
-                  {product.tag}
+              <div className="absolute inset-[-1px] bg-gradient-to-t from-background via-background/30 to-transparent" />
+              <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-[0.18em]">
+                <span className="rounded-full border border-lime/25 bg-background/78 px-3 py-1 text-lime backdrop-blur">
+                  {product.subcategory}
                 </span>
-              )}
+                <span className="rounded-full border border-border bg-background/78 px-3 py-1 text-muted-foreground backdrop-blur">
+                  {product.category}
+                </span>
+              </div>
+ 
             </div>
 
             {/* Info */}
             <div className="space-y-6">
               {/* Category / Subcategory badges */}
-              <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-[10px] font-black tracking-[0.2em] text-purple-medium bg-purple-medium/10 border border-purple-medium/30 px-3 py-1 rounded-full">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="rounded-full border border-lime/25 bg-lime/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-lime">
                   {product.category}
                 </span>
-                <span className="text-[10px] font-bold text-muted-foreground tracking-wider uppercase">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-medium">
                   {product.subcategory}
                 </span>
               </div>
@@ -156,11 +165,11 @@ export default function ProductDetailPage() {
               )}
 
               {/* Description */}
-              <p className="text-muted-foreground leading-relaxed">
+              <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
                 {product.description}
               </p>
 
-              <div className="grid grid-cols-1 gap-5 border-y border-border/50 py-5 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 border-t border-border/70 py-5 md:grid-cols-2">
                 <div>
                   <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">
                     Características
@@ -192,26 +201,46 @@ export default function ProductDetailPage() {
               </div>
 
               {/* Weight */}
-              <div className="space-y-1">
-                <span className="text-[10px] font-black text-foreground tracking-wider">
-                  PESO / VOLUME
-                </span>
-                <p className="text-sm font-bold text-lime">{product.weight}</p>
+              <div className="grid grid-cols-[1.1fr_0.9fr] gap-5 border-y border-border/70 py-5">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">
+                    Preço base
+                  </span>
+                  <p className="mt-2 text-4xl font-black leading-none text-lime">
+                    {formatPrice(product.price)} / {product.priceUnit}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">
+                    Embalagem
+                  </span>
+                  <p className="mt-2 text-sm font-bold leading-relaxed text-foreground">{product.weight}</p>
+                </div>
               </div>
 
-              {/* Price */}
-              <div className="pt-4 border-t border-border/50">
-                <span className="text-[10px] font-bold text-muted-foreground tracking-wider">
-                  PREÇO
-                </span>
-                <p className="text-4xl font-black text-lime mt-1">
-                  {formatPrice(product.price)}
-                </p>
+              <div className="border-b border-border/70 pb-5">
+                <div className="mb-4 flex items-center gap-2">
+                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">
+                    Informações comerciais
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {commercialInfo.map((item) => (
+                    <div key={item.label} className="border-l border-lime/35 bg-graphite px-4 py-3">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                        {item.label}
+                      </p>
+                      <p className="mt-1 text-sm font-bold leading-relaxed text-foreground">
+                        {item.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Quantity + Add to cart */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
-                <div className="flex items-center justify-center gap-2 bg-graphite border border-border rounded-full px-2 py-1 self-start">
+              <div className="flex flex-col items-stretch gap-3 border border-border bg-graphite p-3 sm:flex-row sm:items-center">
+                <div className="flex items-center justify-center gap-2 rounded-full border border-border bg-background px-2 py-1 self-start">
                   <button
                     onClick={decreaseQuantity}
                     disabled={quantity <= 1}
@@ -235,7 +264,7 @@ export default function ProductDetailPage() {
 
                 <button
                   onClick={handleAdd}
-                  className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-full font-black text-xs sm:text-sm tracking-wider transition-all duration-300 ${
+                  className={`flex min-h-14 flex-1 items-center justify-center gap-3 rounded-full px-6 py-4 text-xs font-black tracking-wider transition-all duration-300 sm:text-sm ${
                     added
                       ? "bg-purple-medium text-white shadow-[0_0_25px_rgba(91,45,130,0.4)]"
                       : "bg-lime text-background hover:shadow-[0_0_30px_rgba(230,230,59,0.4)]"
@@ -253,7 +282,7 @@ export default function ProductDetailPage() {
                     </>
                   ) : (
                     <>
-                      <ShoppingCart className="h-4 w-4" />
+                      <MessageCircle className="h-4 w-4" />
                       ADICIONAR AO CARRINHO
                     </>
                   )}
@@ -262,8 +291,8 @@ export default function ProductDetailPage() {
 
               <div className="grid grid-cols-1 gap-3 border-t border-border/50 pt-6 sm:grid-cols-3">
                 {careInfo.map((item) => (
-                  <div key={item.title} className="rounded-2xl border border-border bg-graphite p-4">
-                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-lime/25 bg-lime/10">
+                  <div key={item.title} className="rounded-lg border border-border bg-graphite p-4">
+                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-lime/25 bg-lime/10">
                       <item.icon className="h-4 w-4 text-lime" aria-hidden="true" />
                     </div>
                     <p className="text-[10px] font-black uppercase tracking-wider text-foreground">

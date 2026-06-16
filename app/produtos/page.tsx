@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { ShoppingBag, ArrowRight } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
@@ -12,6 +12,7 @@ import { catalogProducts } from "@/lib/products"
 import { filterProducts, sortProducts, type FilterState } from "@/lib/filters"
 
 export default function ProdutosPage() {
+  const resultsTopRef = useRef<HTMLDivElement>(null)
   const [filters, setFilters] = useState<FilterState>({
     category: null,
     subcategory: null,
@@ -36,24 +37,38 @@ export default function ProdutosPage() {
     return sortProducts(filtered, filters.sort)
   }, [filters])
 
+  function scrollToResultsTop() {
+    requestAnimationFrame(() => {
+      resultsTopRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      })
+    })
+  }
+
   function handleCategoryChange(category: string | null) {
     setFilters((prev) => ({ ...prev, category }))
+    scrollToResultsTop()
   }
 
   function handleSubcategoryChange(subcategory: string | null) {
     setFilters((prev) => ({ ...prev, subcategory }))
+    scrollToResultsTop()
   }
 
   function handleTagsChange(tags: string[]) {
     setFilters((prev) => ({ ...prev, tags }))
+    scrollToResultsTop()
   }
 
   function handleSearchChange(search: string) {
     setFilters((prev) => ({ ...prev, search }))
+    scrollToResultsTop()
   }
 
   function handleSortChange(sort: SortOption) {
     setFilters((prev) => ({ ...prev, sort }))
+    scrollToResultsTop()
   }
 
   function handleClearAll() {
@@ -64,6 +79,7 @@ export default function ProdutosPage() {
       search: "",
       sort: "name-asc",
     })
+    scrollToResultsTop()
   }
 
   const hasActiveFilters =
@@ -77,7 +93,7 @@ export default function ProdutosPage() {
       <PageHeader
         label="Catálogo Completo"
         title="NOSSOS PRODUTOS"
-        description="Congelados, molhos e salsas prontos para o seu food service. Filtre por categoria e encontre o que precisa."
+        description="Produtos prontos para food service com preço por KG/UND, embalagem e aplicações para sua operação decidir rápido."
         icon={ShoppingBag}
       />
 
@@ -101,7 +117,7 @@ export default function ProdutosPage() {
             </div>
 
             {/* Main content */}
-            <div className="flex-1 min-w-0">
+            <div ref={resultsTopRef} className="flex-1 min-w-0 scroll-mt-28">
               {/* Top bar: search + sort + count */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
                 <div className="flex-1 w-full sm:w-auto">
@@ -173,15 +189,12 @@ export default function ProdutosPage() {
       {/* CTA */}
       <section className="py-20 bg-graphite border-t border-border relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-purple-medium/40 via-lime/30 to-purple-medium/40" />
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-[20%] h-40 w-40 rounded-full bg-purple-medium/15 blur-[80px]" />
-        </div>
         <div className="relative mx-auto max-w-3xl px-4 text-center space-y-6">
           <h2 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">
             PRECISA DE UM PRODUTO <span className="text-purple-medium neon-glow-purple">PERSONALIZADO?</span>
           </h2>
           <p className="text-muted-foreground max-w-md mx-auto">
-            Desenvolvemos produtos e receitas sob medida para a sua operação.
+            Desenvolvemos produtos, bases e receitas sob medida para padronizar a sua operação.
           </p>
           <Link
             href="/contato"

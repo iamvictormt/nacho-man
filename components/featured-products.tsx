@@ -1,19 +1,15 @@
 "use client"
 
-import { ArrowRight, ShoppingCart, Check } from "lucide-react"
-import { useState } from "react"
+import { ArrowRight } from "lucide-react"
 import Link from "next/link"
-import Image from "next/image"
-import { useCartStore } from "@/lib/cart-store"
-import { allProducts } from "@/lib/products"
-import { formatPrice } from "@/lib/format"
+import { ProductCard } from "@/components/product-card"
+import { catalogProducts } from "@/lib/products"
 
 // Get featured products: filter by "BEST SELLER" tag, fallback to first 4
 const featuredProducts = (() => {
-  const bestSellers = allProducts.filter((p) => p.tag === "BEST SELLER")
+  const bestSellers = catalogProducts.filter((p) => p.tag === "BEST SELLER")
   if (bestSellers.length >= 4) return bestSellers.slice(0, 4)
-  // If not enough best sellers, fill with other products
-  const others = allProducts.filter((p) => p.tag !== "BEST SELLER")
+  const others = catalogProducts.filter((p) => p.tag !== "BEST SELLER")
   return [...bestSellers, ...others].slice(0, 4)
 })()
 
@@ -93,68 +89,5 @@ export function FeaturedProducts() {
         </div>
       </div>
     </section>
-  )
-}
-
-function ProductCard({ product }: { product: typeof featuredProducts[0] }) {
-  const [added, setAdded] = useState(false)
-  const addItem = useCartStore((s) => s.addItem)
-  const openCart = useCartStore((s) => s.openCart)
-
-  function handleAdd() {
-    addItem({ name: product.name, price: product.price, image: product.image })
-    setAdded(true)
-    setTimeout(() => {
-      openCart()
-      setAdded(false)
-    }, 1000)
-  }
-
-  return (
-    <div className="group rounded-2xl overflow-hidden border border-border bg-graphite hover:border-purple-medium/40 hover:shadow-[0_0_25px_rgba(91,45,130,0.12)] transition-all duration-500">
-      {/* Image */}
-      <div className="relative h-52 overflow-hidden">
-        <Image
-          src={product.image}
-          alt={product.name}
-          fill
-          sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 25vw"
-          loading="lazy"
-          className="object-cover transition-transform duration-700 group-hover:scale-110"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-graphite via-transparent to-transparent" />
-        {product.tag && (
-          <span className={`absolute top-3 left-3 px-2 py-0.5 text-[9px] font-bold rounded-full ${product.tagColor}`}>
-            {product.tag}
-          </span>
-        )}
-      </div>
-
-      {/* Content */}
-      <div className="p-4 space-y-2">
-        <h3 className="text-sm font-black text-foreground leading-tight group-hover:text-lime transition-colors">
-          {product.name}
-        </h3>
-        <p className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
-          {product.description}
-        </p>
-        <div className="flex items-center justify-between pt-2 border-t border-border/50">
-          <span className="text-sm font-black text-lime">
-            {formatPrice(product.price)}
-          </span>
-          <button
-            onClick={handleAdd}
-            className={`h-11 w-11 rounded-full flex items-center justify-center transition-all duration-300 ${
-              added
-                ? "bg-purple-medium scale-125 shadow-[0_0_20px_rgba(91,45,130,0.5)]"
-                : "bg-lime hover:scale-110 hover:shadow-[0_0_15px_rgba(230,230,59,0.4)]"
-            } text-background`}
-            aria-label={`Adicionar ${product.name} ao carrinho`}
-          >
-            {added ? <Check className="h-3.5 w-3.5" /> : <ShoppingCart className="h-3.5 w-3.5" />}
-          </button>
-        </div>
-      </div>
-    </div>
   )
 }

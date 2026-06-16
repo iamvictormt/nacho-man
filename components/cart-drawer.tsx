@@ -1,13 +1,12 @@
 "use client"
 
-import Image from "next/image"
 import {
   CheckCircle2,
   MessageCircle,
   Minus,
   Plus,
   ShieldCheck,
-  ShoppingBag,
+  ShoppingCart,
   Trash2,
   X,
 } from "lucide-react"
@@ -155,7 +154,7 @@ export function CartDrawer() {
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-border/20">
           <div className="flex items-center gap-3">
-            <ShoppingBag className="h-5 w-5 text-lime" />
+              <ShoppingCart className="h-5 w-5 text-lime" />
             <h2
               id={titleId}
               className="text-lg font-black text-foreground tracking-tight"
@@ -199,7 +198,7 @@ export function CartDrawer() {
                 onClick={closeCart}
                 className="min-h-11 px-4 text-xs font-black text-lime tracking-wider hover:underline"
               >
-                CONTINUAR COMPRANDO
+                VER PRODUTOS
               </button>
             </div>
           ) : (
@@ -219,7 +218,7 @@ export function CartDrawer() {
           )}
         </div>
 
-        {/* Footer — hidden when cart is empty */}
+        {/* Footer - hidden when cart is empty */}
         {items.length > 0 && (
           <div
             className={`border-t border-border/20 p-5 space-y-4 transition-all duration-300 ${
@@ -230,7 +229,7 @@ export function CartDrawer() {
             {/* Total */}
             <div className="flex items-center justify-between">
               <span className="text-sm font-bold text-muted-foreground">
-                TOTAL ({totalItems()} {totalItems() === 1 ? "item" : "itens"})
+                TOTAL DO CARRINHO ({totalItems()} {totalItems() === 1 ? "item" : "itens"})
               </span>
               <span className="text-2xl font-black text-lime">
                 {formatPrice(totalPrice())}
@@ -240,11 +239,11 @@ export function CartDrawer() {
             <div className="grid grid-cols-1 gap-2 rounded-2xl border border-border/50 bg-graphite/70 p-3">
               <div className="flex items-center gap-2 text-[11px] font-semibold text-muted-foreground">
                 <ShieldCheck className="h-4 w-4 text-lime" aria-hidden="true" />
-                Sem pagamento online: você confirma tudo no WhatsApp.
+                Sem pagamento online: o comercial confirma disponibilidade e condições no WhatsApp.
               </div>
               <div className="flex items-center gap-2 text-[11px] font-semibold text-muted-foreground">
                 <CheckCircle2 className="h-4 w-4 text-lime" aria-hidden="true" />
-                Itens, quantidades e total já vão organizados na mensagem.
+                Itens, quantidades e total estimado já vão organizados na mensagem.
               </div>
             </div>
 
@@ -272,12 +271,12 @@ export function CartDrawer() {
               onClick={handleWhatsAppCheckout}
               className="w-full flex items-center justify-center gap-3 bg-[#25D366] text-white font-black text-sm tracking-wider py-4 rounded-full hover:scale-[1.02] transition-transform duration-300 shadow-lg"
             >
-              <MessageCircle className="h-5 w-5" />
-              FINALIZAR PELO WHATSAPP
+                                <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              SOLICITAR ORÇAMENTO
             </button>
 
             <p className="text-[10px] text-center text-muted-foreground">
-              Você será redirecionado para o WhatsApp para confirmar seu pedido.
+              Você será redirecionado para o WhatsApp para validar valores, pedido mínimo e entrega.
             </p>
           </div>
         )}
@@ -291,7 +290,7 @@ function CartItemCard({
   onRemove,
   onUpdateQuantity,
 }: {
-  item: { name: string; price: number; quantity: number; image: string }
+  item: { name: string; price: number; priceUnit?: "KG" | "UND"; quantity: number; image: string }
   onRemove: () => void
   onUpdateQuantity: (qty: number) => void
 }) {
@@ -318,7 +317,7 @@ function CartItemCard({
         </div>
 
         <p className="text-xs text-muted-foreground">
-          {formatPrice(item.price)} un.
+          {formatPrice(item.price)} / {item.priceUnit ?? "UND"}
         </p>
 
         <div className="flex items-center justify-between">

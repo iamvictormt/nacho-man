@@ -61,7 +61,7 @@ export function Navbar() {
           <button
             onClick={openCart}
             className="relative h-11 w-11 flex items-center justify-center text-foreground/70 hover:text-lime transition-colors"
-            aria-label="Carrinho"
+            aria-label="Abrir carrinho"
           >
             <ShoppingCart className="h-5 w-5" />
             {mounted && totalItems() > 0 && (
@@ -77,7 +77,7 @@ export function Navbar() {
           <button
             onClick={openCart}
             className="relative h-11 w-11 flex items-center justify-center text-foreground/70 hover:text-lime transition-colors"
-            aria-label="Carrinho"
+            aria-label="Abrir carrinho"
           >
             <ShoppingCart className="h-5 w-5" />
             {mounted && totalItems() > 0 && (

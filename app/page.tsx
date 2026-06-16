@@ -74,7 +74,7 @@ const audiences = [
 const categories = [
   {
     title: "Carnes Prontas",
-    image: "/carne.webp",
+    image: "/product-images/carne barbacoa.webp",
     href: "/produtos?category=Carnes",
     items: [
       "Carne de Panela - Barbacoa",
@@ -87,7 +87,7 @@ const categories = [
   },
   {
     title: "Molhos e Salsas",
-    image: "/molhos.webp",
+    image: "/product-images/salsa ghost pepper.webp",
     href: "/produtos?category=Molhos",
     items: [
       "Sweet Chili",
@@ -101,7 +101,7 @@ const categories = [
   },
   {
     title: "Bases e Insumos",
-    image: "/embalagens-3.webp",
+    image: "/product-images/kit bacon mayo.webp",
     href: "/produtos?category=Kits",
     items: [
       "Açúcar para Churros",
@@ -114,35 +114,12 @@ const categories = [
 ]
 
 const homeBestSellerSlugs = [
-  "carne-barbacoa-1-5kg",
-  "carne-chili-beans-1-5kg",
-  "carne-costelinha-1-5kg",
-  "chili-veg-1kg",
-  "frango-desfiado-ao-molho-1-5kg",
-  "frijoles-refritos-1kg",
-  "base-arroz-mexicano-100g",
-  "frango-empanado-hot-10un",
-  "churros-palito-1kg",
-  "mini-churros-sem-recheio-1kg",
-  "salsa-jalapeno-200ml",
-  "salsa-jalapeno-2l",
-  "salsa-ghost-pepper-200ml",
-  "salsa-hot-pickles-200ml",
-  "salsa-hot-pickles-1l",
-  "salsa-negra-200ml",
-  "salsa-habanero-pina-200ml",
-  "salsa-roja-1l",
-  "salsa-sweet-chili-200ml",
-  "salsa-sweet-chili-2l",
-  "salsa-verde-300ml",
-  "salsa-verde-600ml",
-  "kit-base-bacon-mayo",
-  "kit-base-molho-chipotle",
-  "chamoy-geleia-500g",
-  "acucar-especial-churros-500g",
-  "sal-temperado-batata-500g",
-  "sal-temperado-chips-500g",
-  "tajin-250g",
+  "carne-bovina-desfiada-artesanal",
+  "chili-de-carne-com-feijao",
+  "carne-suina-desfiada-com-barbecue",
+  "feijao-cremoso-temperado",
+  "jalapeno-2l",
+  "sweet-chili-2l",
 ]
 
 const homeBestSellerProducts = homeBestSellerSlugs
@@ -166,9 +143,9 @@ const trustStats = [
 const qualityItems = ["Câmara fria", "Ultracongelamento", "Equipamentos de Ponta", "Controle de qualidade"]
 
 const processSteps = [
-  { title: "Escolha os produtos", description: "Monte seu carrinho online." },
+  { title: "Escolha os produtos", description: "Monte seu carrinho com os itens desejados." },
   { title: "Receba orçamento", description: "Nosso time valida estoque e frete." },
-  { title: "Confirme o pedido", description: "Pagamento simples e rápido." },
+  { title: "Confirme condições", description: "Alinhe pedido mínimo, pagamento e prazo com o comercial." },
   { title: "Receba no seu negócio", description: "Produtos congelados entregues prontos para uso." },
 ]
 
@@ -196,7 +173,7 @@ export default function Home() {
             </div>
             <div className="space-y-4">
               <h1 className="max-w-4xl text-4xl font-black uppercase leading-[0.95] text-foreground sm:text-5xl lg:text-6xl xl:text-7xl">
-                ALIMENTOS PRONTOS PARA SUA OPERAÇÃO.
+                ALIMENTOS PRONTOS<br />PARA SUA<br /><span className="text-lime neon-glow">OPERAÇÃO.</span>
               </h1>
               <p className="max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg">
                 Produzimos carnes congeladas, molhos, temperos e kits prontos para restaurantes, hamburguerias, eventos e revendedores.
@@ -324,7 +301,7 @@ export default function Home() {
 
       <section className="bg-background py-16 md:py-20">
         <div className="mx-auto max-w-7xl px-4">
-          <SectionHeader eyebrow="Do carrinho online à entrega no seu negócio" title="COMO FUNCIONA" />
+          <SectionHeader eyebrow="Do carrinho à entrega no seu negócio" title="COMO FUNCIONA" />
           <div className="mt-9 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             {processSteps.map((step, index) => (
               <div key={step.title} className="border border-border bg-graphite p-5">
