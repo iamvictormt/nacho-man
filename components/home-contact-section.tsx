@@ -69,9 +69,6 @@ export function HomeContactSection() {
               Contato
             </h2>
           </div>
-          <p className="max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg">
-            Solicite um orçamento, tire dúvidas ou faça seu pedido diretamente pelo WhatsApp.
-          </p>
         </div>
       </section>
 
