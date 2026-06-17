@@ -1,20 +1,20 @@
-import type { Metadata } from 'next'
-import { Montserrat } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
-import { TopBar } from '@/components/top-bar'
-import { Navbar } from '@/components/navbar'
-import { SiteFooter } from '@/components/site-footer'
-import { CartDrawerWrapper } from '@/components/cart-drawer-wrapper'
-import { HashScrollHandler } from '@/components/hash-scroll-handler'
-import { absoluteUrl, defaultSeoDescription, siteName, siteUrl } from '@/lib/seo'
-import './globals.css'
+import type { Metadata } from 'next';
+import { Montserrat } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
+import { TopBar } from '@/components/top-bar';
+import { Navbar } from '@/components/navbar';
+import { SiteFooter } from '@/components/site-footer';
+import { CartDrawerWrapper } from '@/components/cart-drawer-wrapper';
+import { HashScrollHandler } from '@/components/hash-scroll-handler';
+import { absoluteUrl, defaultSeoDescription, siteName, siteUrl } from '@/lib/seo';
+import './globals.css';
 
 const montserrat = Montserrat({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700', '800', '900'],
   variable: '--font-montserrat',
   display: 'swap',
-})
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -75,7 +75,7 @@ export const metadata: Metadata = {
       'max-video-preview': -1,
     },
   },
-}
+};
 
 const organizationJsonLd = {
   '@context': 'https://schema.org',
@@ -92,19 +92,19 @@ const organizationJsonLd = {
     addressCountry: 'BR',
   },
   description: defaultSeoDescription,
-  sameAs: [
-    'https://instagram.com/nachoman',
-    'https://facebook.com/nachoman',
-  ],
-}
+  sameAs: ['https://instagram.com/nachoman', 'https://facebook.com/nachoman'],
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="pt-BR" className="bg-background">
+      <head>
+        <meta name="apple-mobile-web-app-title" content="Nacho Factory" />
+      </head>
       <body className={`${montserrat.className} font-sans antialiased`}>
         <TopBar />
         <Navbar />
@@ -112,12 +112,9 @@ export default function RootLayout({
         <main>{children}</main>
         <SiteFooter />
         <CartDrawerWrapper />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
-        />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
-  )
+  );
 }
