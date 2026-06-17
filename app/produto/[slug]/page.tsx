@@ -282,7 +282,7 @@ export default function ProductDetailPage() {
                     </>
                   ) : (
                     <>
-                      <MessageCircle className="h-4 w-4" />
+                      <Plus className="h-4 w-4" />
                       ADICIONAR AO CARRINHO
                     </>
                   )}
