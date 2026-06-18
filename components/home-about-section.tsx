@@ -59,13 +59,13 @@ export function HomeAboutSection() {
           />
 
           <div className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-[1.08fr_0.92fr]">
-            <div className="relative min-h-[480px] overflow-hidden rounded-2xl border border-border">
+            <div className="relative min-h-[480px] overflow-hidden rounded-2xl border border-border group">
               <Image
                 src="/local-nacho-factory.webp"
                 alt="Fachada da fábrica Nacho Factory em Blumenau"
                 fill
                 sizes="(max-width: 1023px) 100vw, 55vw"
-                className="object-cover"
+                className="object-cover transition-transform duration-700 group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
               <div className="absolute bottom-5 left-5 flex items-center gap-2 rounded-full border border-border bg-background/80 px-4 py-2 backdrop-blur">
@@ -89,7 +89,7 @@ export function HomeAboutSection() {
               <ul className="mt-9 space-y-4">
                 {highlights.map((item) => (
                   <li key={item} className="flex items-start gap-3 border-t border-border/70 pt-4 text-sm text-foreground/85">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-lime" aria-hidden="true" />
+                    <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-lime" aria-hidden="true" />
                     {item}
                   </li>
                 ))}
@@ -168,19 +168,15 @@ export function HomeAboutSection() {
                 </div>
               ))}
             </div>
-            <div className="mt-6 flex items-center gap-3 text-sm font-bold text-foreground/80">
-              <BadgeCheck className="h-5 w-5 text-lime" aria-hidden="true" />
-              Segurança alimentar e rastreabilidade total
-            </div>
           </div>
 
-          <div className="relative min-h-[520px] overflow-hidden rounded-2xl border border-border">
+          <div className="relative min-h-[520px] overflow-hidden rounded-2xl border border-border group">
             <Image
               src="/camara-fria.webp"
               alt="Interior da câmara fria da Nacho Factory"
               fill
               sizes="(max-width: 1023px) 100vw, 50vw"
-              className="object-cover"
+              className="object-cover transition-transform duration-700 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background/45 via-transparent to-transparent" />
           </div>
