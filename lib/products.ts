@@ -202,7 +202,7 @@ export const allProducts: Product[] = [
     subcategory: "Food Service",
     weight: "Caixa com 6 unidades",
     image: "/product-images/salsa hot pickles.webp",
-    tag: "FOOD SERVICE",
+    tag: null,
     tagColor: "bg-lime text-background",
   },
   {
@@ -216,7 +216,7 @@ export const allProducts: Product[] = [
     subcategory: "Food Service",
     weight: "Caixa com 4 unidades",
     image: "/product-images/salsa jalapeno.webp",
-    tag: "FOOD SERVICE",
+    tag: null,
     tagColor: "bg-lime text-background",
   },
   {
@@ -230,7 +230,7 @@ export const allProducts: Product[] = [
     subcategory: "Food Service",
     weight: "Caixa com 4 unidades",
     image: "/product-images/sweet chili.webp",
-    tag: "FOOD SERVICE",
+    tag: null,
     tagColor: "bg-lime text-background",
   },
   {
@@ -244,7 +244,7 @@ export const allProducts: Product[] = [
     subcategory: "Food Service",
     weight: "Caixa com 6 unidades",
     image: "/product-images/salsa roja.webp",
-    tag: "FOOD SERVICE",
+    tag: null,
     tagColor: "bg-lime text-background",
   },
   {
