@@ -24,6 +24,20 @@ export const metadata: Metadata = {
   },
   description: defaultSeoDescription,
   applicationName: siteName,
+  manifest: '/site-20260618.webmanifest',
+  icons: {
+    icon: [
+      { url: '/favicon-20260618.ico', sizes: 'any' },
+      { url: '/icon-20260618.svg', type: 'image/svg+xml' },
+      { url: '/icon-20260618.png', type: 'image/png' },
+    ],
+    apple: [
+      {
+        url: '/apple-touch-icon-20260618.png',
+        type: 'image/png',
+      },
+    ],
+  },
   keywords: [
     'alimentos prontos',
     'food service',
