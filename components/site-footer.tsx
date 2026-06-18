@@ -1,13 +1,6 @@
 import Link from "next/link"
 import { STORE_WHATSAPP_NUMBER, buildWhatsAppUrl } from "@/lib/whatsapp"
 
-const productLinks = [
-  { label: "Carnes", href: "/produtos?category=Carnes" },
-  { label: "Molhos", href: "/produtos?category=Molhos" },
-  { label: "Bases", href: "/produtos?category=Kits" },
-  { label: "Congelados", href: "/produtos?category=CONGELADO" },
-]
-
 const structureLinks = [
   { label: "Produção terceirizada", href: "/#estrutura" },
   { label: "Armazenagem", href: "/#armazenagem" },
@@ -33,9 +26,9 @@ export function SiteFooter() {
   )
 
   return (
-    <footer className="border-t border-border bg-graphite">
+    <footer className="border-t border-border bg-background">
       <div className="mx-auto max-w-7xl px-4 py-12 md:py-14">
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
           <FooterLinkGroup
             title="Atendimento Comercial"
             className="md:col-span-2"
@@ -48,12 +41,11 @@ export function SiteFooter() {
               },
             ]}
           />
-          <FooterLinkGroup title="Produtos" links={productLinks} className="md:col-span-1" />
           <FooterLinkGroup title="Estrutura" links={structureLinks} />
         </div>
 
         <div className="mt-10 border-t border-border/60 pt-6 text-xs font-semibold text-muted-foreground/70">
-          © {year} Nacho Man. Todos os direitos reservados.
+          © {year} Nacho Factory. Todos os direitos reservados.
         </div>
       </div>
     </footer>

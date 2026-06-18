@@ -15,7 +15,7 @@ export function SearchBar({ value, onChange }: SearchBarProps) {
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Buscar produtos..."
+        placeholder="Buscar por nome..."
         className="w-full h-11 pl-10 pr-12 rounded-full bg-graphite border border-border text-sm text-foreground placeholder:text-muted-foreground focus:border-lime/50 focus:shadow-[0_0_10px_rgba(239,255,13,0.1)] transition-all duration-300"
         aria-label="Buscar produtos"
       />
@@ -27,11 +27,6 @@ export function SearchBar({ value, onChange }: SearchBarProps) {
         >
           <X className="h-4 w-4" />
         </button>
-      )}
-      {value.length > 0 && value.length < 2 && (
-        <span className="absolute right-10 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
-          min. 2 chars
-        </span>
       )}
     </div>
   )
