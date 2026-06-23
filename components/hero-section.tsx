@@ -8,12 +8,7 @@ export function HeroSection() {
     <section className="relative overflow-hidden bg-background min-h-[90vh] flex items-center">
       {/* Full background photo with heavy overlay */}
       <div className="absolute inset-0">
-        <img
-          src="/local-nacho-factory.webp"
-          alt=""
-          className="w-full h-full object-cover"
-          aria-hidden="true"
-        />
+        <img src="/local-nacho-factory.webp" alt="" className="w-full h-full object-cover" aria-hidden="true" />
         <div className="absolute inset-0 bg-background/80" />
         <div className="absolute inset-0 bg-gradient-to-r from-background via-background/65 to-background/60" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/70" />
@@ -61,7 +56,6 @@ export function HeroSection() {
       {/* Right side — Mexican icons composition (desktop) */}
       <div className="absolute right-0 top-0 bottom-0 hidden lg:flex items-center pointer-events-none w-[50%]">
         <div className="relative w-full h-full">
-
           {/* Main caveira — large, center-right, pulsing glow */}
           <img
             src="/caveira-roxo.svg"
@@ -162,25 +156,27 @@ export function HeroSection() {
             className="absolute top-[55%] right-[4%] h-[50px] w-[50px] opacity-12 animate-float-1"
             aria-hidden="true"
           />
-
         </div>
       </div>
 
       {/* Content */}
       <div className="relative mx-auto max-w-7xl px-4 md:py-24 w-full">
         <div className="max-w-5xl space-y-8">
-
           {/* Headline — bold uppercase, font-weight 900 */}
           <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black uppercase leading-[0.92] tracking-tight">
-            <span className="text-foreground">Produção de</span><br />
-            <span className="text-foreground">Alimentos</span><br />
-            <span className="text-foreground">Congelados</span><br />
+            <span className="text-foreground">Produção de</span>
+            <br />
+            <span className="text-foreground">Alimentos</span>
+            <br />
+            <span className="text-foreground">Congelados</span>
+            <br />
             <span className="text-lime neon-glow italic">Para Food Service.</span>
           </h1>
 
           {/* Subtitle — max 200 characters, descriptive */}
           <p className="text-muted-foreground text-base md:text-lg max-w-lg leading-relaxed">
-            Molhos, empanados e proteínas prontas. Armazenagem refrigerada com controle total de temperatura e rastreabilidade.
+            Molhos, empanados e proteínas prontas. Armazenagem refrigerada com controle total de temperatura e
+            rastreabilidade.
           </p>
 
           {/* CTAs */}

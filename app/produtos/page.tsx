@@ -26,13 +26,7 @@ export default function ProdutosPage() {
     }
 
     return catalogProducts.filter((product) => {
-      const searchableContent = [
-        product.name,
-        product.displayName,
-        product.subtitle,
-      ]
-        .filter(Boolean)
-        .join(" ")
+      const searchableContent = [product.name, product.displayName, product.subtitle].filter(Boolean).join(" ")
 
       return normalizeSearchText(searchableContent).includes(normalizedSearch)
     })
@@ -73,12 +67,8 @@ export default function ProdutosPage() {
                   aria-hidden="true"
                 />
               </div>
-              <h3 className="mb-2 mt-1 text-lg font-black text-foreground">
-                Nenhum produto encontrado
-              </h3>
-              <p className="mb-6 max-w-sm text-sm text-muted-foreground">
-                Tente buscar por outro nome.
-              </p>
+              <h3 className="mb-2 mt-1 text-lg font-black text-foreground">Nenhum produto encontrado</h3>
+              <p className="mb-6 max-w-sm text-sm text-muted-foreground">Tente buscar por outro nome.</p>
               <button
                 onClick={() => setSearch("")}
                 className="rounded-full bg-lime px-6 py-3 text-sm font-black tracking-wider text-background transition-all duration-300 hover:shadow-[0_0_20px_rgba(239,255,13,0.3)]"
@@ -94,8 +84,7 @@ export default function ProdutosPage() {
         <div className="absolute left-0 top-0 h-px w-full bg-gradient-to-r from-purple-medium/40 via-lime/30 to-purple-medium/40" />
         <div className="relative mx-auto max-w-3xl space-y-6 px-4 text-center">
           <h2 className="text-2xl font-black tracking-tight text-foreground md:text-3xl">
-            PRECISA DE UM PRODUTO{" "}
-            <span className="text-purple-medium neon-glow-purple">PERSONALIZADO?</span>
+            PRECISA DE UM PRODUTO <span className="text-purple-medium neon-glow-purple">PERSONALIZADO?</span>
           </h2>
           <p className="mx-auto max-w-md text-muted-foreground">
             Desenvolvemos produtos, bases e receitas sob medida para padronizar a sua operação.

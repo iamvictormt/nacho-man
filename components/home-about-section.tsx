@@ -1,5 +1,5 @@
 import Image from "next/image"
-import { BadgeCheck, Check, ClipboardCheck, Factory, MapPin, PackageCheck } from "lucide-react"
+import { BadgeCheck, ClipboardCheck, Factory, MapPin, PackageCheck } from "lucide-react"
 import { SectionHeading } from "@/components/section-heading"
 
 const highlights = [
@@ -76,9 +76,7 @@ export function HomeAboutSection() {
 
             <div className="flex flex-col justify-between rounded-2xl border border-border bg-graphite p-7 md:p-9">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-purple-medium">
-                  Estrutura própria
-                </p>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-purple-medium">Estrutura própria</p>
                 <h3 className="mt-4 text-2xl font-black uppercase leading-tight text-foreground md:text-3xl">
                   Produzir, congelar e armazenar em um só lugar
                 </h3>
@@ -88,7 +86,10 @@ export function HomeAboutSection() {
               </div>
               <ul className="mt-9 space-y-4">
                 {highlights.map((item) => (
-                  <li key={item} className="flex items-start gap-3 border-t border-border/70 pt-4 text-sm text-foreground/85">
+                  <li
+                    key={item}
+                    className="flex items-start gap-3 border-t border-border/70 pt-4 text-sm text-foreground/85"
+                  >
                     <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-lime" aria-hidden="true" />
                     {item}
                   </li>
@@ -122,24 +123,27 @@ export function HomeAboutSection() {
               const Icon = item.icon
 
               return (
-              <article key={item.image} className="group overflow-hidden rounded-2xl border border-border bg-background">
-                <div className="relative h-[440px] overflow-hidden md:h-[520px] xl:h-[600px]">
-                  <Image
-                    src={item.image}
-                    alt={item.alt}
-                    fill
-                    sizes="(max-width: 767px) 100vw, 33vw"
-                    className="object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-transparent" />
-                </div>
-                <div className="flex items-center gap-4 p-5">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-lime/20 bg-lime/10">
-                    <Icon className="h-5 w-5 text-lime" aria-hidden="true" />
-                  </span>
-                  <h3 className="text-base font-black uppercase tracking-wider text-foreground">{item.label}</h3>
-                </div>
-              </article>
+                <article
+                  key={item.image}
+                  className="group overflow-hidden rounded-2xl border border-border bg-background"
+                >
+                  <div className="relative h-[440px] overflow-hidden md:h-[520px] xl:h-[600px]">
+                    <Image
+                      src={item.image}
+                      alt={item.alt}
+                      fill
+                      sizes="(max-width: 767px) 100vw, 33vw"
+                      className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-transparent" />
+                  </div>
+                  <div className="flex items-center gap-4 p-5">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-lime/20 bg-lime/10">
+                      <Icon className="h-5 w-5 text-lime" aria-hidden="true" />
+                    </span>
+                    <h3 className="text-base font-black uppercase tracking-wider text-foreground">{item.label}</h3>
+                  </div>
+                </article>
               )
             })}
           </div>

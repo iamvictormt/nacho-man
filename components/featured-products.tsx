@@ -54,7 +54,12 @@ export function FeaturedProducts() {
         aria-hidden="true"
       >
         <circle cx="28" cy="28" r="12" />
-        <path d="M28 8v8M28 40v8M8 28h8M40 28h8M14 14l6 6M36 36l6 6M14 42l6-6M36 20l6-6" strokeWidth="2" stroke="currentColor" fill="none" />
+        <path
+          d="M28 8v8M28 40v8M8 28h8M40 28h8M14 14l6 6M36 36l6 6M14 42l6-6M36 20l6-6"
+          strokeWidth="2"
+          stroke="currentColor"
+          fill="none"
+        />
       </svg>
 
       <div className="mx-auto max-w-7xl px-4 relative z-10">
@@ -65,9 +70,7 @@ export function FeaturedProducts() {
               <span className="h-px w-8 shrink-0 bg-lime/70" aria-hidden="true" />
               Catálogo
             </span>
-            <h2 className="text-2xl md:text-3xl font-black tracking-tight mt-1">
-              NOSSOS PRODUTOS
-            </h2>
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight mt-1">NOSSOS PRODUTOS</h2>
           </div>
           <Link
             href="/produtos"

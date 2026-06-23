@@ -1,5 +1,4 @@
-export const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://nacho-man-test.vercel.app/"
+export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://nacho-man-test.vercel.app/"
 
 export const siteName = "Nacho Factory"
 

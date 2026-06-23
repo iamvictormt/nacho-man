@@ -7,9 +7,7 @@ type ProductLayoutProps = {
   params: Promise<{ slug: string }>
 }
 
-export async function generateMetadata({
-  params,
-}: ProductLayoutProps): Promise<Metadata> {
+export async function generateMetadata({ params }: ProductLayoutProps): Promise<Metadata> {
   const { slug } = await params
   const product = catalogProductsBySlug.get(slug)
 

@@ -1,7 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import { ArrowRight, Check, Clock, Handshake, HelpCircle, MapPin, MessageCircle, Phone, ShoppingCart } from "lucide-react"
+import {
+  ArrowRight,
+  Check,
+  Clock,
+  Handshake,
+  HelpCircle,
+  MapPin,
+  MessageCircle,
+  Phone,
+  ShoppingCart,
+} from "lucide-react"
 import { buildWhatsAppUrl, STORE_WHATSAPP_NUMBER } from "@/lib/whatsapp"
 
 const topics = [
@@ -89,7 +99,10 @@ export function HomeContactSection() {
                   <span className="block text-sm font-black uppercase text-foreground">{topic.title}</span>
                   <span className="mt-1 block text-xs leading-5 text-muted-foreground">{topic.description}</span>
                 </span>
-                <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-lime" aria-hidden="true" />
+                <ArrowRight
+                  className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-lime"
+                  aria-hidden="true"
+                />
               </button>
             ))}
 
@@ -109,9 +122,7 @@ export function HomeContactSection() {
               <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-lime/25 bg-lime/10 text-lime">
                 <MessageCircle className="h-6 w-6" aria-hidden="true" />
               </span>
-              <p className="mt-8 text-[11px] font-black uppercase tracking-[0.2em] text-lime">
-                WhatsApp comercial
-              </p>
+              <p className="mt-8 text-[11px] font-black uppercase tracking-[0.2em] text-lime">WhatsApp comercial</p>
               <h3 className="mt-3 max-w-lg text-3xl font-black uppercase leading-tight tracking-[-0.03em] text-foreground md:text-4xl">
                 Atendimento rápido e personalizado
               </h3>
@@ -135,9 +146,7 @@ export function HomeContactSection() {
             </ul>
 
             <button
-              onClick={() =>
-                openWhatsApp("Olá! Vim pelo site da Nacho Factory e gostaria de mais informações.")
-              }
+              onClick={() => openWhatsApp("Olá! Vim pelo site da Nacho Factory e gostaria de mais informações.")}
               className="relative mt-auto inline-flex min-h-13 items-center justify-center gap-3 rounded-full bg-lime px-7 text-sm font-black tracking-wider text-background transition-all hover:-translate-y-0.5 hover:shadow-[0_0_28px_rgba(239,255,13,0.25)]"
             >
               INICIAR CONVERSA
@@ -150,15 +159,7 @@ export function HomeContactSection() {
   )
 }
 
-function ContactInfo({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof Phone
-  label: string
-  value: string
-}) {
+function ContactInfo({ icon: Icon, label, value }: { icon: typeof Phone; label: string; value: string }) {
   return (
     <div className="rounded-xl border border-border bg-background p-4">
       <Icon className="h-4 w-4 text-lime" aria-hidden="true" />

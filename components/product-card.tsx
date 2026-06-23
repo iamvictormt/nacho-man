@@ -69,9 +69,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
       <div className="space-y-3 p-4">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[10px] font-black uppercase tracking-[0.16em] text-lime">
-            {product.subcategory}
-          </span>
+          <span className="text-[10px] font-black uppercase tracking-[0.16em] text-lime">{product.subcategory}</span>
           <span className="shrink-0 rounded-full border border-border bg-graphite px-2 py-0.5 text-[10px] font-black text-muted-foreground">
             {product.priceUnit}
           </span>
@@ -79,25 +77,17 @@ export function ProductCard({ product }: ProductCardProps) {
         <h3 className="text-sm font-black text-foreground leading-tight group-hover:text-lime transition-colors">
           {product.name}
         </h3>
-        <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
-          {product.description}
-        </p>
+        <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">{product.description}</p>
         <div className="grid grid-cols-[1.08fr_0.92fr] gap-3 border-y border-border/70 py-3">
           <div>
-            <p className="text-[9px] font-black uppercase tracking-[0.14em] text-muted-foreground">
-              Preço
-            </p>
+            <p className="text-[9px] font-black uppercase tracking-[0.14em] text-muted-foreground">Preço</p>
             <p className="mt-1 text-base font-black leading-tight text-lime">
               {formatPrice(product.price)} / {product.priceUnit}
             </p>
           </div>
           <div>
-            <p className="text-[9px] font-black uppercase tracking-[0.14em] text-muted-foreground">
-              Embalagem
-            </p>
-            <p className="mt-1 line-clamp-1 text-[11px] font-bold text-foreground">
-              {product.weight}
-            </p>
+            <p className="text-[9px] font-black uppercase tracking-[0.14em] text-muted-foreground">Embalagem</p>
+            <p className="mt-1 line-clamp-1 text-[11px] font-bold text-foreground">{product.weight}</p>
           </div>
         </div>
         {product.applications && product.applications.length > 0 && (

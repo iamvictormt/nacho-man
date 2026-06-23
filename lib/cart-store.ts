@@ -66,9 +66,7 @@ export const useCartStore = create<CartStore>()(
           if (existing) {
             return {
               items: state.items.map((i) =>
-                i.name === item.name
-                  ? { ...i, quantity: Math.min(i.quantity + 1, 99) }
-                  : i
+                i.name === item.name ? { ...i, quantity: Math.min(i.quantity + 1, 99) } : i
               ),
             }
           }
@@ -91,9 +89,7 @@ export const useCartStore = create<CartStore>()(
         // Clamp quantity to max 99
         const clamped = Math.min(quantity, 99)
         set((state) => ({
-          items: state.items.map((i) =>
-            i.name === name ? { ...i, quantity: clamped } : i
-          ),
+          items: state.items.map((i) => (i.name === name ? { ...i, quantity: clamped } : i)),
         }))
       },
 
@@ -103,8 +99,7 @@ export const useCartStore = create<CartStore>()(
       closeCart: () => set({ isOpen: false }),
 
       totalItems: () => get().items.reduce((acc, item) => acc + item.quantity, 0),
-      totalPrice: () =>
-        get().items.reduce((acc, item) => acc + item.price * item.quantity, 0),
+      totalPrice: () => get().items.reduce((acc, item) => acc + item.price * item.quantity, 0),
     }),
     {
       name: "nachoman-cart",

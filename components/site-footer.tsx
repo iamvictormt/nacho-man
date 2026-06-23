@@ -63,9 +63,7 @@ function FooterLinkGroup({
 }) {
   return (
     <div className={className}>
-      <h3 className="mb-5 text-sm font-black uppercase tracking-[0.2em] text-lime">
-        {title}
-      </h3>
+      <h3 className="mb-5 text-sm font-black uppercase tracking-[0.2em] text-lime">{title}</h3>
       <ul className="space-y-3">
         {links.map((item) => (
           <li key={`${title}-${item.label}`}>
@@ -77,16 +75,14 @@ function FooterLinkGroup({
   )
 }
 
-function FooterItem({
-  item,
-}: {
-  item: { label: string; href: string | null; external?: boolean }
-}) {
+function FooterItem({ item }: { item: { label: string; href: string | null; external?: boolean } }) {
   const className =
     "inline-flex min-h-8 items-center text-sm font-semibold text-muted-foreground transition-colors hover:text-lime"
 
   if (!item.href) {
-    return <span className="inline-flex min-h-8 items-center text-sm font-semibold text-muted-foreground">{item.label}</span>
+    return (
+      <span className="inline-flex min-h-8 items-center text-sm font-semibold text-muted-foreground">{item.label}</span>
+    )
   }
 
   if (item.external) {

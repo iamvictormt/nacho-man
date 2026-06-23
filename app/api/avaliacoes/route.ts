@@ -22,19 +22,12 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const name = typeof body.name === "string" ? body.name.trim() : ""
-    const contact =
-      typeof body.contact === "string" ? body.contact.trim() : ""
+    const contact = typeof body.contact === "string" ? body.contact.trim() : ""
     const marketingConsent = body.marketingConsent === true
-    const consentText =
-      marketingConsent && typeof body.consentText === "string"
-        ? body.consentText
-        : null
+    const consentText = marketingConsent && typeof body.consentText === "string" ? body.consentText : null
 
     if (!name || !contact) {
-      return NextResponse.json(
-        { error: "Nome e contato são obrigatórios." },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: "Nome e contato são obrigatórios." }, { status: 400 })
     }
 
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)
@@ -42,10 +35,7 @@ export async function POST(request: Request) {
     const isPhone = phoneDigits.length === 10 || phoneDigits.length === 11
 
     if (!isEmail && !isPhone) {
-      return NextResponse.json(
-        { error: "Informe um WhatsApp com DDD ou um e-mail válido." },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: "Informe um WhatsApp com DDD ou um e-mail válido." }, { status: 400 })
     }
 
     const lead: CachedLead = {
@@ -60,9 +50,6 @@ export async function POST(request: Request) {
     leads.push(lead)
     return NextResponse.json({ ok: true, id: lead.id }, { status: 201 })
   } catch {
-    return NextResponse.json(
-      { error: "Não foi possível salvar o contato." },
-      { status: 500 },
-    )
+    return NextResponse.json({ error: "Não foi possível salvar o contato." }, { status: 500 })
   }
 }

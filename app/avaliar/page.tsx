@@ -1,93 +1,81 @@
-'use client';
+"use client"
 
-import { FormEvent, useState } from 'react';
-import {
-  ArrowRight,
-  Check,
-  CircleQuestionMark,
-  ExternalLink,
-  Factory,
-  Mail,
-  MessageCircle,
-  ShieldCheck,
-  Sparkles,
-  Star,
-  UserRound,
-} from 'lucide-react';
+import { FormEvent, useState } from "react"
+import { ArrowRight, Check, CircleQuestionMark, ExternalLink, Mail, MessageCircle, Star, UserRound } from "lucide-react"
 
 const GOOGLE_REVIEW_URL =
   process.env.NEXT_PUBLIC_GOOGLE_REVIEW_URL ||
-  'https://search.google.com/local/writereview?placeid=ChIJjXYai88f35QRj3G-JsWCS0w';
+  "https://search.google.com/local/writereview?placeid=ChIJjXYai88f35QRj3G-JsWCS0w"
 
 const CONSENT_TEXT =
-  'Aceito receber novidades, lançamentos e promoções da Nacho Factory pelo WhatsApp ou e-mail. Posso cancelar a qualquer momento.';
+  "Aceito receber novidades, lançamentos e promoções da Nacho Factory pelo WhatsApp ou e-mail. Posso cancelar a qualquer momento."
 
 function formatContact(value: string) {
-  if (/[a-z@]/i.test(value)) return value.trimStart();
+  if (/[a-z@]/i.test(value)) return value.trimStart()
 
-  const digits = value.replace(/\D/g, '').slice(0, 11);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  const digits = value.replace(/\D/g, "").slice(0, 11)
+  if (digits.length <= 2) return digits
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
   if (digits.length <= 10) {
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`
   }
 
-  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
 }
 
 function isValidContact(value: string) {
-  if (value.includes('@')) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  if (value.includes("@")) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
   }
 
-  const digits = value.replace(/\D/g, '');
-  return digits.length === 10 || digits.length === 11;
+  const digits = value.replace(/\D/g, "")
+  return digits.length === 10 || digits.length === 11
 }
 
 export default function AvaliarPage() {
-  const [name, setName] = useState('');
-  const [contact, setContact] = useState('');
-  const [marketingConsent, setMarketingConsent] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [name, setName] = useState("")
+  const [contact, setContact] = useState("")
+  const [marketingConsent, setMarketingConsent] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState("")
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError('');
+    event.preventDefault()
+    setError("")
 
     if (!name.trim() || !contact.trim()) {
-      setError('Preencha seu nome e WhatsApp ou e-mail para continuar.');
-      return;
+      setError("Preencha seu nome e WhatsApp ou e-mail para continuar.")
+      return
     }
 
     if (!isValidContact(contact.trim())) {
-      setError('Digite um WhatsApp com DDD ou um e-mail válido.');
-      return;
+      setError("Digite um WhatsApp com DDD ou um e-mail válido.")
+      return
     }
 
-    setIsSubmitting(true);
+    setIsSubmitting(true)
 
     try {
-      const response = await fetch('/api/avaliacoes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/avaliacoes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
           contact: contact.trim(),
           marketingConsent,
           consentText: marketingConsent ? CONSENT_TEXT : null,
         }),
-      });
+      })
 
-      if (!response.ok) throw new Error('Request failed');
+      if (!response.ok) throw new Error("Request failed")
 
-      setSubmitted(true);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setSubmitted(true)
+      window.scrollTo({ top: 0, behavior: "smooth" })
     } catch {
-      setError('Não foi possível salvar seu contato. Tente novamente.');
+      setError("Não foi possível salvar seu contato. Tente novamente.")
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
   }
 
@@ -151,7 +139,6 @@ export default function AvaliarPage() {
           </div>
 
           <div className="overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#141414]/95 shadow-2xl shadow-black/40 backdrop-blur-xl">
-
             {!submitted ? (
               <form onSubmit={handleSubmit} className="p-6 sm:p-8">
                 <div className="mb-7">
@@ -183,7 +170,7 @@ export default function AvaliarPage() {
                   <label className="block">
                     <span className="mb-2 block text-sm font-bold text-white/80">WhatsApp ou e-mail</span>
                     <span className="relative block">
-                      {contact.includes('@') ? (
+                      {contact.includes("@") ? (
                         <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/30" />
                       ) : (
                         <MessageCircle className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/30" />
@@ -193,9 +180,9 @@ export default function AvaliarPage() {
                         value={contact}
                         onChange={(event) => setContact(formatContact(event.target.value))}
                         placeholder="(47) 99999-9999 ou seu@email.com"
-                        autoComplete={contact.includes('@') ? 'email' : 'tel'}
-                        inputMode={contact.includes('@') ? 'email' : 'tel'}
-                        maxLength={contact.includes('@') ? 180 : 15}
+                        autoComplete={contact.includes("@") ? "email" : "tel"}
+                        inputMode={contact.includes("@") ? "email" : "tel"}
+                        maxLength={contact.includes("@") ? 180 : 15}
                         className="h-14 w-full rounded-xl border border-white/10 bg-white/[0.04] pl-12 pr-4 text-base text-white placeholder:text-white/25 transition focus:border-lime/60 focus:bg-white/[0.06] focus:outline-none"
                       />
                     </span>
@@ -229,7 +216,7 @@ export default function AvaliarPage() {
                   disabled={isSubmitting}
                   className="mt-7 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-lime px-5 text-sm font-black uppercase tracking-[0.08em] text-black transition hover:bg-white active:scale-[0.99] disabled:cursor-wait disabled:opacity-60"
                 >
-                  {isSubmitting ? 'Salvando...' : 'Salvar e continuar'}
+                  {isSubmitting ? "Salvando..." : "Salvar e continuar"}
                   {!isSubmitting && <ArrowRight className="h-5 w-5" />}
                 </button>
               </form>
@@ -241,14 +228,12 @@ export default function AvaliarPage() {
 
                 <p className="mt-7 text-xs font-black uppercase tracking-[0.18em] text-purple-300">Passo 2 de 2</p>
                 <h2 className="mt-2 text-3xl font-black tracking-tight text-white">
-                  Valeu, {name.trim().split(' ')[0]}!
+                  Valeu, {name.trim().split(" ")[0]}!
                 </h2>
                 <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-white/55">
-                  Agora conte no Google como foi sua experiência com a{' '}
-                  <strong className="font-bold text-white/75">
-                    Nacho Man Franchising e Factory
-                  </strong>
-                  . Sua avaliação é publicada diretamente por você.
+                  Agora conte no Google como foi sua experiência com a{" "}
+                  <strong className="font-bold text-white/75">Nacho Man Franchising e Factory</strong>. Sua avaliação é
+                  publicada diretamente por você.
                 </p>
 
                 <a
@@ -274,5 +259,5 @@ export default function AvaliarPage() {
         </div>
       </section>
     </div>
-  );
+  )
 }

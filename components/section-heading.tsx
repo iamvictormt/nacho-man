@@ -35,9 +35,7 @@ export function SectionHeading({
           {title}
         </h2>
         {description && (
-          <p className="mt-5 max-w-2xl text-sm leading-7 text-muted-foreground md:text-base">
-            {description}
-          </p>
+          <p className="mt-5 max-w-2xl text-sm leading-7 text-muted-foreground md:text-base">{description}</p>
         )}
       </div>
       {action && <div className={centered ? "mt-8" : "shrink-0"}>{action}</div>}

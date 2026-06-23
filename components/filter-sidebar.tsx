@@ -51,9 +51,7 @@ export function FilterSidebar({
     <aside className="space-y-6">
       {/* Header with clear button */}
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-black tracking-wider text-foreground uppercase">
-          Filtros
-        </h3>
+        <h3 className="text-xs font-black tracking-wider text-foreground uppercase">Filtros</h3>
         {hasActiveFilters && (
           <button
             onClick={onClearAll}
@@ -68,9 +66,7 @@ export function FilterSidebar({
 
       {/* Category filter */}
       <div className="space-y-3">
-        <h4 className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
-          Categoria
-        </h4>
+        <h4 className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">Categoria</h4>
         <div className="flex flex-wrap gap-2">
           {CATEGORIES.map((cat) => (
             <button
@@ -91,9 +87,7 @@ export function FilterSidebar({
 
       {/* Subcategory filter */}
       <div className="space-y-3">
-        <h4 className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
-          Subcategoria
-        </h4>
+        <h4 className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">Subcategoria</h4>
         <div className="flex flex-wrap gap-2">
           {SUBCATEGORIES.map((sub) => (
             <button
@@ -114,9 +108,7 @@ export function FilterSidebar({
 
       {/* Tags filter */}
       <div className="space-y-3">
-        <h4 className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
-          Tags
-        </h4>
+        <h4 className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">Tags</h4>
         <div className="flex flex-wrap gap-2">
           {ALL_TAGS.map((tag) => (
             <button

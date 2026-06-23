@@ -58,8 +58,8 @@ export function NewsletterSection() {
 
         {/* Description */}
         <p className="text-muted-foreground text-sm mt-6 max-w-lg mx-auto leading-relaxed">
-          Fale com nosso time comercial e descubra como podemos produzir para o seu negócio com
-          qualidade e escala. Atendimento personalizado para food service.
+          Fale com nosso time comercial e descubra como podemos produzir para o seu negócio com qualidade e escala.
+          Atendimento personalizado para food service.
         </p>
 
         {/* Action buttons */}

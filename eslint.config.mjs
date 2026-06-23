@@ -9,6 +9,7 @@ export default tseslint.config(
       ".next/**",
       "node_modules/**",
       "public/**",
+      "prisma/seed.mjs",
       "tmp/**",
       "tsconfig.tsbuildinfo",
       "next-env.d.ts",

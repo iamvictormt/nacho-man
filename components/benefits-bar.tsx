@@ -32,8 +32,13 @@ export function BenefitsBar() {
           {benefits.map((b, i) => {
             const isPurple = i % 3 === 1
             return (
-              <div key={i} className={`group flex flex-col items-center gap-3 p-5 rounded-2xl bg-graphite border border-border transition-all duration-300 text-center ${isPurple ? "hover:border-purple-medium/50 hover:shadow-[0_0_20px_rgba(91,45,130,0.15)]" : "hover:border-lime/40 hover:shadow-[0_0_20px_rgba(200,255,0,0.08)]"}`}>
-                <div className={`h-12 w-12 rounded-xl flex items-center justify-center transition-colors ${isPurple ? "bg-purple-medium/10 border border-purple-medium/30 group-hover:bg-purple-medium/20" : "bg-lime/10 border border-lime/20 group-hover:bg-lime/20"}`}>
+              <div
+                key={i}
+                className={`group flex flex-col items-center gap-3 p-5 rounded-2xl bg-graphite border border-border transition-all duration-300 text-center ${isPurple ? "hover:border-purple-medium/50 hover:shadow-[0_0_20px_rgba(91,45,130,0.15)]" : "hover:border-lime/40 hover:shadow-[0_0_20px_rgba(200,255,0,0.08)]"}`}
+              >
+                <div
+                  className={`h-12 w-12 rounded-xl flex items-center justify-center transition-colors ${isPurple ? "bg-purple-medium/10 border border-purple-medium/30 group-hover:bg-purple-medium/20" : "bg-lime/10 border border-lime/20 group-hover:bg-lime/20"}`}
+                >
                   <b.icon className={`h-5 w-5 ${isPurple ? "text-purple-medium" : "text-lime"}`} />
                 </div>
                 <div>

@@ -24,8 +24,18 @@ export function PageHeader({ label, title, description, icon: Icon, emoji }: Pag
 
       {/* Floating icons */}
       <div className="absolute inset-0 pointer-events-none">
-        <img src="/estrelas-roxo.svg" alt="" className="absolute top-[20%] right-[8%] h-8 w-8 opacity-20 animate-float-1" aria-hidden="true" />
-        <img src="/pimenta-roxo.svg" alt="" className="absolute bottom-[20%] right-[15%] h-6 w-6 opacity-15 animate-float-3" aria-hidden="true" />
+        <img
+          src="/estrelas-roxo.svg"
+          alt=""
+          className="absolute top-[20%] right-[8%] h-8 w-8 opacity-20 animate-float-1"
+          aria-hidden="true"
+        />
+        <img
+          src="/pimenta-roxo.svg"
+          alt=""
+          className="absolute bottom-[20%] right-[15%] h-6 w-6 opacity-15 animate-float-3"
+          aria-hidden="true"
+        />
       </div>
 
       <div className="relative mx-auto max-w-7xl px-4">
@@ -36,16 +46,12 @@ export function PageHeader({ label, title, description, icon: Icon, emoji }: Pag
             </div>
           )}
           {emoji && <span className="text-xl">{emoji}</span>}
-          <span className="text-xs font-black uppercase leading-relaxed tracking-[0.16em] text-lime sm:text-[13px]">{label}</span>
+          <span className="text-xs font-black uppercase leading-relaxed tracking-[0.16em] text-lime sm:text-[13px]">
+            {label}
+          </span>
         </div>
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-foreground tracking-tight">
-          {title}
-        </h1>
-        {description && (
-          <p className="text-muted-foreground mt-4 max-w-lg text-base leading-relaxed">
-            {description}
-          </p>
-        )}
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-foreground tracking-tight">{title}</h1>
+        {description && <p className="text-muted-foreground mt-4 max-w-lg text-base leading-relaxed">{description}</p>}
       </div>
     </section>
   )

@@ -15,10 +15,7 @@ export interface FilterState {
  * - tags: product.tag must be in the provided tags array
  * - search: case-insensitive partial match on name or description (min 2 chars to activate)
  */
-export function filterProducts<T extends Product>(
-  products: T[],
-  filters: FilterState
-): T[] {
+export function filterProducts<T extends Product>(products: T[], filters: FilterState): T[] {
   return products.filter((product) => {
     // Category filter
     if (filters.category !== null && product.category !== filters.category) {
@@ -26,10 +23,7 @@ export function filterProducts<T extends Product>(
     }
 
     // Subcategory filter
-    if (
-      filters.subcategory !== null &&
-      product.subcategory !== filters.subcategory
-    ) {
+    if (filters.subcategory !== null && product.subcategory !== filters.subcategory) {
       return false
     }
 
@@ -44,9 +38,7 @@ export function filterProducts<T extends Product>(
     if (filters.search.length >= 2) {
       const searchLower = filters.search.toLowerCase()
       const nameMatch = product.name.toLowerCase().includes(searchLower)
-      const descriptionMatch = product.description
-        .toLowerCase()
-        .includes(searchLower)
+      const descriptionMatch = product.description.toLowerCase().includes(searchLower)
       if (!nameMatch && !descriptionMatch) {
         return false
       }
@@ -62,10 +54,7 @@ export function filterProducts<T extends Product>(
  * - "price-asc": lowest price first
  * - "price-desc": highest price first
  */
-export function sortProducts<T extends Product>(
-  products: T[],
-  sort: FilterState["sort"]
-): T[] {
+export function sortProducts<T extends Product>(products: T[], sort: FilterState["sort"]): T[] {
   const sorted = [...products]
 
   switch (sort) {

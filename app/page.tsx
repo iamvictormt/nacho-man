@@ -1,15 +1,7 @@
 import type { Metadata } from "next"
 import Image from "next/image"
 import Link from "next/link"
-import {
-  ArrowRight,
-  Building2,
-  ChefHat,
-  Factory,
-  MessageCircle,
-  Pizza,
-  Store,
-} from "lucide-react"
+import { ArrowRight, Building2, ChefHat, Factory, MessageCircle, Pizza, Store } from "lucide-react"
 import { HomeAboutSection } from "@/components/home-about-section"
 import { HomeContactSection } from "@/components/home-contact-section"
 import { ProductDetailCard } from "@/components/product-detail-card"
@@ -25,8 +17,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
   openGraph: {
     title: "Alimentos Prontos para sua Operação | Nacho Factory",
-    description:
-      "Produzimos carnes congeladas, molhos, temperos e kits prontos para operações de food service.",
+    description: "Produzimos carnes congeladas, molhos, temperos e kits prontos para operações de food service.",
     url: "/",
     images: [
       {
@@ -111,14 +102,7 @@ function HeroSection({ whatsappUrl }: { whatsappUrl: string }) {
   return (
     <section id="inicio" className="relative isolate overflow-hidden border-b border-border bg-background">
       <div className="absolute inset-0 -z-10">
-        <Image
-          src="/embalagens-3.webp"
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-center"
-        />
+        <Image src="/embalagens-3.webp" alt="" fill priority sizes="100vw" className="object-cover object-center" />
         <div className="absolute inset-0 bg-background/55" />
         <div className="absolute inset-0 bg-gradient-to-r from-background via-background/90 to-background/25" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/45" />
@@ -136,8 +120,8 @@ function HeroSection({ whatsappUrl }: { whatsappUrl: string }) {
             para sua <span className="text-lime neon-glow">operação.</span>
           </h1>
           <p className="mt-7 max-w-2xl text-base leading-8 text-foreground/70 md:text-lg">
-            Produzimos carnes congeladas, molhos, temperos e kits prontos para restaurantes,
-            hamburguerias, eventos e revendedores.
+            Produzimos carnes congeladas, molhos, temperos e kits prontos para restaurantes, hamburguerias, eventos e
+            revendedores.
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <Link
@@ -192,9 +176,7 @@ function AudienceSection() {
               <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-lime/20 bg-lime/10">
                 <audience.icon className="h-5 w-5 text-lime" aria-hidden="true" />
               </div>
-              <h3 className="mt-8 text-lg font-black uppercase leading-tight text-foreground">
-                {audience.title}
-              </h3>
+              <h3 className="mt-8 text-lg font-black uppercase leading-tight text-foreground">{audience.title}</h3>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">{audience.description}</p>
             </article>
           ))}

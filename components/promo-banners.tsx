@@ -101,18 +101,14 @@ export function PromoBanners() {
             <div className="relative h-full flex flex-col justify-center p-8 space-y-3">
               <div className="flex items-center gap-2">
                 <Factory className="h-4 w-4 text-lime" />
-                <span className="text-[9px] font-black tracking-[0.2em] text-lime">
-                  {banners[0].label}
-                </span>
+                <span className="text-[9px] font-black tracking-[0.2em] text-lime">{banners[0].label}</span>
               </div>
               <h3 className="text-2xl md:text-3xl font-black text-foreground leading-tight tracking-tight">
                 {banners[0].title}
                 <br />
                 <span className={banners[0].highlightColor}>{banners[0].titleHighlight}</span>
               </h3>
-              <p className="text-xs text-muted-foreground max-w-[280px]">
-                {banners[0].description}
-              </p>
+              <p className="text-xs text-muted-foreground max-w-[280px]">{banners[0].description}</p>
               <Link
                 href={banners[0].link}
                 className="inline-flex items-center gap-2 text-lime text-[10px] font-black tracking-wider group-hover:gap-3 transition-all"
@@ -137,18 +133,14 @@ export function PromoBanners() {
               <div className="relative h-full flex flex-col justify-center p-6 space-y-2">
                 <div className="flex items-center gap-2">
                   <Flame className="h-4 w-4 text-purple-medium" />
-                  <span className="text-[9px] font-black tracking-[0.2em] text-purple-medium">
-                    {banners[1].label}
-                  </span>
+                  <span className="text-[9px] font-black tracking-[0.2em] text-purple-medium">{banners[1].label}</span>
                 </div>
                 <h3 className="text-lg font-black text-foreground leading-tight">
                   {banners[1].title}
                   <br />
                   <span className={banners[1].highlightColor}>{banners[1].titleHighlight}</span>
                 </h3>
-                <p className="text-[10px] text-muted-foreground max-w-[220px]">
-                  {banners[1].description}
-                </p>
+                <p className="text-[10px] text-muted-foreground max-w-[220px]">{banners[1].description}</p>
                 <Link
                   href={banners[1].link}
                   className="inline-flex items-center gap-2 text-purple-medium text-[10px] font-black tracking-wider group-hover:gap-3 transition-all"
@@ -164,29 +156,20 @@ export function PromoBanners() {
             >
               {/* Decorative SVG */}
               <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20">
-                <img
-                  src="/abacate-roxo.svg"
-                  alt=""
-                  className="h-20 w-20"
-                  aria-hidden="true"
-                />
+                <img src="/abacate-roxo.svg" alt="" className="h-20 w-20" aria-hidden="true" />
               </div>
 
               <div className="relative h-full flex flex-col justify-center p-6 space-y-2">
                 <div className="flex items-center gap-2">
                   <Package className="h-4 w-4 text-background" />
-                  <span className="text-[9px] font-black tracking-[0.2em] text-background/70">
-                    {banners[2].label}
-                  </span>
+                  <span className="text-[9px] font-black tracking-[0.2em] text-background/70">{banners[2].label}</span>
                 </div>
                 <h3 className="text-lg font-black text-background leading-tight">
                   {banners[2].title}
                   <br />
                   {banners[2].titleHighlight}
                 </h3>
-                <p className="text-[10px] text-background/70 font-medium">
-                  {banners[2].description}
-                </p>
+                <p className="text-[10px] text-background/70 font-medium">{banners[2].description}</p>
                 <Link
                   href={banners[2].link}
                   className="inline-flex items-center gap-2 text-background text-[10px] font-black tracking-wider group-hover:gap-3 transition-all"

@@ -1,0 +1,77 @@
+"use client"
+
+import { useRef, useState } from "react"
+import { useFormStatus } from "react-dom"
+import { LoaderCircle } from "lucide-react"
+import { toast } from "sonner"
+
+export function AdminActionForm({
+  action,
+  children,
+  submitLabel,
+  pendingLabel = "SALVANDO...",
+  successMessage,
+  modalId,
+  className,
+}: {
+  action: (formData: FormData) => Promise<void>
+  children: React.ReactNode
+  submitLabel: string
+  pendingLabel?: string
+  successMessage: string
+  modalId?: string
+  className?: string
+}) {
+  const [pending, setPending] = useState(false)
+  const pendingRef = useRef(false)
+
+  async function handleAction(formData: FormData) {
+    if (pendingRef.current) return
+    pendingRef.current = true
+    setPending(true)
+    try {
+      await action(formData)
+      toast.success(successMessage)
+      if (modalId) window.dispatchEvent(new CustomEvent("admin-modal-success", { detail: modalId }))
+    } catch {
+      toast.error("Não foi possível concluir a ação. Verifique os dados e tente novamente.")
+    } finally {
+      pendingRef.current = false
+      setPending(false)
+    }
+  }
+
+  return (
+    <form action={handleAction} className={`admin-action-form min-w-0 ${className ?? ""}`}>
+      <fieldset disabled={pending} className="contents">
+        {children}
+      </fieldset>
+      <AdminActionSubmitButton pending={pending} pendingLabel={pendingLabel} submitLabel={submitLabel} />
+    </form>
+  )
+}
+
+function AdminActionSubmitButton({
+  pending,
+  pendingLabel,
+  submitLabel,
+}: {
+  pending: boolean
+  pendingLabel: string
+  submitLabel: string
+}) {
+  const { pending: formPending } = useFormStatus()
+  const busy = pending || formPending
+
+  return (
+    <button
+      type="submit"
+      disabled={busy}
+      aria-busy={busy}
+      className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-lime text-[10px] font-black text-background transition hover:shadow-[0_0_24px_rgba(239,255,13,.25)] disabled:cursor-wait disabled:opacity-60"
+    >
+      {busy && <LoaderCircle className="h-4 w-4 animate-spin" />}
+      {busy ? pendingLabel : submitLabel}
+    </button>
+  )
+}

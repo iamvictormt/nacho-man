@@ -1,6 +1,6 @@
 "use client"
 
-import { ShoppingCart } from "lucide-react"
+import { LogIn, ShoppingCart } from "lucide-react"
 import { useState, useEffect } from "react"
 import type { MouseEvent } from "react"
 import { usePathname } from "next/navigation"
@@ -43,7 +43,9 @@ export function Navbar() {
   const pathname = usePathname()
   const { totalItems, openCart } = useCartStore()
 
-  useEffect(() => { setMounted(true) }, [])
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   useEffect(() => {
     function closeMobileMenu() {
       setMobileOpen(false)
@@ -125,11 +127,7 @@ export function Navbar() {
       <div data-site-navbar-main className="mx-auto max-w-7xl flex items-center justify-between px-4 h-22">
         {/* Logo */}
         <Link href="/#inicio" className="flex items-center">
-          <img
-            src="/nacho-man-logo.png"
-            alt="NachoMan"
-            className="h-14 md:h-18 w-auto"
-          />
+          <img src="/nacho-man-logo.png" alt="NachoMan" className="h-14 md:h-18 w-auto" />
         </Link>
 
         {/* Desktop Nav */}
@@ -142,15 +140,11 @@ export function Navbar() {
                 href={link.href}
                 onClick={(event) => handleNavLinkClick(event, link.href)}
                 className={`text-[11px] font-bold tracking-[0.1em] transition-colors duration-200 relative ${
-                  isActive
-                    ? "text-lime"
-                    : "text-foreground/70 hover:text-lime"
+                  isActive ? "text-lime" : "text-foreground/70 hover:text-lime"
                 }`}
               >
                 {link.label}
-                {isActive && (
-                  <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-lime rounded-full" />
-                )}
+                {isActive && <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-lime rounded-full" />}
               </Link>
             )
           })}
@@ -165,11 +159,18 @@ export function Navbar() {
           >
             <ShoppingCart className="h-5 w-5" />
             {mounted && totalItems() > 0 && (
-              <span className="absolute -top-2 -right-2 bg-lime text-background text-[10px] font-black rounded-full h-4 w-4 flex items-center justify-center">
+              <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-lime text-[10px] font-black text-background">
                 {totalItems()}
               </span>
             )}
           </button>
+          <Link
+            href="/login"
+            className="flex h-11 items-center justify-center gap-2 rounded-full border border-lime/30 px-4 text-[10px] font-black uppercase tracking-[0.1em] text-lime transition-colors hover:border-lime hover:bg-lime hover:text-background"
+          >
+            <LogIn className="h-4 w-4" />
+            Login
+          </Link>
         </div>
 
         {/* Mobile cart + toggle */}
@@ -181,19 +182,32 @@ export function Navbar() {
           >
             <ShoppingCart className="h-5 w-5" />
             {mounted && totalItems() > 0 && (
-              <span className="absolute top-1 right-1 bg-lime text-background text-[10px] font-black rounded-full h-4 w-4 flex items-center justify-center">
+              <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-lime text-[10px] font-black text-background">
                 {totalItems()}
               </span>
             )}
           </button>
+          <Link
+            href="/login"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-foreground/70 transition-colors hover:text-lime"
+            aria-label="Login"
+          >
+            <LogIn className="h-5 w-5" />
+          </Link>
           <button
             className="relative h-11 w-11 flex flex-col items-center justify-center gap-[5px] text-foreground"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
           >
-            <span className={`block h-[2px] w-5 bg-current rounded-full transition-all duration-300 ease-in-out ${mobileOpen ? "translate-y-[7px] rotate-45" : ""}`} />
-            <span className={`block h-[2px] w-5 bg-current rounded-full transition-all duration-300 ease-in-out ${mobileOpen ? "opacity-0 scale-x-0" : ""}`} />
-            <span className={`block h-[2px] w-5 bg-current rounded-full transition-all duration-300 ease-in-out ${mobileOpen ? "-translate-y-[7px] -rotate-45" : ""}`} />
+            <span
+              className={`block h-[2px] w-5 bg-current rounded-full transition-all duration-300 ease-in-out ${mobileOpen ? "translate-y-[7px] rotate-45" : ""}`}
+            />
+            <span
+              className={`block h-[2px] w-5 bg-current rounded-full transition-all duration-300 ease-in-out ${mobileOpen ? "opacity-0 scale-x-0" : ""}`}
+            />
+            <span
+              className={`block h-[2px] w-5 bg-current rounded-full transition-all duration-300 ease-in-out ${mobileOpen ? "-translate-y-[7px] -rotate-45" : ""}`}
+            />
           </button>
         </div>
       </div>

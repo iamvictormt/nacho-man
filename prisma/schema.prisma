@@ -1,0 +1,260 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  FRANCHISEE
+}
+
+enum ProductUnit {
+  KG
+  UND
+  CX
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum PromotionScope {
+  PRODUCT
+  CATEGORY
+  ORDER
+}
+
+enum OrderStatus {
+  DRAFT
+  AWAITING_SERVICE
+  AWAITING_PAYMENT
+  PAYMENT_CONFIRMED
+  PICKING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  PIX
+  CARD
+}
+
+model User {
+  id           String     @id @default(cuid())
+  name         String
+  email        String     @unique
+  passwordHash String
+  role         UserRole
+  active       Boolean    @default(true)
+  franchiseId  String?
+  franchise    Franchise? @relation(fields: [franchiseId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([franchiseId])
+}
+
+model Franchise {
+  id            String   @id @default(cuid())
+  tradeName     String
+  legalName     String?
+  document      String?  @unique
+  whatsapp      String?
+  active        Boolean  @default(true)
+  priceDiscount Int      @default(0)
+  users         User[]
+  orders        Order[]
+  addresses     Address[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Address {
+  id           String    @id @default(cuid())
+  label        String
+  street       String
+  number       String
+  complement   String?
+  district     String
+  city         String
+  state        String
+  postalCode   String
+  franchiseId  String
+  franchise    Franchise @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([franchiseId])
+}
+
+model Category {
+  id         String      @id @default(cuid())
+  name       String
+  slug       String      @unique
+  active     Boolean     @default(true)
+  sortOrder  Int         @default(0)
+  products   Product[]
+  promotions Promotion[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model Product {
+  id             String      @id @default(cuid())
+  name           String
+  slug           String      @unique
+  description    String?
+  image          String?
+  sku            String?     @unique
+  priceInCents   Int
+  unit           ProductUnit
+  packageLabel   String
+  minimumQuantity Int        @default(1)
+  stockQuantity  Int?
+  active         Boolean     @default(true)
+  featured       Boolean     @default(false)
+  categoryId     String
+  category       Category    @relation(fields: [categoryId], references: [id])
+  comboItems     ComboItem[]
+  orderItems     OrderItem[]
+  promotions     Promotion[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([categoryId])
+  @@index([active, featured])
+}
+
+model Combo {
+  id             String      @id @default(cuid())
+  name           String
+  slug           String      @unique
+  description    String?
+  image           String?
+  priceInCents   Int
+  active         Boolean     @default(true)
+  startsAt       DateTime?
+  endsAt         DateTime?
+  items          ComboItem[]
+  orderItems     OrderItem[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+model ComboItem {
+  id        String  @id @default(cuid())
+  comboId   String
+  productId String
+  quantity  Int
+  combo     Combo   @relation(fields: [comboId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@unique([comboId, productId])
+  @@index([productId])
+}
+
+model Promotion {
+  id              String         @id @default(cuid())
+  name            String
+  description     String?
+  type            DiscountType
+  value           Int
+  scope           PromotionScope
+  productId       String?
+  categoryId      String?
+  minimumQuantity Int?
+  minimumInCents  Int?
+  startsAt        DateTime
+  endsAt          DateTime
+  active          Boolean        @default(true)
+  product         Product?       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category        Category?      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([active, startsAt, endsAt])
+  @@index([productId])
+  @@index([categoryId])
+}
+
+model Coupon {
+  id              String       @id @default(cuid())
+  code            String       @unique
+  description     String?
+  type            DiscountType
+  value           Int
+  minimumInCents  Int?
+  maximumUses     Int?
+  uses            Int          @default(0)
+  startsAt        DateTime
+  endsAt          DateTime
+  active          Boolean      @default(true)
+  orders          Order[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([active, startsAt, endsAt])
+}
+
+model Order {
+  id                       String        @id @default(cuid())
+  number                   Int           @unique @default(autoincrement())
+  franchiseId              String
+  franchise                Franchise     @relation(fields: [franchiseId], references: [id])
+  status                   OrderStatus   @default(AWAITING_SERVICE)
+  paymentMethod            PaymentMethod
+  couponId                 String?
+  coupon                   Coupon?       @relation(fields: [couponId], references: [id])
+  subtotalInCents           Int
+  promotionDiscountInCents Int           @default(0)
+  couponDiscountInCents    Int           @default(0)
+  pixDiscountInCents       Int           @default(0)
+  shippingInCents          Int           @default(0)
+  totalInCents              Int
+  notes                    String?
+  deliveryAddress          Json?
+  items                    OrderItem[]
+  statusHistory            OrderStatusHistory[]
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
+
+  @@index([franchiseId, createdAt])
+  @@index([status])
+}
+
+model OrderItem {
+  id               String   @id @default(cuid())
+  orderId          String
+  order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId        String?
+  product          Product? @relation(fields: [productId], references: [id])
+  comboId          String?
+  combo            Combo?   @relation(fields: [comboId], references: [id])
+  name             String
+  sku              String?
+  unit             String
+  quantity         Int
+  unitPriceInCents Int
+  totalInCents     Int
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([comboId])
+}
+
+model OrderStatusHistory {
+  id        String      @id @default(cuid())
+  orderId   String
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    OrderStatus
+  note      String?
+  createdAt DateTime    @default(now())
+
+  @@index([orderId, createdAt])
+}

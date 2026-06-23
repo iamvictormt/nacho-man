@@ -1,123 +1,123 @@
-'use client';
+"use client"
 
-import { CheckCircle2, MessageCircle, Minus, Plus, ShieldCheck, ShoppingCart, Trash2, X } from 'lucide-react';
-import { useCartStore } from '@/lib/cart-store';
-import { formatPrice } from '@/lib/format';
-import { generateWhatsAppMessage, buildWhatsAppUrl, STORE_WHATSAPP_NUMBER } from '@/lib/whatsapp';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { CheckCircle2, Minus, Plus, ShieldCheck, ShoppingCart, Trash2, X } from "lucide-react"
+import { useCartStore } from "@/lib/cart-store"
+import { formatPrice } from "@/lib/format"
+import { generateWhatsAppMessage, buildWhatsAppUrl, STORE_WHATSAPP_NUMBER } from "@/lib/whatsapp"
+import { useEffect, useRef, useState, useCallback } from "react"
 
 export function CartDrawer() {
-  const { items, isOpen, closeCart, removeItem, updateQuantity, totalItems, totalPrice, clearCart } = useCartStore();
+  const { items, isOpen, closeCart, removeItem, updateQuantity, totalItems, totalPrice, clearCart } = useCartStore()
 
   // Controls the animated state (delayed close for exit animation)
-  const [visible, setVisible] = useState(false);
-  const [animating, setAnimating] = useState(false);
-  const [popupBlockedMessage, setPopupBlockedMessage] = useState(false);
+  const [visible, setVisible] = useState(false)
+  const [animating, setAnimating] = useState(false)
+  const [popupBlockedMessage, setPopupBlockedMessage] = useState(false)
 
   // Refs for focus management
-  const drawerRef = useRef<HTMLDivElement>(null);
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const triggerRef = useRef<Element | null>(null);
-  const titleId = 'cart-drawer-title';
+  const drawerRef = useRef<HTMLDivElement>(null)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const triggerRef = useRef<Element | null>(null)
+  const titleId = "cart-drawer-title"
 
   useEffect(() => {
     if (isOpen) {
       // Store the element that triggered the drawer open
-      triggerRef.current = document.activeElement;
-      setVisible(true);
-      setPopupBlockedMessage(false);
-      document.body.style.overflow = 'hidden';
+      triggerRef.current = document.activeElement
+      setVisible(true)
+      setPopupBlockedMessage(false)
+      document.body.style.overflow = "hidden"
       // Small delay to trigger enter animation
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          setAnimating(true);
+          setAnimating(true)
           // Focus the close button after animation starts
-          closeButtonRef.current?.focus();
-        });
-      });
+          closeButtonRef.current?.focus()
+        })
+      })
     } else {
-      setAnimating(false);
-      document.body.style.overflow = '';
+      setAnimating(false)
+      document.body.style.overflow = ""
       // Restore focus to the element that triggered the drawer
       if (triggerRef.current && triggerRef.current instanceof HTMLElement) {
-        triggerRef.current.focus();
+        triggerRef.current.focus()
       }
-      const timeout = setTimeout(() => setVisible(false), 300);
-      return () => clearTimeout(timeout);
+      const timeout = setTimeout(() => setVisible(false), 300)
+      return () => clearTimeout(timeout)
     }
-  }, [isOpen]);
+  }, [isOpen])
 
   // Handle Escape key to close drawer
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) return
 
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        closeCart();
+      if (e.key === "Escape") {
+        closeCart()
       }
     }
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, closeCart]);
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [isOpen, closeCart])
 
   // Focus trap: cycle Tab within the drawer
   const handleFocusTrap = useCallback((e: React.KeyboardEvent) => {
-    if (e.key !== 'Tab') return;
+    if (e.key !== "Tab") return
 
-    const drawer = drawerRef.current;
-    if (!drawer) return;
+    const drawer = drawerRef.current
+    if (!drawer) return
 
     const focusableElements = drawer.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-    );
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )
 
-    if (focusableElements.length === 0) return;
+    if (focusableElements.length === 0) return
 
-    const firstElement = focusableElements[0];
-    const lastElement = focusableElements[focusableElements.length - 1];
+    const firstElement = focusableElements[0]
+    const lastElement = focusableElements[focusableElements.length - 1]
 
     if (e.shiftKey) {
       // Shift+Tab: if on first element, wrap to last
       if (document.activeElement === firstElement) {
-        e.preventDefault();
-        lastElement.focus();
+        e.preventDefault()
+        lastElement.focus()
       }
     } else {
       // Tab: if on last element, wrap to first
       if (document.activeElement === lastElement) {
-        e.preventDefault();
-        firstElement.focus();
+        e.preventDefault()
+        firstElement.focus()
       }
     }
-  }, []);
+  }, [])
 
   function handleWhatsAppCheckout() {
-    if (items.length === 0) return;
+    if (items.length === 0) return
 
-    const message = generateWhatsAppMessage(items);
-    const url = buildWhatsAppUrl(STORE_WHATSAPP_NUMBER, message);
+    const message = generateWhatsAppMessage(items)
+    const url = buildWhatsAppUrl(STORE_WHATSAPP_NUMBER, message)
 
-    const newWindow = window.open(url, '_blank');
+    const newWindow = window.open(url, "_blank")
 
     if (newWindow === null) {
       // Popup was blocked — keep items in cart, show message
-      setPopupBlockedMessage(true);
+      setPopupBlockedMessage(true)
     } else {
       // Success — clear cart and close drawer
-      clearCart();
-      closeCart();
+      clearCart()
+      closeCart()
     }
   }
 
-  if (!visible) return null;
+  if (!visible) return null
 
   return (
     <>
       {/* Overlay */}
       <div
         className={`fixed inset-0 bg-black/70 backdrop-blur-sm z-50 transition-opacity duration-300 ${
-          animating ? 'opacity-100' : 'opacity-0'
+          animating ? "opacity-100" : "opacity-0"
         }`}
         onClick={closeCart}
         aria-hidden="true"
@@ -131,7 +131,7 @@ export function CartDrawer() {
         aria-labelledby={titleId}
         onKeyDown={handleFocusTrap}
         className={`fixed top-0 right-0 h-full w-full max-w-md bg-background border-l border-border/30 z-50 flex flex-col shadow-2xl transition-transform duration-300 ease-out ${
-          animating ? 'translate-x-0' : 'translate-x-full'
+          animating ? "translate-x-0" : "translate-x-full"
         }`}
       >
         {/* Header */}
@@ -142,7 +142,7 @@ export function CartDrawer() {
               CARRINHO
             </h2>
             <span className="text-xs font-bold text-muted-foreground">
-              ({totalItems()} {totalItems() === 1 ? 'item' : 'itens'})
+              ({totalItems()} {totalItems() === 1 ? "item" : "itens"})
             </span>
           </div>
           <button
@@ -183,8 +183,8 @@ export function CartDrawer() {
             items.map((item, index) => (
               <div
                 key={item.name}
-                className={`transition-all duration-300 ${animating ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}
-                style={{ transitionDelay: animating ? `${100 + index * 60}ms` : '0ms' }}
+                className={`transition-all duration-300 ${animating ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0"}`}
+                style={{ transitionDelay: animating ? `${100 + index * 60}ms` : "0ms" }}
               >
                 <CartItemCard
                   item={item}
@@ -200,14 +200,14 @@ export function CartDrawer() {
         {items.length > 0 && (
           <div
             className={`border-t border-border/20 p-5 space-y-4 transition-all duration-300 ${
-              animating ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
+              animating ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
             }`}
-            style={{ transitionDelay: animating ? '200ms' : '0ms' }}
+            style={{ transitionDelay: animating ? "200ms" : "0ms" }}
           >
             {/* Total */}
             <div className="flex items-center justify-between">
               <span className="text-sm font-bold text-muted-foreground">
-                TOTAL DO CARRINHO ({totalItems()} {totalItems() === 1 ? 'item' : 'itens'})
+                TOTAL DO CARRINHO ({totalItems()} {totalItems() === 1 ? "item" : "itens"})
               </span>
               <span className="text-2xl font-black text-lime">{formatPrice(totalPrice())}</span>
             </div>
@@ -227,7 +227,7 @@ export function CartDrawer() {
             {/* Popup blocked message */}
             {popupBlockedMessage && (
               <p className="text-xs text-center text-red-400 font-semibold">
-                O redirecionamento foi bloqueado pelo navegador. Permita pop-ups ou{' '}
+                O redirecionamento foi bloqueado pelo navegador. Permita pop-ups ou{" "}
                 <a
                   href={buildWhatsAppUrl(STORE_WHATSAPP_NUMBER, generateWhatsAppMessage(items))}
                   target="_blank"
@@ -235,7 +235,7 @@ export function CartDrawer() {
                   className="underline text-lime"
                 >
                   clique aqui
-                </a>{' '}
+                </a>{" "}
                 para abrir o WhatsApp.
               </p>
             )}
@@ -258,7 +258,7 @@ export function CartDrawer() {
         )}
       </div>
     </>
-  );
+  )
 }
 
 function CartItemCard({
@@ -266,9 +266,9 @@ function CartItemCard({
   onRemove,
   onUpdateQuantity,
 }: {
-  item: { name: string; price: number; priceUnit?: 'KG' | 'UND'; quantity: number; image: string };
-  onRemove: () => void;
-  onUpdateQuantity: (qty: number) => void;
+  item: { name: string; price: number; priceUnit?: "KG" | "UND"; quantity: number; image: string }
+  onRemove: () => void
+  onUpdateQuantity: (qty: number) => void
 }) {
   return (
     <div className="flex gap-4 p-3 rounded-xl bg-graphite border border-border/20 hover:border-purple-medium/30 transition-colors">
@@ -291,7 +291,7 @@ function CartItemCard({
         </div>
 
         <p className="text-xs text-muted-foreground">
-          {formatPrice(item.price)} / {item.priceUnit ?? 'UND'}
+          {formatPrice(item.price)} / {item.priceUnit ?? "UND"}
         </p>
 
         <div className="flex items-center justify-between">
@@ -321,5 +321,5 @@ function CartItemCard({
         </div>
       </div>
     </div>
-  );
+  )
 }

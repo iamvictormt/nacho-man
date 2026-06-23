@@ -1,0 +1,129 @@
+"use server"
+
+import { ProductUnit } from "@prisma/client"
+import { revalidatePath } from "next/cache"
+import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/auth"
+import { parseMoneyToCents } from "@/lib/money"
+import { createSlug } from "@/lib/slug"
+
+const NEW_CATEGORY_VALUE = "__new__"
+
+function getCategoryName(formData: FormData) {
+  const selectedCategory = String(formData.get("category") ?? "").trim()
+  const newCategory = String(formData.get("newCategory") ?? "").trim()
+  return selectedCategory === NEW_CATEGORY_VALUE ? newCategory : selectedCategory
+}
+
+export async function createProductAction(formData: FormData) {
+  await requireAdmin()
+
+  const name = String(formData.get("name") ?? "").trim()
+  const categoryName = getCategoryName(formData)
+  const priceInCents = parseMoneyToCents(formData.get("price"))
+  const unit = String(formData.get("unit") ?? "UND") as ProductUnit
+  const packageLabel = String(formData.get("packageLabel") ?? "").trim()
+
+  if (!name || !categoryName || priceInCents <= 0 || !packageLabel) return
+
+  const categorySlug = createSlug(categoryName)
+  const category = await prisma.category.upsert({
+    where: { slug: categorySlug },
+    update: { name: categoryName, active: true },
+    create: { name: categoryName, slug: categorySlug },
+  })
+
+  let slug = createSlug(name)
+  const existing = await prisma.product.findUnique({ where: { slug } })
+  if (existing) slug = `${slug}-${Date.now()}`
+
+  await prisma.product.create({
+    data: {
+      name,
+      slug,
+      description: String(formData.get("description") ?? "").trim() || null,
+      image: String(formData.get("image") ?? "").trim() || null,
+      sku: String(formData.get("sku") ?? "").trim() || null,
+      priceInCents,
+      unit,
+      packageLabel,
+      minimumQuantity: Math.max(1, Number(formData.get("minimumQuantity") ?? 1)),
+      featured: formData.get("featured") === "on",
+      categoryId: category.id,
+    },
+  })
+
+  revalidatePath("/admin")
+  revalidatePath("/admin/produtos")
+  revalidatePath("/marketplace")
+}
+
+export async function toggleProductAction(formData: FormData) {
+  await requireAdmin()
+  const id = String(formData.get("id") ?? "")
+  const active = String(formData.get("active")) === "true"
+  if (!id) return
+
+  await prisma.product.update({ where: { id }, data: { active: !active } })
+  revalidatePath("/admin/produtos")
+  revalidatePath("/marketplace")
+}
+
+export async function updateProductAction(formData: FormData) {
+  await requireAdmin()
+  const id = String(formData.get("id") ?? "")
+  const name = String(formData.get("name") ?? "").trim()
+  const categoryName = getCategoryName(formData)
+  const priceInCents = parseMoneyToCents(formData.get("price"))
+  const packageLabel = String(formData.get("packageLabel") ?? "").trim()
+  if (!id || !name || !categoryName || priceInCents <= 0 || !packageLabel) return
+
+  const category = await prisma.category.upsert({
+    where: { slug: createSlug(categoryName) },
+    update: { name: categoryName, active: true },
+    create: { name: categoryName, slug: createSlug(categoryName) },
+  })
+
+  await prisma.product.update({
+    where: { id },
+    data: {
+      name,
+      description: String(formData.get("description") ?? "").trim() || null,
+      image: String(formData.get("image") ?? "").trim() || null,
+      sku: String(formData.get("sku") ?? "").trim() || null,
+      priceInCents,
+      unit: String(formData.get("unit") ?? "UND") as ProductUnit,
+      packageLabel,
+      minimumQuantity: Math.max(1, Number(formData.get("minimumQuantity") ?? 1)),
+      featured: formData.get("featured") === "on",
+      categoryId: category.id,
+    },
+  })
+  revalidateProductPaths()
+}
+
+export async function deleteProductAction(formData: FormData) {
+  await requireAdmin()
+  const id = String(formData.get("id") ?? "")
+  if (!id) return
+
+  const dependencies = await prisma.product.findUnique({
+    where: { id },
+    select: { _count: { select: { orderItems: true, comboItems: true } } },
+  })
+  if (!dependencies) return
+
+  if (dependencies._count.orderItems > 0 || dependencies._count.comboItems > 0) {
+    await prisma.product.update({ where: { id }, data: { active: false } })
+  } else {
+    await prisma.product.delete({ where: { id } })
+  }
+  revalidateProductPaths()
+}
+
+function revalidateProductPaths() {
+  revalidatePath("/admin")
+  revalidatePath("/admin/produtos")
+  revalidatePath("/admin/combos")
+  revalidatePath("/marketplace")
+}

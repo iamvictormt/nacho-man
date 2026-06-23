@@ -16,16 +16,14 @@ const categories = [
   {
     icon: Utensils,
     title: "MOLHOS & TEMPEROS",
-    description:
-      "Linha completa de molhos artesanais e temperos secos. Sabor autêntico mexicano em cada receita.",
+    description: "Linha completa de molhos artesanais e temperos secos. Sabor autêntico mexicano em cada receita.",
     image: "/molhos.webp",
     href: "/produtos?category=SECO",
   },
   {
     icon: Package,
     title: "BASES & INSUMOS",
-    description:
-      "Bases, temperos e kits de preparo para padronizar receitas e agilizar a rotina da cozinha.",
+    description: "Bases, temperos e kits de preparo para padronizar receitas e agilizar a rotina da cozinha.",
     image: "/camara-fria.webp",
     href: "/produtos?category=Kits",
   },
@@ -83,8 +81,7 @@ export function CategoriesSection() {
             <span className="h-px w-8 shrink-0 bg-lime/70" aria-hidden="true" />
           </span>
           <h2 className="text-3xl md:text-4xl font-black tracking-tight mt-2">
-            EXPLORE NOSSO{" "}
-            <span className="text-lime neon-glow">CATÁLOGO</span>
+            EXPLORE NOSSO <span className="text-lime neon-glow">CATÁLOGO</span>
           </h2>
           <p className="text-muted-foreground text-sm mt-3 max-w-md mx-auto">
             Encontre o produto ideal para o seu negócio em nossas categorias
@@ -125,11 +122,7 @@ export function CategoriesSection() {
                         : "bg-lime/10 border border-lime/30"
                     }`}
                   >
-                    <category.icon
-                      className={`h-5 w-5 ${
-                        isPurple ? "text-purple-medium" : "text-lime"
-                      }`}
-                    />
+                    <category.icon className={`h-5 w-5 ${isPurple ? "text-purple-medium" : "text-lime"}`} />
                   </div>
                 </div>
 
@@ -137,23 +130,18 @@ export function CategoriesSection() {
                 <div className="p-6 space-y-3">
                   <h3
                     className={`text-sm font-black tracking-wider transition-colors ${
-                      isPurple
-                        ? "group-hover:text-purple-medium"
-                        : "group-hover:text-lime"
+                      isPurple ? "group-hover:text-purple-medium" : "group-hover:text-lime"
                     }`}
                   >
                     {category.title}
                   </h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {category.description}
-                  </p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{category.description}</p>
                   <div
                     className={`flex items-center gap-2 text-[10px] font-black tracking-wider pt-2 transition-all group-hover:gap-3 ${
                       isPurple ? "text-purple-medium" : "text-lime"
                     }`}
                   >
-                    VER PRODUTOS{" "}
-                    <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
+                    VER PRODUTOS <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
                   </div>
                 </div>
               </Link>

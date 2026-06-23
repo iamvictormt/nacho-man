@@ -20,11 +20,7 @@ function getHeaderHeight() {
   const navbarMain = document.querySelector<HTMLElement>("[data-site-navbar-main]")
   const navbar = document.querySelector<HTMLElement>("[data-site-navbar]")
 
-  return (
-    navbarMain?.getBoundingClientRect().height ||
-    navbar?.getBoundingClientRect().height ||
-    FALLBACK_HEADER_HEIGHT
-  )
+  return navbarMain?.getBoundingClientRect().height || navbar?.getBoundingClientRect().height || FALLBACK_HEADER_HEIGHT
 }
 
 function isMobileMenuExpanded() {
@@ -117,7 +113,14 @@ export function HashScrollHandler() {
 
   useEffect(() => {
     function handleClick(event: MouseEvent) {
-      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
         return
       }
 

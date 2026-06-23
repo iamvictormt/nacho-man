@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation"
 
 export default function ShopPage() {
   const router = useRouter()
-  useEffect(() => { router.replace("/produtos") }, [router])
+  useEffect(() => {
+    router.replace("/produtos")
+  }, [router])
   return null
 }

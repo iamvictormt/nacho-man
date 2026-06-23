@@ -4,16 +4,7 @@ import { useParams } from "next/navigation"
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import {
-  Check,
-  ChefHat,
-  Clock3,
-  MessageCircle,
-  Minus,
-  Plus,
-  ShieldCheck,
-  Snowflake,
-} from "lucide-react"
+import { Check, ChefHat, Clock3, Minus, Plus, ShieldCheck, Snowflake } from "lucide-react"
 import { useCartStore } from "@/lib/cart-store"
 import { getProductBySlug, getRelatedProducts, catalogProducts } from "@/lib/products"
 import { formatPrice } from "@/lib/format"
@@ -41,10 +32,7 @@ export default function ProductDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center py-32 space-y-4">
         <p className="text-lg font-bold text-muted-foreground">Produto não encontrado</p>
-        <Link
-          href="/produtos"
-          className="text-sm font-black text-lime tracking-wider hover:underline"
-        >
+        <Link href="/produtos" className="text-sm font-black text-lime tracking-wider hover:underline">
           ← VOLTAR AO CATÁLOGO
         </Link>
       </div>
@@ -56,11 +44,23 @@ export default function ProductDetailPage() {
     product.category === "CONGELADO"
       ? [
           { icon: Snowflake, title: "Conservação", text: "Mantenha congelado a -18°C até o preparo." },
-          { icon: ChefHat, title: "Preparo", text: "Aqueça ou finalize conforme sua operação e porcione ainda quente." },
-          { icon: Clock3, title: "Praticidade", text: "Produto pensado para reduzir tempo de cozinha e padronizar pedidos." },
+          {
+            icon: ChefHat,
+            title: "Preparo",
+            text: "Aqueça ou finalize conforme sua operação e porcione ainda quente.",
+          },
+          {
+            icon: Clock3,
+            title: "Praticidade",
+            text: "Produto pensado para reduzir tempo de cozinha e padronizar pedidos.",
+          },
         ]
       : [
-          { icon: ShieldCheck, title: "Armazenamento", text: "Guarde em local seco, fresco e protegido da luz direta." },
+          {
+            icon: ShieldCheck,
+            title: "Armazenamento",
+            text: "Guarde em local seco, fresco e protegido da luz direta.",
+          },
           { icon: ChefHat, title: "Uso", text: "Aplique em finalizações, molhos, porções, tacos, bowls e sanduíches." },
           { icon: Clock3, title: "Rendimento", text: "Ideal para reposição rápida e uso recorrente no atendimento." },
         ]
@@ -141,7 +141,6 @@ export default function ProductDetailPage() {
                   {product.category}
                 </span>
               </div>
- 
             </div>
 
             {/* Info */}
@@ -160,14 +159,10 @@ export default function ProductDetailPage() {
               <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tight leading-tight">
                 {product.displayName}
               </h1>
-              {product.subtitle && (
-                <p className="text-sm font-bold text-lime">{product.subtitle}</p>
-              )}
+              {product.subtitle && <p className="text-sm font-bold text-lime">{product.subtitle}</p>}
 
               {/* Description */}
-              <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
-                {product.description}
-              </p>
+              <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">{product.description}</p>
 
               <div className="grid grid-cols-1 gap-6 border-t border-border/70 py-5 md:grid-cols-2">
                 <div>
@@ -230,9 +225,7 @@ export default function ProductDetailPage() {
                       <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
                         {item.label}
                       </p>
-                      <p className="mt-1 text-sm font-bold leading-relaxed text-foreground">
-                        {item.value}
-                      </p>
+                      <p className="mt-1 text-sm font-bold leading-relaxed text-foreground">{item.value}</p>
                     </div>
                   ))}
                 </div>
@@ -249,9 +242,7 @@ export default function ProductDetailPage() {
                   >
                     <Minus className="h-4 w-4" />
                   </button>
-                  <span className="w-8 text-center text-sm font-black text-foreground">
-                    {quantity}
-                  </span>
+                  <span className="w-8 text-center text-sm font-black text-foreground">{quantity}</span>
                   <button
                     onClick={increaseQuantity}
                     disabled={quantity >= 99}
@@ -269,11 +260,7 @@ export default function ProductDetailPage() {
                       ? "bg-purple-medium text-white shadow-[0_0_25px_rgba(91,45,130,0.4)]"
                       : "bg-lime text-background hover:shadow-[0_0_30px_rgba(239,255,13,0.4)]"
                   }`}
-                  aria-label={
-                    added
-                      ? "Adicionado ao carrinho"
-                      : `Adicionar ${product.name} ao carrinho`
-                  }
+                  aria-label={added ? "Adicionado ao carrinho" : `Adicionar ${product.name} ao carrinho`}
                 >
                   {added ? (
                     <>
@@ -295,12 +282,8 @@ export default function ProductDetailPage() {
                     <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-lime/25 bg-lime/10">
                       <item.icon className="h-4 w-4 text-lime" aria-hidden="true" />
                     </div>
-                    <p className="text-[10px] font-black uppercase tracking-wider text-foreground">
-                      {item.title}
-                    </p>
-                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                      {item.text}
-                    </p>
+                    <p className="text-[10px] font-black uppercase tracking-wider text-foreground">{item.title}</p>
+                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{item.text}</p>
                   </div>
                 ))}
               </div>

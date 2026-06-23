@@ -3,26 +3,55 @@
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowUpRight, Check, Package, Plus, Sparkles } from "lucide-react"
+import { ArrowUpRight, Check, Package, Plus } from "lucide-react"
 import { useCartStore } from "@/lib/cart-store"
+import { useMarketplaceCart } from "@/lib/marketplace-cart-store"
 import type { CatalogProduct } from "@/lib/products"
 
-export function ProductDetailCard({ product }: { product: CatalogProduct }) {
+type MarketplaceCommerce = {
+  context: "marketplace"
+  id: string
+  unit: string
+  packageLabel: string
+  minimumQuantity: number
+}
+
+type ProductDetailCardProps = {
+  product: CatalogProduct
+  commerce?: MarketplaceCommerce
+}
+
+export function ProductDetailCard({ product, commerce }: ProductDetailCardProps) {
   const [added, setAdded] = useState(false)
-  const addItem = useCartStore((state) => state.addItem)
-  const openCart = useCartStore((state) => state.openCart)
+  const addPublicItem = useCartStore((state) => state.addItem)
+  const openPublicCart = useCartStore((state) => state.openCart)
+  const addMarketplaceItem = useMarketplaceCart((state) => state.add)
   const visibleApplications = product.applications.slice(0, 3)
   const remainingApplications = product.applications.length - visibleApplications.length
+  const detailHref = commerce ? `/marketplace/produto/${commerce.id}` : `/produto/${product.slug}`
 
   function handleAddToCart() {
-    addItem({
-      name: product.displayName,
-      price: product.price,
-      priceUnit: product.priceUnit,
-      image: product.image,
-    })
+    if (commerce) {
+      addMarketplaceItem({
+        id: commerce.id,
+        type: "PRODUCT",
+        name: product.displayName,
+        image: product.image,
+        unit: commerce.unit,
+        packageLabel: commerce.packageLabel,
+        unitPriceInCents: Math.round(product.price * 100),
+        minimumQuantity: commerce.minimumQuantity,
+      })
+    } else {
+      addPublicItem({
+        name: product.displayName,
+        price: product.price,
+        priceUnit: product.priceUnit,
+        image: product.image,
+      })
+      openPublicCart()
+    }
     setAdded(true)
-    openCart()
     setTimeout(() => setAdded(false), 1000)
   }
 
@@ -31,7 +60,7 @@ export function ProductDetailCard({ product }: { product: CatalogProduct }) {
       <div className="pointer-events-none absolute inset-x-10 top-0 z-20 h-px bg-gradient-to-r from-transparent via-lime/80 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
       <Link
-        href={`/produto/${product.slug}`}
+        href={detailHref}
         className="relative -mb-px block h-80 overflow-hidden bg-background sm:h-96"
         aria-label={`Ver detalhes de ${product.displayName}`}
       >
@@ -49,7 +78,9 @@ export function ProductDetailCard({ product }: { product: CatalogProduct }) {
             {product.subcategory}
           </span>
           {product.tag && (
-            <span className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wider ${product.tagColor}`}>
+            <span
+              className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wider ${product.tagColor}`}
+            >
               {product.tag}
             </span>
           )}
@@ -57,9 +88,7 @@ export function ProductDetailCard({ product }: { product: CatalogProduct }) {
 
         <div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-4">
           <div className="rounded-xl border border-white/10 bg-background/85 px-4 py-3 backdrop-blur-md">
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-              A partir de
-            </p>
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">A partir de</p>
             <p className="mt-1 text-2xl font-black tracking-tight text-lime">{product.priceLabel}</p>
           </div>
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/15 bg-background/85 text-foreground backdrop-blur-md transition-all group-hover:border-lime/40 group-hover:bg-lime group-hover:text-background">
@@ -70,7 +99,7 @@ export function ProductDetailCard({ product }: { product: CatalogProduct }) {
 
       <div className="relative z-10 flex flex-1 flex-col bg-background p-5 md:p-6">
         <div>
-          <Link href={`/produto/${product.slug}`} className="block">
+          <Link href={detailHref} className="block">
             <h3 className="mt-3 line-clamp-2 text-xl font-black uppercase leading-[1.1] tracking-[-0.025em] text-foreground transition-colors group-hover:text-lime md:text-2xl">
               {product.displayName}
             </h3>
@@ -98,18 +127,14 @@ export function ProductDetailCard({ product }: { product: CatalogProduct }) {
             <Package className="h-4 w-4 text-purple-medium" aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-[0.16em] text-muted-foreground">
-              Embalagem
-            </p>
+            <p className="text-[9px] font-black uppercase tracking-[0.16em] text-muted-foreground">Embalagem</p>
             <p className="mt-0.5 truncate text-xs font-bold text-foreground">{product.weight}</p>
           </div>
         </div>
 
         {visibleApplications.length > 0 && (
           <div className="mt-5">
-            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-muted-foreground">
-              Ideal para
-            </p>
+            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-muted-foreground">Ideal para</p>
             <div className="mt-2.5 flex flex-wrap gap-2">
               {visibleApplications.map((application) => (
                 <span
