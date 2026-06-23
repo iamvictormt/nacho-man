@@ -17,8 +17,22 @@ type ProductPoint = {
 const moneyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})
+
+const compactMoneyFormatter = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  minimumFractionDigits: 0,
   maximumFractionDigits: 0,
 })
+
+function formatChartAxisMoney(cents: number) {
+  const value = cents / 100
+  if (value >= 1000) return `${Math.round(value / 1000)}k`
+  return compactMoneyFormatter.format(value).replace(/\s/g, "")
+}
 
 const monthlyConfig = {
   totalInCents: {
@@ -41,7 +55,7 @@ const productConfig = {
 export function OrdersEvolutionChart({ data }: { data: MonthlyPoint[] }) {
   return (
     <ChartContainer config={monthlyConfig} className="h-[260px] w-full min-w-0 md:h-[310px]">
-      <AreaChart data={data} margin={{ top: 12, right: 4, left: -16, bottom: 0 }}>
+      <AreaChart data={data} margin={{ top: 12, right: 4, left: 10, bottom: 0 }}>
         <defs>
           <linearGradient id="ordersValueGradient" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="var(--color-totalInCents)" stopOpacity={0.28} />
@@ -53,8 +67,8 @@ export function OrdersEvolutionChart({ data }: { data: MonthlyPoint[] }) {
         <YAxis
           axisLine={false}
           tickLine={false}
-          tickFormatter={(value) => `${Math.round(Number(value) / 100000)}k`}
-          width={44}
+          tickFormatter={(value) => formatChartAxisMoney(Number(value))}
+          width={56}
         />
         <ChartTooltip
           cursor={{ stroke: "rgba(239,255,13,.25)", strokeWidth: 1 }}
