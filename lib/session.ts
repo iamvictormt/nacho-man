@@ -4,7 +4,8 @@ import { cookies } from "next/headers"
 import { SignJWT, jwtVerify } from "jose"
 
 const SESSION_COOKIE = "nacho-factory-session"
-const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 7
+const SESSION_DURATION_SECONDS = 60 * 60 * 8
+const REMEMBER_ME_SESSION_DURATION_SECONDS = 60 * 60 * 24 * 30
 
 export type SessionPayload = {
   userId: string
@@ -23,11 +24,11 @@ function getSessionSecret() {
   return new TextEncoder().encode(secret)
 }
 
-export async function encryptSession(payload: SessionPayload) {
+export async function encryptSession(payload: SessionPayload, durationSeconds = SESSION_DURATION_SECONDS) {
   return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime(`${SESSION_DURATION_SECONDS}s`)
+    .setExpirationTime(`${durationSeconds}s`)
     .sign(getSessionSecret())
 }
 
@@ -45,12 +46,16 @@ export async function decryptSession(token?: string | null): Promise<SessionPayl
   }
 }
 
-export async function createSession(input: Omit<SessionPayload, "expiresAt">) {
-  const expiresAt = new Date(Date.now() + SESSION_DURATION_SECONDS * 1000)
-  const token = await encryptSession({
-    ...input,
-    expiresAt: expiresAt.toISOString(),
-  })
+export async function createSession(input: Omit<SessionPayload, "expiresAt">, rememberMe = false) {
+  const durationSeconds = rememberMe ? REMEMBER_ME_SESSION_DURATION_SECONDS : SESSION_DURATION_SECONDS
+  const expiresAt = new Date(Date.now() + durationSeconds * 1000)
+  const token = await encryptSession(
+    {
+      ...input,
+      expiresAt: expiresAt.toISOString(),
+    },
+    durationSeconds
+  )
   const cookieStore = await cookies()
 
   cookieStore.set(SESSION_COOKIE, token, {

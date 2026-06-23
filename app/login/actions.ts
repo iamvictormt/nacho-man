@@ -14,6 +14,7 @@ export async function loginAction(_state: LoginState, formData: FormData): Promi
     .trim()
     .toLowerCase()
   const password = String(formData.get("password") ?? "")
+  const rememberMe = formData.get("rememberMe") === "on"
 
   if (!email || !password) {
     return { error: "Informe seu e-mail e sua senha." }
@@ -33,11 +34,14 @@ export async function loginAction(_state: LoginState, formData: FormData): Promi
     return { error: "E-mail ou senha inválidos." }
   }
 
-  await createSession({
-    userId: user.id,
-    role: user.role,
-    franchiseId: user.franchiseId ?? undefined,
-  })
+  await createSession(
+    {
+      userId: user.id,
+      role: user.role,
+      franchiseId: user.franchiseId ?? undefined,
+    },
+    rememberMe
+  )
 
   redirect(user.role === "ADMIN" ? "/admin" : "/marketplace")
 }

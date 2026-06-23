@@ -1,13 +1,14 @@
 "use client"
 
-import { useActionState } from "react"
-import { LoaderCircle, LogIn } from "lucide-react"
+import { useActionState, useState } from "react"
+import { Eye, EyeOff, LoaderCircle, LogIn } from "lucide-react"
 import { loginAction, type LoginState } from "@/app/login/actions"
 
 const initialState: LoginState = {}
 
 export function LoginForm() {
   const [state, action, pending] = useActionState(loginAction, initialState)
+  const [showPassword, setShowPassword] = useState(false)
 
   return (
     <form action={action} className="space-y-5">
@@ -25,20 +26,47 @@ export function LoginForm() {
           placeholder="seuemail@nachoman.com.br"
         />
       </div>
+
       <div>
         <label htmlFor="password" className="mb-2 block text-xs font-black uppercase tracking-wider text-foreground/70">
           Senha
         </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          className="h-12 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground"
-          placeholder="••••••••"
-        />
+        <div className="relative">
+          <input
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            required
+            className="h-12 w-full rounded-xl border border-border bg-background px-4 pr-12 text-sm text-foreground"
+            placeholder="••••••••"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((current) => !current)}
+            className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-graphite hover:text-lime"
+            aria-label={showPassword ? "Ocultar senha" : "Visualizar senha"}
+            title={showPassword ? "Ocultar senha" : "Visualizar senha"}
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
+
+      <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 text-sm font-semibold text-foreground/80">
+        <input
+          name="rememberMe"
+          type="checkbox"
+          className="h-4 w-4 rounded border-border accent-lime"
+          disabled={pending}
+        />
+        <span className="flex flex-col">
+          <span>Lembrar de mim</span>
+          <span className="mt-0.5 text-[11px] font-medium text-muted-foreground">
+            Mantém sua sessão ativa por mais tempo neste dispositivo.
+          </span>
+        </span>
+      </label>
 
       {state.error && (
         <p
