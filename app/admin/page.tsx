@@ -4,6 +4,7 @@ import {
   CircleDollarSign,
   Clock3,
   Factory,
+  Gift,
   PackageSearch,
   ReceiptText,
   ShoppingBag,
@@ -48,45 +49,57 @@ export default async function AdminPage() {
   const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1)
   const sixMonthsStart = new Date(now.getFullYear(), now.getMonth() - 5, 1)
 
-  const [products, franchises, activePromotions, periodOrders, recentOrders, orderItems] = await Promise.all([
-    prisma.product.count({ where: { active: true } }),
-    prisma.franchise.count({ where: { active: true } }),
-    prisma.promotion.count({
-      where: { active: true, startsAt: { lte: now }, endsAt: { gte: now } },
-    }),
-    prisma.order.findMany({
-      where: { createdAt: { gte: sixMonthsStart } },
-      select: {
-        id: true,
-        status: true,
-        totalInCents: true,
-        createdAt: true,
-        franchise: { select: { tradeName: true } },
-      },
-    }),
-    prisma.order.findMany({
-      take: 6,
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        number: true,
-        status: true,
-        totalInCents: true,
-        createdAt: true,
-        franchise: { select: { tradeName: true } },
-        _count: { select: { items: true } },
-      },
-    }),
-    prisma.orderItem.findMany({
-      where: {
-        order: {
-          status: { not: "CANCELLED" },
-          createdAt: { gte: sixMonthsStart },
+  const [products, franchises, activePromotions, periodOrders, recentOrders, orderItems, comboItems] =
+    await Promise.all([
+      prisma.product.count({ where: { active: true } }),
+      prisma.franchise.count({ where: { active: true } }),
+      prisma.promotion.count({
+        where: { active: true, startsAt: { lte: now }, endsAt: { gte: now } },
+      }),
+      prisma.order.findMany({
+        where: { createdAt: { gte: sixMonthsStart } },
+        select: {
+          id: true,
+          status: true,
+          totalInCents: true,
+          createdAt: true,
+          franchise: { select: { tradeName: true } },
         },
-      },
-      select: { name: true, quantity: true },
-    }),
-  ])
+      }),
+      prisma.order.findMany({
+        take: 6,
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          number: true,
+          status: true,
+          totalInCents: true,
+          createdAt: true,
+          franchise: { select: { tradeName: true } },
+          _count: { select: { items: true } },
+        },
+      }),
+      prisma.orderItem.findMany({
+        where: {
+          productId: { not: null },
+          order: {
+            status: { not: "CANCELLED" },
+            createdAt: { gte: sixMonthsStart },
+          },
+        },
+        select: { name: true, quantity: true },
+      }),
+      prisma.orderItem.findMany({
+        where: {
+          comboId: { not: null },
+          order: {
+            status: { not: "CANCELLED" },
+            createdAt: { gte: sixMonthsStart },
+          },
+        },
+        select: { name: true, quantity: true },
+      }),
+    ])
 
   const validOrders = periodOrders.filter((order) => order.status !== "CANCELLED")
   const currentMonthOrders = validOrders.filter(
@@ -130,6 +143,14 @@ export default async function AdminPage() {
     return totals
   }, {})
   const topProducts = Object.entries(productTotals)
+    .map(([name, quantity]) => ({ name, quantity }))
+    .sort((a, b) => b.quantity - a.quantity)
+    .slice(0, 5)
+  const comboTotals = comboItems.reduce<Record<string, number>>((totals, item) => {
+    totals[item.name] = (totals[item.name] ?? 0) + item.quantity
+    return totals
+  }, {})
+  const topCombos = Object.entries(comboTotals)
     .map(([name, quantity]) => ({ name, quantity }))
     .sort((a, b) => b.quantity - a.quantity)
     .slice(0, 5)
@@ -281,7 +302,7 @@ export default async function AdminPage() {
           </article>
         </section>
 
-        <section className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,.9fr)]">
+        <section className="mt-5 grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
           <article className="min-w-0 rounded-2xl border border-border bg-graphite p-5 md:p-7">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -298,6 +319,25 @@ export default async function AdminPage() {
               </div>
             ) : (
               <EmptyState text="Ainda não há itens suficientes para montar o ranking." />
+            )}
+          </article>
+
+          <article className="min-w-0 rounded-2xl border border-border bg-graphite p-5 md:p-7">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-medium">
+                  Ofertas montadas
+                </p>
+                <h2 className="mt-3 text-xl font-black uppercase tracking-[-0.03em]">Combos mais pedidos</h2>
+              </div>
+              <Gift className="h-5 w-5 text-muted-foreground" />
+            </div>
+            {topCombos.length > 0 ? (
+              <div className="mt-5">
+                <TopProductsChart data={topCombos} />
+              </div>
+            ) : (
+              <EmptyState text="Os combos aparecerão aqui quando começarem a ser pedidos." />
             )}
           </article>
 
