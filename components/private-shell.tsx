@@ -104,7 +104,7 @@ export function PrivateShell({ children, area, userName, organizationName }: Pri
             })}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="col-start-3 flex items-center justify-self-end gap-2">
             <div className="hidden items-center gap-2 rounded-full border border-border/80 bg-background px-3 py-2 lg:flex">
               <span className="flex h-7 w-7 items-center justify-center rounded-full border border-purple-medium/30 bg-purple-medium/10">
                 <UserRound className="h-3.5 w-3.5 text-purple-medium" />

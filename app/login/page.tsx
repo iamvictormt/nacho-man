@@ -1,6 +1,8 @@
 import type { Metadata } from "next"
 import Image from "next/image"
+import Link from "next/link"
 import { redirect } from "next/navigation"
+import { ArrowLeft } from "lucide-react"
 import { LoginForm } from "@/components/login-form"
 import { getCurrentUser } from "@/lib/auth"
 
@@ -28,6 +30,13 @@ export default async function LoginPage() {
 
       <section className="flex items-center justify-center px-5 py-16">
         <div className="w-full max-w-md">
+          <Link
+            href="/"
+            className="mb-10 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[.16em] text-muted-foreground transition hover:text-lime"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar ao site
+          </Link>
           <img src="/nacho-man-logo.png" alt="Nacho Man" className="h-20 w-auto" />
           <p className="mt-8 text-xs font-black uppercase tracking-[.2em] text-purple-medium">
             Marketplace de franqueados

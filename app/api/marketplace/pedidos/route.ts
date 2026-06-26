@@ -5,6 +5,9 @@ import { getCurrentUser } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
 import { buildWhatsAppUrl, STORE_WHATSAPP_NUMBER } from "@/lib/whatsapp"
+import { sendOrderConfirmationEmail } from "@/lib/order-email"
+
+export const runtime = "nodejs"
 
 const orderSchema = z.object({
   items: z
@@ -253,6 +256,24 @@ export async function POST(request: Request) {
   ]
     .filter(Boolean)
     .join("\n")
+
+  await sendOrderConfirmationEmail({
+    to: user.email,
+    customerName: user.name,
+    franchiseName: user.franchise.tradeName,
+    orderNumber,
+    status: order.status,
+    paymentMethod: order.paymentMethod,
+    items: order.items,
+    subtotalInCents: order.subtotalInCents,
+    promotionDiscountInCents: order.promotionDiscountInCents,
+    couponDiscountInCents: order.couponDiscountInCents,
+    pixDiscountInCents: order.pixDiscountInCents,
+    totalInCents: order.totalInCents,
+    notes: order.notes,
+  }).catch((error) => {
+    console.error("Falha ao enviar e-mail de confirmação do pedido.", error)
+  })
 
   return NextResponse.json({
     orderNumber,
