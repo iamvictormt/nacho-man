@@ -31,8 +31,15 @@ const compactMoneyFormatter = new Intl.NumberFormat("pt-BR", {
 
 function formatChartAxisMoney(cents: number) {
   const value = cents / 100
-  if (value >= 1000) return `${Math.round(value / 1000)}k`
+  if (value >= 1000000) return `R$${formatCompactNumber(value / 1000000)}mi`
+  if (value >= 10000) return `R$${Math.round(value / 1000)}k`
+  if (value >= 1000) return `R$${formatCompactNumber(value / 1000)}k`
   return compactMoneyFormatter.format(value).replace(/\s/g, "")
+}
+
+function formatCompactNumber(value: number) {
+  const rounded = Math.round(value * 10) / 10
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1).replace(".", ",")
 }
 
 const monthlyConfig = {
@@ -69,7 +76,7 @@ export function OrdersEvolutionChart({ data }: { data: MonthlyPoint[] }) {
           axisLine={false}
           tickLine={false}
           tickFormatter={(value) => formatChartAxisMoney(Number(value))}
-          width={56}
+          width={64}
         />
         <ChartTooltip
           cursor={{ stroke: "rgba(239,255,13,.25)", strokeWidth: 1 }}

@@ -6,11 +6,17 @@ export function AdminDataList({
   template,
   children,
   className,
+  isEmpty = false,
+  emptyTitle = "Nenhum registro encontrado",
+  emptyDescription = "Quando houver itens cadastrados, eles aparecerão nesta tabela.",
 }: {
   headers: string[]
   template: string
   children: React.ReactNode
   className?: string
+  isEmpty?: boolean
+  emptyTitle?: string
+  emptyDescription?: string
 }) {
   return (
     <section className={cn("overflow-hidden rounded-2xl border border-border bg-background", className)}>
@@ -27,7 +33,16 @@ export function AdminDataList({
           </p>
         ))}
       </div>
-      <div className="divide-y divide-border">{children}</div>
+      <div className="divide-y divide-border">
+        {isEmpty ? (
+          <div className="flex min-h-48 flex-col items-center justify-center px-5 py-12 text-center">
+            <p className="text-sm font-black uppercase tracking-[0.12em] text-foreground">{emptyTitle}</p>
+            <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">{emptyDescription}</p>
+          </div>
+        ) : (
+          children
+        )}
+      </div>
     </section>
   )
 }

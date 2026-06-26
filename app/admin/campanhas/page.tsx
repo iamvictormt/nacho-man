@@ -96,6 +96,9 @@ export default async function CampaignsPage({ searchParams }: { searchParams?: P
         <AdminDataList
           headers={["Campanha", "Aplicação", "Benefício", "Vigência", "Status", "Ações"]}
           template="minmax(200px,1.25fr) minmax(160px,1fr) 110px 160px 90px 72px"
+          isEmpty={promotions.length === 0 && coupons.length === 0}
+          emptyTitle="Nenhuma campanha criada"
+          emptyDescription="Crie uma promoção ou cupom para aplicar condições comerciais aos pedidos da rede."
         >
           {promotions.map((item) => (
             <AdminDataRow

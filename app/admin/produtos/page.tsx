@@ -62,6 +62,9 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
         <AdminDataList
           headers={["Produto", "Embalagem", "Preço", "Uso", "Status", "Ações"]}
           template="minmax(220px,1.5fr) minmax(160px,1fr) 110px 110px 90px 72px"
+          isEmpty={products.length === 0}
+          emptyTitle="Nenhum produto cadastrado"
+          emptyDescription="Cadastre o primeiro produto para disponibilizar itens no marketplace da rede."
         >
           {products.map((product) => {
             const used = product._count.orderItems > 0 || product._count.comboItems > 0

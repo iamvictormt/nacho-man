@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { CheckCircle2, LoaderCircle, Minus, Plus, ShoppingCart, Trash2, X } from "lucide-react"
 import { useMarketplaceCart } from "@/lib/marketplace-cart-store"
 import { formatMoneyFromCents } from "@/lib/money"
+import { useLockBodyScroll } from "@/hooks/use-lock-body-scroll"
 
 type CheckoutResponse = {
   whatsappUrl?: string
@@ -28,6 +29,19 @@ export function MarketplaceCartDrawer() {
   const [couponPreview, setCouponPreview] = useState<CouponPreview | null>(null)
   const [couponError, setCouponError] = useState("")
   const [error, setError] = useState("")
+  const [confirmed, setConfirmed] = useState(false)
+  const [whatsappFallbackUrl, setWhatsappFallbackUrl] = useState("")
+  const whatsappTabRef = useRef<Window | null>(null)
+
+  useLockBodyScroll(open)
+
+  useEffect(() => {
+    if (open) return
+
+    setConfirmed(false)
+    setWhatsappFallbackUrl("")
+    setError("")
+  }, [open])
 
   if (!open) return null
 
@@ -85,8 +99,14 @@ export function MarketplaceCartDrawer() {
 
   async function checkout() {
     if (items.length === 0 || loading) return
+    whatsappTabRef.current = window.open("about:blank", "_blank")
+    whatsappTabRef.current?.document.write(
+      "<!doctype html><title>Pedido confirmado</title><body style='margin:0;background:#0f0f0f;color:#fff;font-family:Arial,sans-serif;display:grid;min-height:100vh;place-items:center;text-align:center'><main><h1>Pedido confirmado</h1><p>O WhatsApp será aberto em instantes.</p></main></body>"
+    )
+
     setLoading(true)
     setError("")
+    setWhatsappFallbackUrl("")
 
     try {
       const response = await fetch("/api/marketplace/pedidos", {
@@ -102,14 +122,32 @@ export function MarketplaceCartDrawer() {
       const result = (await response.json()) as CheckoutResponse
 
       if (!response.ok || !result.whatsappUrl) {
+        whatsappTabRef.current?.close()
+        whatsappTabRef.current = null
         setError(result.error ?? "Não foi possível criar o pedido.")
         return
       }
 
+      setConfirmed(true)
       clear()
-      closeCart()
-      window.location.href = result.whatsappUrl
+      window.setTimeout(() => {
+        if (whatsappTabRef.current && !whatsappTabRef.current.closed) {
+          whatsappTabRef.current.location.href = result.whatsappUrl!
+          closeCart()
+          return
+        }
+
+        const opened = window.open(result.whatsappUrl, "_blank")
+        if (opened) {
+          closeCart()
+        } else {
+          setWhatsappFallbackUrl(result.whatsappUrl!)
+          setError("Seu navegador bloqueou a nova guia. Use o botão abaixo para abrir o WhatsApp.")
+        }
+      }, 2000)
     } catch {
+      whatsappTabRef.current?.close()
+      whatsappTabRef.current = null
       setError("Falha de conexão. Tente novamente.")
     } finally {
       setLoading(false)
@@ -130,6 +168,33 @@ export function MarketplaceCartDrawer() {
           </button>
         </header>
 
+        {confirmed ? (
+          <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
+            <span className="flex size-16 items-center justify-center rounded-full border border-lime/30 bg-lime/10 text-lime">
+              <CheckCircle2 className="h-8 w-8" />
+            </span>
+            <h3 className="mt-5 text-xl font-black uppercase">Pedido confirmado</h3>
+            <p className="mt-3 max-w-xs text-sm leading-6 text-muted-foreground">
+              Recebemos seu pedido. O WhatsApp será aberto em uma nova guia com a mensagem preenchida.
+            </p>
+            {!whatsappFallbackUrl && (
+              <p className="mt-5 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-lime">
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+                Abrindo WhatsApp
+              </p>
+            )}
+            {whatsappFallbackUrl && (
+              <a
+                href={whatsappFallbackUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-6 inline-flex h-12 items-center justify-center rounded-full bg-[#25D366] px-6 text-xs font-black uppercase text-white"
+              >
+                Abrir WhatsApp
+              </a>
+            )}
+          </div>
+        ) : (
         <div className="flex-1 space-y-4 overflow-y-auto p-5">
           {items.map((item) => (
             <article key={`${item.type}-${item.id}`} className="rounded-xl border border-border bg-graphite p-4">
@@ -178,8 +243,9 @@ export function MarketplaceCartDrawer() {
             <p className="py-20 text-center text-sm text-muted-foreground">Seu carrinho está vazio.</p>
           )}
         </div>
+        )}
 
-        {items.length > 0 && (
+        {items.length > 0 && !confirmed && (
           <footer className="space-y-4 border-t border-border bg-graphite p-5">
             <div className="grid grid-cols-2 gap-3">
               <button

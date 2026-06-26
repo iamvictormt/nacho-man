@@ -5,6 +5,7 @@ import { useCartStore } from "@/lib/cart-store"
 import { formatPrice } from "@/lib/format"
 import { generateWhatsAppMessage, buildWhatsAppUrl, STORE_WHATSAPP_NUMBER } from "@/lib/whatsapp"
 import { useEffect, useRef, useState, useCallback } from "react"
+import { useLockBodyScroll } from "@/hooks/use-lock-body-scroll"
 
 export function CartDrawer() {
   const { items, isOpen, closeCart, removeItem, updateQuantity, totalItems, totalPrice, clearCart } = useCartStore()
@@ -20,13 +21,14 @@ export function CartDrawer() {
   const triggerRef = useRef<Element | null>(null)
   const titleId = "cart-drawer-title"
 
+  useLockBodyScroll(isOpen)
+
   useEffect(() => {
     if (isOpen) {
       // Store the element that triggered the drawer open
       triggerRef.current = document.activeElement
       setVisible(true)
       setPopupBlockedMessage(false)
-      document.body.style.overflow = "hidden"
       // Small delay to trigger enter animation
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
@@ -37,7 +39,6 @@ export function CartDrawer() {
       })
     } else {
       setAnimating(false)
-      document.body.style.overflow = ""
       // Restore focus to the element that triggered the drawer
       if (triggerRef.current && triggerRef.current instanceof HTMLElement) {
         triggerRef.current.focus()

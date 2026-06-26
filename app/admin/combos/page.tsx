@@ -62,6 +62,9 @@ export default async function CombosPage({ searchParams }: { searchParams?: Prom
         <AdminDataList
           headers={["Combo", "Composição", "Preço", "Pedidos", "Status", "Ações"]}
           template="minmax(200px,1.3fr) minmax(210px,1.5fr) 110px 90px 90px 72px"
+          isEmpty={combos.length === 0}
+          emptyTitle="Nenhum combo criado"
+          emptyDescription="Monte o primeiro combo para oferecer uma seleção pronta aos franqueados."
         >
           {combos.map((combo) => (
             <AdminDataRow

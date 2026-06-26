@@ -1,4 +1,7 @@
-import { Fragment } from "react"
+"use client"
+
+import { Fragment, type MouseEvent } from "react"
+import { useRouter } from "next/navigation"
 import {
   Pagination,
   PaginationContent,
@@ -43,9 +46,20 @@ export function PaginationControls({
   totalItems: number
   searchParams?: SearchParams
 }) {
+  const router = useRouter()
+
   if (totalPages <= 1) return null
 
   const visiblePages = getVisiblePages(currentPage, totalPages)
+  function handlePageClick(event: MouseEvent<HTMLAnchorElement>, href: string, disabled?: boolean) {
+    event.preventDefault()
+    if (disabled) return
+
+    router.push(href, { scroll: false })
+    window.setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    }, 60)
+  }
 
   return (
     <div className="mt-8 flex flex-col items-center gap-3">
@@ -59,6 +73,9 @@ export function PaginationControls({
               href={pageHref(searchParams, Math.max(1, currentPage - 1))}
               aria-disabled={currentPage === 1}
               className={currentPage === 1 ? "pointer-events-none opacity-45" : undefined}
+              onClick={(event) =>
+                handlePageClick(event, pageHref(searchParams, Math.max(1, currentPage - 1)), currentPage === 1)
+              }
             />
           </PaginationItem>
           {visiblePages.map((page, index) => {
@@ -73,7 +90,11 @@ export function PaginationControls({
                   </PaginationItem>
                 )}
                 <PaginationItem>
-                  <PaginationLink href={pageHref(searchParams, page)} isActive={page === currentPage}>
+                  <PaginationLink
+                    href={pageHref(searchParams, page)}
+                    isActive={page === currentPage}
+                    onClick={(event) => handlePageClick(event, pageHref(searchParams, page), page === currentPage)}
+                  >
                     {page}
                   </PaginationLink>
                 </PaginationItem>
@@ -85,6 +106,9 @@ export function PaginationControls({
               href={pageHref(searchParams, Math.min(totalPages, currentPage + 1))}
               aria-disabled={currentPage === totalPages}
               className={currentPage === totalPages ? "pointer-events-none opacity-45" : undefined}
+              onClick={(event) =>
+                handlePageClick(event, pageHref(searchParams, Math.min(totalPages, currentPage + 1)), currentPage === totalPages)
+              }
             />
           </PaginationItem>
         </PaginationContent>

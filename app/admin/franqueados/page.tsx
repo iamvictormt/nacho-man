@@ -67,6 +67,9 @@ export default async function FranchisesPage({ searchParams }: { searchParams?: 
         <AdminDataList
           headers={["Unidade", "Responsável", "Contato", "Pedidos", "Status", "Ações"]}
           template="minmax(200px,1.3fr) minmax(160px,1fr) minmax(160px,1fr) 90px 90px 72px"
+          isEmpty={franchises.length === 0}
+          emptyTitle="Nenhuma unidade cadastrada"
+          emptyDescription="Cadastre a primeira unidade para liberar acesso ao marketplace e aos pedidos."
         >
           {franchises.map((franchise, index) => {
             const user = franchise.users[0]
