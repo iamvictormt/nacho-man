@@ -67,7 +67,7 @@ export default async function AdminPage() {
         },
       }),
       prisma.order.findMany({
-        take: 6,
+        take: 4,
         orderBy: { createdAt: "desc" },
         select: {
           id: true,
@@ -145,7 +145,7 @@ export default async function AdminPage() {
   const topProducts = Object.entries(productTotals)
     .map(([name, quantity]) => ({ name, quantity }))
     .sort((a, b) => b.quantity - a.quantity)
-    .slice(0, 5)
+    .slice(0, 3)
   const comboTotals = comboItems.reduce<Record<string, number>>((totals, item) => {
     totals[item.name] = (totals[item.name] ?? 0) + item.quantity
     return totals
@@ -153,7 +153,7 @@ export default async function AdminPage() {
   const topCombos = Object.entries(comboTotals)
     .map(([name, quantity]) => ({ name, quantity }))
     .sort((a, b) => b.quantity - a.quantity)
-    .slice(0, 5)
+    .slice(0, 3)
 
   const franchiseTotals = validOrders.reduce<Record<string, { orders: number; totalInCents: number }>>(
     (totals, order) => {
@@ -258,7 +258,7 @@ export default async function AdminPage() {
         </section>
 
         <section className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(290px,.75fr)]">
-          <article className="min-w-0 rounded-2xl border border-border bg-graphite p-5 md:p-7">
+          <article className="flex min-w-0 flex-col rounded-2xl border border-border bg-graphite p-5 md:p-7">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-lime">
@@ -314,15 +314,17 @@ export default async function AdminPage() {
               <PackageSearch className="h-5 w-5 text-muted-foreground" />
             </div>
             {topProducts.length > 0 ? (
-              <div className="mt-5">
-                <TopProductsChart data={topProducts} />
+              <div className="mt-5 flex flex-1 items-stretch">
+                <TopProductsChart data={topProducts} className="h-full min-h-[245px]" />
               </div>
             ) : (
-              <EmptyState text="Ainda não há itens suficientes para montar o ranking." />
+              <div className="flex w-full flex-1 items-center">
+                <EmptyState text="Ainda não há itens suficientes para montar o ranking." />
+              </div>
             )}
           </article>
 
-          <article className="min-w-0 rounded-2xl border border-border bg-graphite p-5 md:p-7">
+          <article className="flex min-w-0 flex-col rounded-2xl border border-border bg-graphite p-5 md:p-7">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-medium">
@@ -333,11 +335,13 @@ export default async function AdminPage() {
               <Gift className="h-5 w-5 text-muted-foreground" />
             </div>
             {topCombos.length > 0 ? (
-              <div className="mt-5">
-                <TopProductsChart data={topCombos} />
+              <div className="mt-5 flex flex-1 items-stretch">
+                <TopProductsChart data={topCombos} className="h-full min-h-[245px]" />
               </div>
             ) : (
-              <EmptyState text="Os combos aparecerão aqui quando começarem a ser pedidos." />
+              <div className="flex w-full flex-1 items-center">
+                <EmptyState text="Os combos aparecerão aqui quando começarem a ser pedidos." />
+              </div>
             )}
           </article>
 

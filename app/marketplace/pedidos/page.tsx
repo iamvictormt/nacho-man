@@ -1,6 +1,8 @@
 import { requireFranchisee } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
+import { PaginationControls } from "@/components/pagination-controls"
+import { getCurrentPage, getPagination, type SearchParams } from "@/lib/pagination"
 
 const statusLabels: Record<string, string> = {
   AWAITING_SERVICE: "Aguardando atendimento",
@@ -12,12 +14,19 @@ const statusLabels: Record<string, string> = {
   CANCELLED: "Cancelado",
 }
 
-export default async function FranchiseOrdersPage() {
+export default async function FranchiseOrdersPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
+  const resolvedSearchParams = await searchParams
   const user = await requireFranchisee()
+  const page = getCurrentPage(resolvedSearchParams)
+  const where = { franchiseId: user.franchiseId! }
+  const totalOrders = await prisma.order.count({ where })
+  const pagination = getPagination(page, totalOrders, 10)
   const orders = await prisma.order.findMany({
-    where: { franchiseId: user.franchiseId! },
+    where,
     include: { items: true },
     orderBy: { createdAt: "desc" },
+    skip: pagination.skip,
+    take: pagination.take,
   })
 
   return (
@@ -59,6 +68,12 @@ export default async function FranchiseOrdersPage() {
           </div>
         )}
       </div>
+      <PaginationControls
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        searchParams={resolvedSearchParams}
+      />
     </main>
   )
 }

@@ -4,20 +4,29 @@ import { requireFranchisee } from "@/lib/auth"
 import { AdminSearch } from "@/components/admin-search"
 import { MarketplaceComboCard } from "@/components/marketplace-combo-card"
 import { PrivatePageHeader } from "@/components/private-page-header"
+import { PaginationControls } from "@/components/pagination-controls"
+import { getCurrentPage, getPagination, type SearchParams } from "@/lib/pagination"
 
-export default async function MarketplaceCombosPage() {
+export default async function MarketplaceCombosPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
+  const resolvedSearchParams = await searchParams
   const user = await requireFranchisee()
+  const page = getCurrentPage(resolvedSearchParams)
   const now = new Date()
+  const where = {
+    active: true,
+    AND: [
+      { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
+      { OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
+    ],
+  }
+  const totalCombos = await prisma.combo.count({ where })
+  const pagination = getPagination(page, totalCombos)
   const combos = await prisma.combo.findMany({
-    where: {
-      active: true,
-      AND: [
-        { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
-        { OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
-      ],
-    },
+    where,
     include: { items: { include: { product: { select: { name: true, image: true } } } } },
     orderBy: { createdAt: "desc" },
+    skip: pagination.skip,
+    take: pagination.take,
   })
 
   return (
@@ -33,7 +42,7 @@ export default async function MarketplaceCombosPage() {
         icon={Gift}
       >
         <div className="w-fit rounded-2xl border border-lime/20 bg-lime/10 px-5 py-4">
-          <p className="text-2xl font-black text-lime">{combos.length}</p>
+          <p className="text-2xl font-black text-lime">{totalCombos}</p>
           <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">combos ativos</p>
         </div>
       </PrivatePageHeader>
@@ -63,6 +72,12 @@ export default async function MarketplaceCombosPage() {
             ))}
           </div>
         )}
+        <PaginationControls
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          searchParams={resolvedSearchParams}
+        />
       </div>
     </main>
   )

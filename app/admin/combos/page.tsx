@@ -11,13 +11,21 @@ import { AdminFieldGrid, AdminInput, AdminTextarea } from "@/components/admin-fo
 import { createComboAction, deleteComboAction, toggleComboAction, updateComboAction } from "./actions"
 import { AdminDataLabel, AdminDataList, AdminDataRow } from "@/components/admin-data-list"
 import { AdminManageModal } from "@/components/admin-manage-modal"
+import { PaginationControls } from "@/components/pagination-controls"
+import { getCurrentPage, getPagination, type SearchParams } from "@/lib/pagination"
 
-export default async function CombosPage() {
+export default async function CombosPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
+  const resolvedSearchParams = await searchParams
+  const page = getCurrentPage(resolvedSearchParams)
+  const totalCombos = await prisma.combo.count()
+  const pagination = getPagination(page, totalCombos)
   const [products, combos] = await Promise.all([
     prisma.product.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.combo.findMany({
       include: { items: { include: { product: true } }, _count: { select: { orderItems: true } } },
       orderBy: [{ active: "desc" }, { createdAt: "desc" }],
+      skip: pagination.skip,
+      take: pagination.take,
     }),
   ])
   return (
@@ -136,6 +144,12 @@ export default async function CombosPage() {
           ))}
         </AdminDataList>
       </div>
+      <PaginationControls
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        searchParams={resolvedSearchParams}
+      />
     </main>
   )
 }

@@ -2,6 +2,7 @@
 
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
+import { cn } from "@/lib/utils"
 
 type MonthlyPoint = {
   label: string
@@ -101,9 +102,9 @@ export function OrdersEvolutionChart({ data }: { data: MonthlyPoint[] }) {
   )
 }
 
-export function TopProductsChart({ data }: { data: ProductPoint[] }) {
+export function TopProductsChart({ data, className }: { data: ProductPoint[]; className?: string }) {
   return (
-    <ChartContainer config={productConfig} className="h-[245px] w-full min-w-0">
+    <ChartContainer config={productConfig} className={cn("h-[245px] w-full min-w-0", className)}>
       <BarChart data={data} layout="vertical" margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid horizontal={false} strokeDasharray="4 5" />
         <XAxis type="number" hide />

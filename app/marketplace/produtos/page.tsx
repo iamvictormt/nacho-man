@@ -5,13 +5,22 @@ import { adaptMarketplaceProduct } from "@/lib/marketplace-product-adapter"
 import { AdminSearch } from "@/components/admin-search"
 import { PrivatePageHeader } from "@/components/private-page-header"
 import { ProductDetailCard } from "@/components/product-detail-card"
+import { PaginationControls } from "@/components/pagination-controls"
+import { getCurrentPage, getPagination, type SearchParams } from "@/lib/pagination"
 
-export default async function MarketplaceProductsPage() {
+export default async function MarketplaceProductsPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
+  const resolvedSearchParams = await searchParams
   const user = await requireFranchisee()
+  const page = getCurrentPage(resolvedSearchParams)
+  const where = { active: true, category: { active: true } }
+  const totalProducts = await prisma.product.count({ where })
+  const pagination = getPagination(page, totalProducts)
   const products = await prisma.product.findMany({
-    where: { active: true, category: { active: true } },
+    where,
     include: { category: true },
     orderBy: [{ featured: "desc" }, { name: "asc" }],
+    skip: pagination.skip,
+    take: pagination.take,
   })
 
   return (
@@ -27,7 +36,7 @@ export default async function MarketplaceProductsPage() {
         icon={PackageSearch}
       >
         <div className="w-fit rounded-2xl border border-lime/20 bg-lime/10 px-5 py-4">
-          <p className="text-2xl font-black text-lime">{products.length}</p>
+          <p className="text-2xl font-black text-lime">{totalProducts}</p>
           <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">produtos ativos</p>
         </div>
       </PrivatePageHeader>
@@ -69,6 +78,12 @@ export default async function MarketplaceProductsPage() {
             ))}
           </div>
         )}
+        <PaginationControls
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          searchParams={resolvedSearchParams}
+        />
       </div>
     </main>
   )

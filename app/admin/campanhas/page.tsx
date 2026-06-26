@@ -16,12 +16,32 @@ import {
 } from "./actions"
 import { AdminDataLabel, AdminDataList, AdminDataRow } from "@/components/admin-data-list"
 import { AdminManageModal } from "@/components/admin-manage-modal"
+import { PaginationControls } from "@/components/pagination-controls"
+import { getCurrentPage, type SearchParams } from "@/lib/pagination"
 
-export default async function CampaignsPage() {
+const CAMPAIGN_PAGE_SIZE = 6
+
+export default async function CampaignsPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
+  const resolvedSearchParams = await searchParams
+  const page = getCurrentPage(resolvedSearchParams)
+  const [promotionCount, couponCount] = await Promise.all([prisma.promotion.count(), prisma.coupon.count()])
+  const totalPages = Math.max(1, Math.ceil(Math.max(promotionCount, couponCount) / CAMPAIGN_PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const currentSkip = (currentPage - 1) * CAMPAIGN_PAGE_SIZE
   const [products, coupons, promotions] = await Promise.all([
     prisma.product.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.coupon.findMany({ include: { _count: { select: { orders: true } } }, orderBy: { createdAt: "desc" } }),
-    prisma.promotion.findMany({ include: { product: true }, orderBy: { createdAt: "desc" } }),
+    prisma.coupon.findMany({
+      include: { _count: { select: { orders: true } } },
+      orderBy: { createdAt: "desc" },
+      skip: currentSkip,
+      take: CAMPAIGN_PAGE_SIZE,
+    }),
+    prisma.promotion.findMany({
+      include: { product: true },
+      orderBy: { createdAt: "desc" },
+      skip: currentSkip,
+      take: CAMPAIGN_PAGE_SIZE,
+    }),
   ])
   return (
     <main className="mx-auto max-w-7xl px-4 py-12 md:py-16">
@@ -171,6 +191,12 @@ export default async function CampaignsPage() {
           ))}
         </AdminDataList>
       </div>
+      <PaginationControls
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={promotionCount + couponCount}
+        searchParams={resolvedSearchParams}
+      />
     </main>
   )
 }

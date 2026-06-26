@@ -12,12 +12,20 @@ import { AdminProductImageUpload } from "@/components/admin-product-image-upload
 import { createProductAction, deleteProductAction, toggleProductAction, updateProductAction } from "./actions"
 import { AdminDataLabel, AdminDataList, AdminDataRow } from "@/components/admin-data-list"
 import { AdminManageModal } from "@/components/admin-manage-modal"
+import { PaginationControls } from "@/components/pagination-controls"
+import { getCurrentPage, getPagination, type SearchParams } from "@/lib/pagination"
 
-export default async function AdminProductsPage() {
+export default async function AdminProductsPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
+  const resolvedSearchParams = await searchParams
+  const page = getCurrentPage(resolvedSearchParams)
+  const totalProducts = await prisma.product.count()
+  const pagination = getPagination(page, totalProducts)
   const [products, categories] = await Promise.all([
     prisma.product.findMany({
       include: { category: true, _count: { select: { orderItems: true, comboItems: true } } },
       orderBy: [{ active: "desc" }, { createdAt: "desc" }],
+      skip: pagination.skip,
+      take: pagination.take,
     }),
     prisma.category.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ])
@@ -145,6 +153,12 @@ export default async function AdminProductsPage() {
           })}
         </AdminDataList>
       </div>
+      <PaginationControls
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        searchParams={resolvedSearchParams}
+      />
     </main>
   )
 }

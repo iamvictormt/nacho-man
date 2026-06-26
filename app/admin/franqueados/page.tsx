@@ -10,8 +10,17 @@ import { AdminLocationFields } from "@/components/admin-location-fields"
 import { createFranchiseAction, deleteFranchiseAction, toggleFranchiseAction, updateFranchiseAction } from "./actions"
 import { AdminDataLabel, AdminDataList, AdminDataRow } from "@/components/admin-data-list"
 import { AdminManageModal } from "@/components/admin-manage-modal"
+import { PaginationControls } from "@/components/pagination-controls"
+import { getCurrentPage, getPagination, type SearchParams } from "@/lib/pagination"
 
-export default async function FranchisesPage() {
+export default async function FranchisesPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
+  const resolvedSearchParams = await searchParams
+  const page = getCurrentPage(resolvedSearchParams)
+  const [totalFranchises, activeCount] = await Promise.all([
+    prisma.franchise.count(),
+    prisma.franchise.count({ where: { active: true } }),
+  ])
+  const pagination = getPagination(page, totalFranchises)
   const franchises = await prisma.franchise.findMany({
     include: {
       users: { select: { id: true, name: true, email: true }, orderBy: { createdAt: "asc" } },
@@ -19,8 +28,9 @@ export default async function FranchisesPage() {
       _count: { select: { orders: true, users: true } },
     },
     orderBy: [{ active: "desc" }, { tradeName: "asc" }],
+    skip: pagination.skip,
+    take: pagination.take,
   })
-  const activeCount = franchises.filter((item) => item.active).length
   return (
     <main className="mx-auto max-w-7xl px-4 py-12 md:py-16">
       <div className="flex flex-col gap-6 border-b border-border pb-8 md:flex-row md:items-end md:justify-between">
@@ -28,7 +38,7 @@ export default async function FranchisesPage() {
           <p className="text-xs font-black uppercase tracking-[.18em] text-lime">Rede Nacho Man</p>
           <h1 className="mt-3 text-4xl font-black uppercase">Unidades franqueadas</h1>
           <p className="mt-3 text-sm text-muted-foreground">
-            {franchises.length} unidades · {activeCount} ativas
+            {totalFranchises} unidades · {activeCount} ativas
           </p>
         </div>
         <AdminModal
@@ -154,6 +164,12 @@ export default async function FranchisesPage() {
           })}
         </AdminDataList>
       </div>
+      <PaginationControls
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        searchParams={resolvedSearchParams}
+      />
     </main>
   )
 }

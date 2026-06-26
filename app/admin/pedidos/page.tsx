@@ -6,6 +6,8 @@ import { AdminSearch } from "@/components/admin-search"
 import { AdminSelect } from "@/components/admin-form-fields"
 import { DeleteActionDialog } from "@/components/delete-action-dialog"
 import { AdminManageModal } from "@/components/admin-manage-modal"
+import { PaginationControls } from "@/components/pagination-controls"
+import { getCurrentPage, getPagination, type SearchParams } from "@/lib/pagination"
 import { deleteOrderAction, updateOrderStatusAction } from "./actions"
 
 const statusLabels: Record<string, string> = {
@@ -28,13 +30,21 @@ const statusClasses: Record<string, string> = {
   CANCELLED: "border-red-400/30 bg-red-500/10 text-red-300",
 }
 
-export default async function AdminOrdersPage() {
-  const orders = await prisma.order.findMany({
-    include: { franchise: true, items: true },
-    orderBy: { createdAt: "desc" },
-  })
-  const awaiting = orders.filter((order) => ["AWAITING_SERVICE", "AWAITING_PAYMENT"].includes(order.status)).length
-  const inProgress = orders.filter((order) => ["PAYMENT_CONFIRMED", "PICKING", "SHIPPED"].includes(order.status)).length
+export default async function AdminOrdersPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
+  const resolvedSearchParams = await searchParams
+  const page = getCurrentPage(resolvedSearchParams)
+  const totalOrders = await prisma.order.count()
+  const pagination = getPagination(page, totalOrders, 10)
+  const [orders, awaiting, inProgress] = await Promise.all([
+    prisma.order.findMany({
+      include: { franchise: true, items: true },
+      orderBy: { createdAt: "desc" },
+      skip: pagination.skip,
+      take: pagination.take,
+    }),
+    prisma.order.count({ where: { status: { in: ["AWAITING_SERVICE", "AWAITING_PAYMENT"] } } }),
+    prisma.order.count({ where: { status: { in: ["PAYMENT_CONFIRMED", "PICKING", "SHIPPED"] } } }),
+  ])
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-12 md:py-16">
@@ -47,7 +57,7 @@ export default async function AdminOrdersPage() {
           </p>
         </div>
         <div className="grid w-full grid-cols-3 gap-2 sm:gap-3 md:w-auto">
-          <Summary value={orders.length} label="Total" />
+          <Summary value={totalOrders} label="Total" />
           <Summary value={awaiting} label="Aguardando" accent="purple" />
           <Summary value={inProgress} label="Em andamento" />
         </div>
@@ -145,6 +155,12 @@ export default async function AdminOrdersPage() {
           <p className="mt-2 text-sm text-muted-foreground">Os pedidos enviados pelos franqueados aparecerão aqui.</p>
         </div>
       )}
+      <PaginationControls
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        searchParams={resolvedSearchParams}
+      />
     </main>
   )
 }
