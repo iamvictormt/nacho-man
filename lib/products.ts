@@ -5,7 +5,7 @@ export interface Product {
   name: string
   description: string
   price: number
-  priceUnit: "KG" | "UND"
+  priceUnit: "KG" | "UND" | "CX"
   category: "CONGELADO" | "SECO"
   subcategory: string
   weight: string

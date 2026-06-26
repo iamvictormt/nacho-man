@@ -42,7 +42,7 @@ export default async function MarketplacePage() {
 
   const [products, combos, productCount, comboCount, activeOrderCount, recentOrders] = await Promise.all([
     prisma.product.findMany({
-      where: { active: true, category: { active: true } },
+      where: { audience: "FRANCHISEE", active: true, category: { active: true } },
       include: { category: true },
       orderBy: [{ featured: "desc" }, { name: "asc" }],
       take: 3,
@@ -53,7 +53,7 @@ export default async function MarketplacePage() {
       orderBy: { createdAt: "desc" },
       take: 3,
     }),
-    prisma.product.count({ where: { active: true, category: { active: true } } }),
+    prisma.product.count({ where: { audience: "FRANCHISEE", active: true, category: { active: true } } }),
     prisma.combo.count({ where: activeComboWhere }),
     prisma.order.count({
       where: { franchiseId: user.franchiseId!, status: { in: [...activeOrderStatuses] } },

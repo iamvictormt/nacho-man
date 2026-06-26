@@ -1,17 +1,24 @@
 import type { Metadata } from "next"
-import { catalogProductsBySlug } from "@/lib/products"
+import type { ReactNode } from "react"
+import { adaptMarketplaceProduct } from "@/lib/marketplace-product-adapter"
+import { prisma } from "@/lib/prisma"
 import { absoluteUrl } from "@/lib/seo"
 
+export const dynamic = "force-dynamic"
+
 type ProductLayoutProps = {
-  children: React.ReactNode
+  children: ReactNode
   params: Promise<{ slug: string }>
 }
 
 export async function generateMetadata({ params }: ProductLayoutProps): Promise<Metadata> {
   const { slug } = await params
-  const product = catalogProductsBySlug.get(slug)
+  const productRecord = await prisma.product.findFirst({
+    where: { slug, audience: "PUBLIC", active: true, category: { active: true } },
+    include: { category: true },
+  })
 
-  if (!product) {
+  if (!productRecord) {
     return {
       title: "Produto não encontrado",
       robots: {
@@ -21,6 +28,7 @@ export async function generateMetadata({ params }: ProductLayoutProps): Promise<
     }
   }
 
+  const product = adaptMarketplaceProduct(productRecord)
   const description = `${product.displayName}: ${product.features.slice(0, 2).join(". ")}. Aplicações: ${product.applications.slice(0, 4).join(", ")}.`
 
   return {

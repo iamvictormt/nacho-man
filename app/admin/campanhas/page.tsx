@@ -29,7 +29,11 @@ export default async function CampaignsPage({ searchParams }: { searchParams?: P
   const currentPage = Math.min(page, totalPages)
   const currentSkip = (currentPage - 1) * CAMPAIGN_PAGE_SIZE
   const [products, coupons, promotions] = await Promise.all([
-    prisma.product.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.product.findMany({
+      where: { audience: "FRANCHISEE", active: true },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
     prisma.coupon.findMany({
       include: { _count: { select: { orders: true } } },
       orderBy: { createdAt: "desc" },

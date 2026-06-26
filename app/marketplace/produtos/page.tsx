@@ -12,7 +12,7 @@ export default async function MarketplaceProductsPage({ searchParams }: { search
   const resolvedSearchParams = await searchParams
   const user = await requireFranchisee()
   const page = getCurrentPage(resolvedSearchParams)
-  const where = { active: true, category: { active: true } }
+  const where = { audience: "FRANCHISEE" as const, active: true, category: { active: true } }
   const totalProducts = await prisma.product.count({ where })
   const pagination = getPagination(page, totalProducts)
   const products = await prisma.product.findMany({

@@ -9,7 +9,7 @@ export type MarketplaceProductRecord = {
   description: string | null
   image: string | null
   priceInCents: number
-  unit: string
+  unit: "KG" | "UND" | "CX"
   packageLabel: string | null
   minimumQuantity: number
   category: {
@@ -17,9 +17,23 @@ export type MarketplaceProductRecord = {
   }
 }
 
+function getCatalogCategory(product: MarketplaceProductRecord): CatalogProduct["category"] {
+  const publicDetails = catalogProductsBySlug.get(product.slug)
+
+  if (publicDetails) {
+    return publicDetails.category
+  }
+
+  const categoryName = product.category.name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR")
+
+  return categoryName.includes("congel") ? "CONGELADO" : "SECO"
+}
+
 export function adaptMarketplaceProduct(product: MarketplaceProductRecord): CatalogProduct {
   const publicDetails = catalogProductsBySlug.get(product.slug)
-  const unit = product.unit === "KG" ? "KG" : "UND"
   const description = product.description || publicDetails?.description || ""
 
   return {
@@ -28,9 +42,9 @@ export function adaptMarketplaceProduct(product: MarketplaceProductRecord): Cata
     displayName: product.name,
     description,
     price: product.priceInCents / 100,
-    priceUnit: unit,
+    priceUnit: product.unit,
     priceLabel: `${formatMoneyFromCents(product.priceInCents)} / ${product.unit}`,
-    category: publicDetails?.category ?? "SECO",
+    category: getCatalogCategory(product),
     subcategory: product.category.name,
     weight: product.packageLabel || "Consulte a embalagem",
     image: product.image || publicDetails?.image || "/placeholder.svg",

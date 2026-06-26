@@ -267,7 +267,7 @@ function CartItemCard({
   onRemove,
   onUpdateQuantity,
 }: {
-  item: { name: string; price: number; priceUnit?: "KG" | "UND"; quantity: number; image: string }
+  item: { name: string; price: number; priceUnit?: "KG" | "UND" | "CX"; quantity: number; image: string }
   onRemove: () => void
   onUpdateQuantity: (qty: number) => void
 }) {

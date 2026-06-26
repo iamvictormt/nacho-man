@@ -93,7 +93,7 @@ export async function POST(request: Request) {
   const now = new Date()
   const [products, combos] = await Promise.all([
     prisma.product.findMany({
-      where: { id: { in: productIds }, active: true, category: { active: true } },
+      where: { id: { in: productIds }, audience: "FRANCHISEE", active: true, category: { active: true } },
       include: {
         category: true,
         promotions: {

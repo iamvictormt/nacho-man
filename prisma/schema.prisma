@@ -18,6 +18,11 @@ enum ProductUnit {
   CX
 }
 
+enum ProductAudience {
+  FRANCHISEE
+  PUBLIC
+}
+
 enum DiscountType {
   PERCENTAGE
   FIXED
@@ -114,6 +119,7 @@ model Product {
   sku            String?     @unique
   priceInCents   Int
   unit           ProductUnit
+  audience       ProductAudience @default(FRANCHISEE)
   packageLabel   String
   minimumQuantity Int        @default(1)
   stockQuantity  Int?
@@ -129,6 +135,7 @@ model Product {
 
   @@index([categoryId])
   @@index([active, featured])
+  @@index([audience, active, featured])
 }
 
 model Combo {

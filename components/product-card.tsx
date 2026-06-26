@@ -13,7 +13,7 @@ interface ProductCardProps {
     name: string
     description: string
     price: number
-    priceUnit: "KG" | "UND"
+    priceUnit: "KG" | "UND" | "CX"
     subcategory: string
     weight: string
     image: string

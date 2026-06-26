@@ -20,7 +20,11 @@ export default async function CombosPage({ searchParams }: { searchParams?: Prom
   const totalCombos = await prisma.combo.count()
   const pagination = getPagination(page, totalCombos)
   const [products, combos] = await Promise.all([
-    prisma.product.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.product.findMany({
+      where: { audience: "FRANCHISEE", active: true },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
     prisma.combo.findMany({
       include: { items: { include: { product: true } }, _count: { select: { orderItems: true } } },
       orderBy: [{ active: "desc" }, { createdAt: "desc" }],

@@ -6,7 +6,7 @@ import { persist, createJSONStorage } from "zustand/middleware"
 export interface CartItem {
   name: string
   price: number
-  priceUnit?: "KG" | "UND"
+  priceUnit?: "KG" | "UND" | "CX"
   quantity: number
   image: string
 }

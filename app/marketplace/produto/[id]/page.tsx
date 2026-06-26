@@ -6,7 +6,7 @@ import { MarketplaceProductDetail } from "@/components/marketplace-product-detai
 export default async function MarketplaceProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const product = await prisma.product.findFirst({
-    where: { id, active: true, category: { active: true } },
+    where: { id, audience: "FRANCHISEE", active: true, category: { active: true } },
     include: { category: true },
   })
 
@@ -15,6 +15,7 @@ export default async function MarketplaceProductPage({ params }: { params: Promi
   const related = await prisma.product.findMany({
     where: {
       id: { not: product.id },
+      audience: "FRANCHISEE",
       active: true,
       category: { active: true },
       OR: [{ categoryId: product.categoryId }, { featured: true }],

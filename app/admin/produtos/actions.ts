@@ -1,6 +1,6 @@
 "use server"
 
-import { ProductUnit } from "@prisma/client"
+import { ProductAudience, ProductUnit } from "@prisma/client"
 import { revalidatePath } from "next/cache"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
@@ -8,11 +8,17 @@ import { parseMoneyToCents } from "@/lib/money"
 import { createSlug } from "@/lib/slug"
 
 const NEW_CATEGORY_VALUE = "__new__"
+const validAudiences = new Set<ProductAudience>(["FRANCHISEE", "PUBLIC"])
 
 function getCategoryName(formData: FormData) {
   const selectedCategory = String(formData.get("category") ?? "").trim()
   const newCategory = String(formData.get("newCategory") ?? "").trim()
   return selectedCategory === NEW_CATEGORY_VALUE ? newCategory : selectedCategory
+}
+
+function getProductAudience(formData: FormData) {
+  const audience = String(formData.get("audience") ?? "FRANCHISEE") as ProductAudience
+  return validAudiences.has(audience) ? audience : "FRANCHISEE"
 }
 
 export async function createProductAction(formData: FormData) {
@@ -46,6 +52,7 @@ export async function createProductAction(formData: FormData) {
       sku: String(formData.get("sku") ?? "").trim() || null,
       priceInCents,
       unit,
+      audience: getProductAudience(formData),
       packageLabel,
       minimumQuantity: Math.max(1, Number(formData.get("minimumQuantity") ?? 1)),
       featured: formData.get("featured") === "on",
@@ -56,6 +63,7 @@ export async function createProductAction(formData: FormData) {
   revalidatePath("/admin")
   revalidatePath("/admin/produtos")
   revalidatePath("/marketplace")
+  revalidatePath("/produtos")
 }
 
 export async function toggleProductAction(formData: FormData) {
@@ -67,6 +75,7 @@ export async function toggleProductAction(formData: FormData) {
   await prisma.product.update({ where: { id }, data: { active: !active } })
   revalidatePath("/admin/produtos")
   revalidatePath("/marketplace")
+  revalidatePath("/produtos")
 }
 
 export async function updateProductAction(formData: FormData) {
@@ -93,6 +102,7 @@ export async function updateProductAction(formData: FormData) {
       sku: String(formData.get("sku") ?? "").trim() || null,
       priceInCents,
       unit: String(formData.get("unit") ?? "UND") as ProductUnit,
+      audience: getProductAudience(formData),
       packageLabel,
       minimumQuantity: Math.max(1, Number(formData.get("minimumQuantity") ?? 1)),
       featured: formData.get("featured") === "on",
@@ -126,4 +136,6 @@ function revalidateProductPaths() {
   revalidatePath("/admin/produtos")
   revalidatePath("/admin/combos")
   revalidatePath("/marketplace")
+  revalidatePath("/marketplace/produtos")
+  revalidatePath("/produtos")
 }
