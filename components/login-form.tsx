@@ -30,6 +30,8 @@ type IbgeCity = {
   nome: string
 }
 
+export type LoginMode = "login" | "register" | "forgot"
+
 const BRAZIL_STATES: IbgeState[] = [
   { id: 12, nome: "Acre", sigla: "AC" },
   { id: 27, nome: "Alagoas", sigla: "AL" },
@@ -90,8 +92,15 @@ function formatMaskedValue(value: string, mask?: FieldMask) {
   return value
 }
 
-export function LoginForm() {
-  const [mode, setMode] = useState<"login" | "register" | "forgot">("login")
+export function LoginForm({
+  mode: controlledMode,
+  onModeChange,
+}: {
+  mode?: LoginMode
+  onModeChange?: (mode: LoginMode) => void
+}) {
+  const [internalMode, setInternalMode] = useState<LoginMode>("login")
+  const mode = controlledMode ?? internalMode
   const [loginState, loginFormAction, loginPending] = useActionState(loginAction, initialLoginState)
   const [registerState, registerFormAction, registerPending] = useActionState(registerAction, initialRegisterState)
   const [forgotState, forgotFormAction, forgotPending] = useActionState(requestPasswordResetAction, initialForgotState)
@@ -109,6 +118,11 @@ export function LoginForm() {
   const [loadingCities, setLoadingCities] = useState(false)
   const hasFranchiseData = Boolean(tradeName && document && selectedState && selectedCity)
   const resetEmail = forgotState.email || resetState.email || ""
+
+  function changeMode(nextMode: LoginMode) {
+    setInternalMode(nextMode)
+    onModeChange?.(nextMode)
+  }
 
   useEffect(() => {
     if (isFranchisee) return
@@ -166,7 +180,7 @@ export function LoginForm() {
       <div className="mb-6 grid grid-cols-2 rounded-full border border-border bg-background p-1">
         <button
           type="button"
-          onClick={() => setMode("login")}
+          onClick={() => changeMode("login")}
           className={`h-10 rounded-full text-[10px] font-black uppercase tracking-wider transition ${
             mode === "login" ? "bg-lime text-background" : "text-muted-foreground hover:text-foreground"
           }`}
@@ -175,7 +189,7 @@ export function LoginForm() {
         </button>
         <button
           type="button"
-          onClick={() => setMode("register")}
+          onClick={() => changeMode("register")}
           className={`h-10 rounded-full text-[10px] font-black uppercase tracking-wider transition ${
             mode === "register" ? "bg-lime text-background" : "text-muted-foreground hover:text-foreground"
           }`}
@@ -238,7 +252,7 @@ export function LoginForm() {
 
           <button
             type="button"
-            onClick={() => setMode("login")}
+            onClick={() => changeMode("login")}
             className="w-full text-center text-[10px] font-black uppercase tracking-wider text-muted-foreground transition hover:text-lime"
           >
             Voltar para login
@@ -285,7 +299,7 @@ export function LoginForm() {
           <SubmitButton pending={loginPending} icon="login" pendingText="ENTRANDO..." text="ENTRAR" />
           <button
             type="button"
-            onClick={() => setMode("forgot")}
+            onClick={() => changeMode("forgot")}
             className="w-full text-center text-[10px] font-black uppercase tracking-wider text-muted-foreground transition hover:text-lime"
           >
             Esqueci minha senha
@@ -329,7 +343,7 @@ export function LoginForm() {
             required={isFranchisee}
           />
 
-          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-background px-4 py-3 text-sm font-semibold text-foreground/80">
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 text-sm font-semibold text-foreground/80">
             <input
               name="isFranchisee"
               type="checkbox"
@@ -340,6 +354,9 @@ export function LoginForm() {
             />
             <span className="flex flex-col">
               <span>Você é franqueado?</span>
+              <span className="mt-0.5 text-[11px] font-medium text-muted-foreground">
+                Marque esta opção caso você seja franqueado
+              </span>
             </span>
           </label>
 
