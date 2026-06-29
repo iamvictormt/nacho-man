@@ -10,7 +10,7 @@ import {
   Truck,
 } from "lucide-react"
 import { prisma } from "@/lib/prisma"
-import { requireFranchisee } from "@/lib/auth"
+import { requireMarketplaceUser } from "@/lib/auth"
 import { formatMoneyFromCents } from "@/lib/money"
 import { adaptMarketplaceProduct } from "@/lib/marketplace-product-adapter"
 import { MarketplaceComboCard } from "@/components/marketplace-combo-card"
@@ -30,8 +30,10 @@ const statusLabels: Record<string, string> = {
 const activeOrderStatuses = ["AWAITING_SERVICE", "AWAITING_PAYMENT", "PAYMENT_CONFIRMED", "PICKING", "SHIPPED"] as const
 
 export default async function MarketplacePage() {
-  const user = await requireFranchisee()
+  const user = await requireMarketplaceUser()
   const now = new Date()
+  const audience = user.role === "FRANCHISEE" ? "FRANCHISEE" : "PUBLIC"
+  const orderOwnerWhere = user.role === "FRANCHISEE" ? { franchiseId: user.franchiseId! } : { userId: user.id }
   const activeComboWhere = {
     active: true,
     AND: [
@@ -42,7 +44,7 @@ export default async function MarketplacePage() {
 
   const [products, combos, productCount, comboCount, activeOrderCount, recentOrders] = await Promise.all([
     prisma.product.findMany({
-      where: { audience: "FRANCHISEE", active: true, category: { active: true } },
+      where: { audience, active: true, category: { active: true } },
       include: { category: true },
       orderBy: [{ featured: "desc" }, { name: "asc" }],
       take: 3,
@@ -53,13 +55,13 @@ export default async function MarketplacePage() {
       orderBy: { createdAt: "desc" },
       take: 3,
     }),
-    prisma.product.count({ where: { audience: "FRANCHISEE", active: true, category: { active: true } } }),
+    prisma.product.count({ where: { audience, active: true, category: { active: true } } }),
     prisma.combo.count({ where: activeComboWhere }),
     prisma.order.count({
-      where: { franchiseId: user.franchiseId!, status: { in: [...activeOrderStatuses] } },
+      where: { ...orderOwnerWhere, status: { in: [...activeOrderStatuses] } },
     }),
     prisma.order.findMany({
-      where: { franchiseId: user.franchiseId! },
+      where: orderOwnerWhere,
       include: { items: true },
       orderBy: { createdAt: "desc" },
       take: 3,

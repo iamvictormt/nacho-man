@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
-import { requireFranchisee } from "@/lib/auth"
+import { requireMarketplaceUser } from "@/lib/auth"
 import { MarketplaceComboDetail } from "@/components/marketplace-combo-detail"
 
 export default async function MarketplaceComboDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireFranchisee()
+  await requireMarketplaceUser()
   const { id } = await params
   const now = new Date()
   const combo = await prisma.combo.findFirst({

@@ -10,6 +10,7 @@ datasource db {
 enum UserRole {
   ADMIN
   FRANCHISEE
+  USER
 }
 
 enum ProductUnit {
@@ -59,10 +60,26 @@ model User {
   active       Boolean    @default(true)
   franchiseId  String?
   franchise    Franchise? @relation(fields: [franchiseId], references: [id])
+  orders       Order[]
+  passwordResetCodes PasswordResetCode[]
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
   @@index([franchiseId])
+}
+
+model PasswordResetCode {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code      String
+  expiresAt DateTime
+  usedAt    DateTime?
+  attempts  Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  @@index([userId, code])
+  @@index([expiresAt])
 }
 
 model Franchise {
@@ -212,8 +229,10 @@ model Coupon {
 model Order {
   id                       String        @id @default(cuid())
   number                   Int           @unique @default(autoincrement())
-  franchiseId              String
-  franchise                Franchise     @relation(fields: [franchiseId], references: [id])
+  franchiseId              String?
+  franchise                Franchise?    @relation(fields: [franchiseId], references: [id])
+  userId                   String?
+  user                     User?         @relation(fields: [userId], references: [id])
   status                   OrderStatus   @default(AWAITING_SERVICE)
   paymentMethod            PaymentMethod
   couponId                 String?
@@ -232,6 +251,7 @@ model Order {
   updatedAt                DateTime      @updatedAt
 
   @@index([franchiseId, createdAt])
+  @@index([userId, createdAt])
   @@index([status])
 }
 

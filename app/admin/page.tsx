@@ -64,6 +64,7 @@ export default async function AdminPage() {
           totalInCents: true,
           createdAt: true,
           franchise: { select: { tradeName: true } },
+          user: { select: { name: true } },
         },
       }),
       prisma.order.findMany({
@@ -76,6 +77,7 @@ export default async function AdminPage() {
           totalInCents: true,
           createdAt: true,
           franchise: { select: { tradeName: true } },
+          user: { select: { name: true } },
           _count: { select: { items: true } },
         },
       }),
@@ -157,7 +159,7 @@ export default async function AdminPage() {
 
   const franchiseTotals = validOrders.reduce<Record<string, { orders: number; totalInCents: number }>>(
     (totals, order) => {
-      const name = order.franchise.tradeName
+      const name = order.franchise?.tradeName ?? order.user?.name ?? "Cliente Nacho Man"
       totals[name] ??= { orders: 0, totalInCents: 0 }
       totals[name].orders += 1
       totals[name].totalInCents += order.totalInCents
@@ -372,7 +374,9 @@ export default async function AdminPage() {
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-2">
                         <strong className="text-xs">#{String(order.number).padStart(5, "0")}</strong>
-                        <span className="truncate text-[10px] text-muted-foreground">{order.franchise.tradeName}</span>
+                        <span className="truncate text-[10px] text-muted-foreground">
+                          {order.franchise?.tradeName ?? order.user?.name ?? "Cliente Nacho Man"}
+                        </span>
                       </span>
                       <span className="mt-1 block truncate text-[10px] text-muted-foreground">
                         {statusLabels[order.status]} · {order._count.items}{" "}

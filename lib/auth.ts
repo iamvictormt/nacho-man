@@ -51,3 +51,12 @@ export async function requireFranchisee() {
   }
   return user
 }
+
+export async function requireMarketplaceUser() {
+  const user = await requireUser()
+  if (user.role === "ADMIN") redirect("/admin")
+  if (user.role === "FRANCHISEE" && (!user.franchiseId || !user.franchise?.active)) {
+    redirect("/login")
+  }
+  return user
+}

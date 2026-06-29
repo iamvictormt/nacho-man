@@ -34,15 +34,19 @@ function calculateDiscount(type: "PERCENTAGE" | "FIXED", value: number, base: nu
   return type === "PERCENTAGE" ? Math.round(base * (value / 100)) : Math.min(value, base)
 }
 
+function canUseMarketplace(user: Awaited<ReturnType<typeof getCurrentUser>>) {
+  return Boolean(user && user.role !== "ADMIN" && (user.role !== "FRANCHISEE" || user.franchise?.active))
+}
+
 export async function PUT(request: Request) {
   const user = await getCurrentUser()
-  if (!user || user.role !== "FRANCHISEE" || !user.franchise?.active) {
-    return NextResponse.json({ error: "Sessão inválida." }, { status: 401 })
+  if (!canUseMarketplace(user)) {
+    return NextResponse.json({ error: "Sessao invalida." }, { status: 401 })
   }
 
   const parsed = couponPreviewSchema.safeParse(await request.json())
   if (!parsed.success) {
-    return NextResponse.json({ error: "Informe um cupom válido." }, { status: 400 })
+    return NextResponse.json({ error: "Informe um cupom valido." }, { status: 400 })
   }
 
   const now = new Date()
@@ -57,12 +61,13 @@ export async function PUT(request: Request) {
     (coupon.maximumUses !== null && coupon.uses >= coupon.maximumUses) ||
     (coupon.minimumInCents !== null && parsed.data.subtotalInCents < coupon.minimumInCents)
   ) {
-    return NextResponse.json({ error: "Cupom inválido, expirado ou indisponível para este pedido." }, { status: 400 })
+    return NextResponse.json({ error: "Cupom invalido, expirado ou indisponivel para este pedido." }, { status: 400 })
   }
 
   const couponDiscountInCents = calculateDiscount(coupon.type, coupon.value, parsed.data.subtotalInCents)
   const afterCoupon = Math.max(0, parsed.data.subtotalInCents - couponDiscountInCents)
-  const franchiseDiscountInCents = Math.round(afterCoupon * (user.franchise.priceDiscount / 100))
+  const franchiseDiscountInCents =
+    user?.role === "FRANCHISEE" && user.franchise ? Math.round(afterCoupon * (user.franchise.priceDiscount / 100)) : 0
   const pixBase = Math.max(0, afterCoupon - franchiseDiscountInCents)
   const pixDiscountInCents = parsed.data.paymentMethod === "PIX" ? Math.round(pixBase * 0.04) : 0
 
@@ -77,13 +82,13 @@ export async function PUT(request: Request) {
 
 export async function POST(request: Request) {
   const user = await getCurrentUser()
-  if (!user || user.role !== "FRANCHISEE" || !user.franchiseId || !user.franchise?.active) {
-    return NextResponse.json({ error: "Sessão inválida." }, { status: 401 })
+  if (!canUseMarketplace(user)) {
+    return NextResponse.json({ error: "Sessao invalida." }, { status: 401 })
   }
 
   const parsed = orderSchema.safeParse(await request.json())
   if (!parsed.success) {
-    return NextResponse.json({ error: "Itens do pedido inválidos." }, { status: 400 })
+    return NextResponse.json({ error: "Itens do pedido invalidos." }, { status: 400 })
   }
 
   const productRequests = parsed.data.items.filter((item) => item.type === "PRODUCT")
@@ -91,9 +96,10 @@ export async function POST(request: Request) {
   const productIds = [...new Set(productRequests.map((item) => item.id))]
   const comboIds = [...new Set(comboRequests.map((item) => item.id))]
   const now = new Date()
+  const productAudience = user!.role === "FRANCHISEE" ? "FRANCHISEE" : "PUBLIC"
   const [products, combos] = await Promise.all([
     prisma.product.findMany({
-      where: { id: { in: productIds }, audience: "FRANCHISEE", active: true, category: { active: true } },
+      where: { id: { in: productIds }, audience: productAudience, active: true, category: { active: true } },
       include: {
         category: true,
         promotions: {
@@ -114,7 +120,7 @@ export async function POST(request: Request) {
   ])
 
   if (products.length !== productIds.length || combos.length !== comboIds.length) {
-    return NextResponse.json({ error: "Um ou mais produtos não estão disponíveis." }, { status: 400 })
+    return NextResponse.json({ error: "Um ou mais produtos nao estao disponiveis." }, { status: 400 })
   }
 
   const productMap = new Map(products.map((product) => [product.id, product]))
@@ -129,7 +135,7 @@ export async function POST(request: Request) {
   if (invalidMinimum) {
     const product = productMap.get(invalidMinimum.id)!
     return NextResponse.json(
-      { error: `A quantidade mínima de ${product.name} é ${product.minimumQuantity}.` },
+      { error: `A quantidade minima de ${product.name} e ${product.minimumQuantity}.` },
       { status: 400 }
     )
   }
@@ -143,8 +149,10 @@ export async function POST(request: Request) {
       if (
         promotion.scope !== PromotionScope.PRODUCT ||
         (promotion.minimumQuantity && requestedItem.quantity < promotion.minimumQuantity)
-      )
+      ) {
         return best
+      }
+
       return Math.max(best, calculateDiscount(promotion.type, promotion.value, totalInCents))
     }, 0)
 
@@ -189,13 +197,16 @@ export async function POST(request: Request) {
       (coupon.maximumUses !== null && coupon.uses >= coupon.maximumUses) ||
       (coupon.minimumInCents !== null && subtotalInCents < coupon.minimumInCents))
   ) {
-    return NextResponse.json({ error: "Cupom inválido, expirado ou indisponível para este pedido." }, { status: 400 })
+    return NextResponse.json({ error: "Cupom invalido, expirado ou indisponivel para este pedido." }, { status: 400 })
   }
 
   const afterPromotions = Math.max(0, subtotalInCents - promotionDiscountInCents)
   const couponDiscountInCents = coupon ? calculateDiscount(coupon.type, coupon.value, afterPromotions) : 0
   const afterCoupon = Math.max(0, afterPromotions - couponDiscountInCents)
-  const franchiseDiscountInCents = Math.round(afterCoupon * (user.franchise.priceDiscount / 100))
+  const franchiseDiscountInCents =
+    user!.role === "FRANCHISEE" && user!.franchise
+      ? Math.round(afterCoupon * (user!.franchise.priceDiscount / 100))
+      : 0
   const pixBase = Math.max(0, afterCoupon - franchiseDiscountInCents)
   const pixDiscountInCents = parsed.data.paymentMethod === "PIX" ? Math.round(pixBase * 0.04) : 0
   const totalInCents = Math.max(0, pixBase - pixDiscountInCents)
@@ -210,7 +221,8 @@ export async function POST(request: Request) {
 
     return transaction.order.create({
       data: {
-        franchiseId: user.franchiseId!,
+        franchiseId: user!.role === "FRANCHISEE" ? user!.franchiseId : null,
+        userId: user!.id,
         paymentMethod: parsed.data.paymentMethod as PaymentMethod,
         couponId: coupon?.id,
         subtotalInCents,
@@ -229,17 +241,19 @@ export async function POST(request: Request) {
   const orderNumber = `NF-${String(order.number).padStart(5, "0")}`
   const itemLines = order.items.map(
     (item, index) =>
-      `${index + 1}. ${item.name} — ${item.quantity} ${item.unit} — ${formatMoneyFromCents(item.totalInCents)}`
+      `${index + 1}. ${item.name} - ${item.quantity} ${item.unit} - ${formatMoneyFromCents(item.totalInCents)}`
   )
   const paymentText =
-    order.paymentMethod === "PIX"
-      ? "PIX — aguardo o código PIX para pagamento."
-      : "Cartão — aguardo o link de pagamento."
+    order.paymentMethod === "PIX" ? "PIX - aguardo o codigo PIX para pagamento." : "Cartao - aguardo o link de pagamento."
+  const buyerLine =
+    user!.role === "FRANCHISEE" && user!.franchise
+      ? `Unidade: *${user!.franchise.tradeName}*`
+      : `Cliente: *${user!.name}*`
 
   const message = [
-    `Olá! Quero finalizar o pedido *${orderNumber}*.`,
+    `Ola! Quero finalizar o pedido *${orderNumber}*.`,
     "",
-    `Unidade: *${user.franchise.tradeName}*`,
+    buyerLine,
     "",
     ...itemLines,
     "",
@@ -252,15 +266,15 @@ export async function POST(request: Request) {
     `*Total estimado: ${formatMoneyFromCents(order.totalInCents)}*`,
     "",
     `Pagamento: ${paymentText}`,
-    parsed.data.notes ? `Observações: ${parsed.data.notes}` : null,
+    parsed.data.notes ? `Observacoes: ${parsed.data.notes}` : null,
   ]
     .filter(Boolean)
     .join("\n")
 
   await sendOrderConfirmationEmail({
-    to: user.email,
-    customerName: user.name,
-    franchiseName: user.franchise.tradeName,
+    to: user!.email,
+    customerName: user!.name,
+    franchiseName: user!.franchise?.tradeName ?? "Cliente Nacho Man",
     orderNumber,
     status: order.status,
     paymentMethod: order.paymentMethod,
@@ -272,7 +286,7 @@ export async function POST(request: Request) {
     totalInCents: order.totalInCents,
     notes: order.notes,
   }).catch((error) => {
-    console.error("Falha ao enviar e-mail de confirmação do pedido.", error)
+    console.error("Falha ao enviar e-mail de confirmacao do pedido.", error)
   })
 
   return NextResponse.json({

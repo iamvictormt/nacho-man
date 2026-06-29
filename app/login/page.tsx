@@ -38,12 +38,10 @@ export default async function LoginPage() {
             Voltar ao site
           </Link>
           <img src="/nacho-man-logo.png" alt="Nacho Man" className="h-20 w-auto" />
-          <p className="mt-8 text-xs font-black uppercase tracking-[.2em] text-purple-medium">
-            Marketplace de franqueados
-          </p>
-          <h2 className="mt-3 text-3xl font-black uppercase">Acesse sua unidade</h2>
+          <p className="mt-8 text-xs font-black uppercase tracking-[.2em] text-purple-medium">Marketplace Nacho Man</p>
+          <h2 className="mt-3 text-3xl font-black uppercase">Acesse sua conta</h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Entre para consultar preços, promoções, montar pedidos e falar com a Nacho Factory.
+            Entre para consultar produtos, montar pedidos e falar com a Nacho Factory.
           </p>
           <div className="mt-8 rounded-2xl border border-border bg-graphite p-6">
             <LoginForm />

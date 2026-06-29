@@ -1,12 +1,15 @@
 import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
+import { requireMarketplaceUser } from "@/lib/auth"
 import { adaptMarketplaceProduct } from "@/lib/marketplace-product-adapter"
 import { MarketplaceProductDetail } from "@/components/marketplace-product-detail"
 
 export default async function MarketplaceProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const user = await requireMarketplaceUser()
   const { id } = await params
+  const audience = user.role === "FRANCHISEE" ? "FRANCHISEE" : "PUBLIC"
   const product = await prisma.product.findFirst({
-    where: { id, audience: "FRANCHISEE", active: true, category: { active: true } },
+    where: { id, audience, active: true, category: { active: true } },
     include: { category: true },
   })
 
@@ -15,7 +18,7 @@ export default async function MarketplaceProductPage({ params }: { params: Promi
   const related = await prisma.product.findMany({
     where: {
       id: { not: product.id },
-      audience: "FRANCHISEE",
+      audience,
       active: true,
       category: { active: true },
       OR: [{ categoryId: product.categoryId }, { featured: true }],

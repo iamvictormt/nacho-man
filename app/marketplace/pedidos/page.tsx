@@ -1,5 +1,5 @@
 import { CalendarDays, ChevronDown, CreditCard, PackageCheck, ReceiptText, WalletCards } from "lucide-react"
-import { requireFranchisee } from "@/lib/auth"
+import { requireMarketplaceUser } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
 import { PaginationControls } from "@/components/pagination-controls"
@@ -38,9 +38,9 @@ const progressByStatus: Record<string, number> = {
 
 export default async function FranchiseOrdersPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const resolvedSearchParams = await searchParams
-  const user = await requireFranchisee()
+  const user = await requireMarketplaceUser()
   const page = getCurrentPage(resolvedSearchParams)
-  const where = { franchiseId: user.franchiseId! }
+  const where = user.role === "FRANCHISEE" ? { franchiseId: user.franchiseId! } : { userId: user.id }
   const totalOrders = await prisma.order.count({ where })
   const pagination = getPagination(page, totalOrders, 10)
   const [orders, activeOrders, deliveredOrders] = await Promise.all([

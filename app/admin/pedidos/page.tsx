@@ -37,7 +37,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
   const pagination = getPagination(page, totalOrders, 10)
   const [orders, awaiting, inProgress] = await Promise.all([
     prisma.order.findMany({
-      include: { franchise: true, items: true },
+      include: { franchise: true, user: true, items: true },
       orderBy: { createdAt: "desc" },
       skip: pagination.skip,
       take: pagination.take,
@@ -81,10 +81,11 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
             {orders.map((order) => {
               const number = `NF-${String(order.number).padStart(5, "0")}`
               const preview = order.items.slice(0, 2)
+              const buyerName = order.franchise?.tradeName ?? order.user?.name ?? "Cliente Nacho Man"
               return (
                 <article
                   key={order.id}
-                  data-search={`${number} ${order.franchise.tradeName} ${statusLabels[order.status]}`}
+                  data-search={`${number} ${buyerName} ${statusLabels[order.status]}`}
                   className="group relative grid gap-4 px-4 py-5 transition hover:bg-graphite/55 sm:grid-cols-2 sm:px-5 xl:grid-cols-[minmax(200px,1.35fr)_minmax(160px,1fr)_110px_110px_145px_72px] xl:items-center"
                 >
                   <span
@@ -95,7 +96,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
                       <ReceiptText className="h-4 w-4 text-lime" />
                       <p className="text-[10px] font-black uppercase tracking-[0.14em] text-lime">{number}</p>
                     </div>
-                    <h2 className="mt-2 truncate text-sm font-black uppercase">{order.franchise.tradeName}</h2>
+                    <h2 className="mt-2 truncate text-sm font-black uppercase">{buyerName}</h2>
                     <p className="mt-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
                       <CalendarDays className="h-3.5 w-3.5 text-purple-medium" />
                       {formatDateTime(order.createdAt)}
@@ -137,7 +138,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
                   <AdminManageModal
                     id={`manage-order-${order.id}`}
                     title={`Pedido ${number}`}
-                    description={order.franchise.tradeName}
+                    description={buyerName}
                     size="xl"
                     ariaLabel={`Gerenciar pedido ${number}`}
                   >

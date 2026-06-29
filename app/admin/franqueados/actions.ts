@@ -69,7 +69,10 @@ export async function toggleFranchiseAction(formData: FormData) {
   const active = String(formData.get("active")) === "true"
   if (!id) return
 
-  await prisma.franchise.update({ where: { id }, data: { active: !active } })
+  await prisma.$transaction([
+    prisma.franchise.update({ where: { id }, data: { active: !active } }),
+    prisma.user.updateMany({ where: { franchiseId: id, role: "FRANCHISEE" }, data: { active: !active } }),
+  ])
   revalidatePath("/admin/franqueados")
 }
 

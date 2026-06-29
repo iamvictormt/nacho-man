@@ -1,6 +1,7 @@
 import { PackageSearch } from "lucide-react"
+import { ProductAudience } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
-import { requireFranchisee } from "@/lib/auth"
+import { requireMarketplaceUser } from "@/lib/auth"
 import { adaptMarketplaceProduct } from "@/lib/marketplace-product-adapter"
 import { AdminSearch } from "@/components/admin-search"
 import { PrivatePageHeader } from "@/components/private-page-header"
@@ -10,9 +11,10 @@ import { getCurrentPage, getPagination, type SearchParams } from "@/lib/paginati
 
 export default async function MarketplaceProductsPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const resolvedSearchParams = await searchParams
-  const user = await requireFranchisee()
+  const user = await requireMarketplaceUser()
   const page = getCurrentPage(resolvedSearchParams)
-  const where = { audience: "FRANCHISEE" as const, active: true, category: { active: true } }
+  const audience = user.role === "FRANCHISEE" ? ProductAudience.FRANCHISEE : ProductAudience.PUBLIC
+  const where = { audience, active: true, category: { active: true } }
   const totalProducts = await prisma.product.count({ where })
   const pagination = getPagination(page, totalProducts)
   const products = await prisma.product.findMany({

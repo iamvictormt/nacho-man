@@ -6,9 +6,6 @@ __v0_jsx-dev-runtime.ts
 .v0-trash/
 .vercel/
 
-# Environment variables
-.env*.local
-
 # Common ignores
 node_modules
 .next/
@@ -16,4 +13,4 @@ node_modules
 tsconfig.tsbuildinfo
 
 .kiro/
-.env
+.env*

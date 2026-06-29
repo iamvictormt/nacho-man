@@ -1,6 +1,6 @@
 import { Gift } from "lucide-react"
 import { prisma } from "@/lib/prisma"
-import { requireFranchisee } from "@/lib/auth"
+import { requireMarketplaceUser } from "@/lib/auth"
 import { AdminSearch } from "@/components/admin-search"
 import { MarketplaceComboCard } from "@/components/marketplace-combo-card"
 import { PrivatePageHeader } from "@/components/private-page-header"
@@ -9,7 +9,7 @@ import { getCurrentPage, getPagination, type SearchParams } from "@/lib/paginati
 
 export default async function MarketplaceCombosPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const resolvedSearchParams = await searchParams
-  const user = await requireFranchisee()
+  const user = await requireMarketplaceUser()
   const page = getCurrentPage(resolvedSearchParams)
   const now = new Date()
   const where = {
