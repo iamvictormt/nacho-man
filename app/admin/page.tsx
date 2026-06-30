@@ -50,10 +50,11 @@ export default async function AdminPage() {
   const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1)
   const sixMonthsStart = new Date(now.getFullYear(), now.getMonth() - 5, 1)
 
-  const [products, franchises, activePromotions, periodOrders, recentOrders, orderItems, comboItems] =
+  const [products, franchises, userCount, activePromotions, periodOrders, recentOrders, orderItems, comboItems] =
     await Promise.all([
       prisma.product.count({ where: { active: true } }),
       prisma.franchise.count({ where: { active: true } }),
+      prisma.user.count({ where: { role: { in: ["FRANCHISEE", "USER"] } } }),
       prisma.promotion.count({
         where: { active: true, startsAt: { lte: now }, endsAt: { gte: now } },
       }),
@@ -403,7 +404,7 @@ export default async function AdminPage() {
             href="/admin/usuarios"
             icon={UsersRound}
             label="Usuários"
-            detail={`${franchises} franqueados ativos`}
+            detail={`${userCount} usuários cadastrados`}
           />
           <QuickLink
             href="/admin/pedidos"

@@ -2,13 +2,22 @@ import Link from "next/link"
 import { ArrowRight, CheckCircle2, Clock3, Mail, MapPinned, Store, UsersRound } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import { getCurrentPage, getPagination, type SearchParams } from "@/lib/pagination"
+import { AdminActionForm } from "@/components/admin-action-form"
 import { AdminDataLabel, AdminDataList, AdminDataRow } from "@/components/admin-data-list"
+import { AdminFieldGrid, AdminInput } from "@/components/admin-form-fields"
 import { AdminInlineActionForm } from "@/components/admin-inline-action-form"
+import { AdminLocationFields } from "@/components/admin-location-fields"
 import { AdminManageModal } from "@/components/admin-manage-modal"
 import { AdminSearch } from "@/components/admin-search"
 import { DeleteActionDialog } from "@/components/delete-action-dialog"
 import { PaginationControls } from "@/components/pagination-controls"
-import { rejectFranchiseeUserAction, toggleCommonUserAction, toggleFranchiseeUserAction } from "./actions"
+import {
+  rejectFranchiseeUserAction,
+  toggleCommonUserAction,
+  toggleFranchiseeUserAction,
+  updateCommonUserAction,
+  updateFranchiseeUserAction,
+} from "./actions"
 
 type UsersPageProps = {
   searchParams?: Promise<SearchParams>
@@ -216,23 +225,12 @@ function FranchiseUsersList({ users }: { users: FranchiseeUser[] }) {
             <div className="xl:justify-self-end">
               <AdminManageModal
                 id={`view-franchisee-${user.id}`}
-                title="Dados do franqueado"
-                description="Informações enviadas no cadastro."
+                title="Editar franqueado"
+                description="Atualize os dados do usuário e da unidade vinculada."
                 ariaLabel={`Ver dados de ${user.name}`}
                 size="sm"
               >
-                <div className="grid gap-3">
-                  <DetailRow label="Usuário" value={user.name} />
-                  <DetailRow label="E-mail" value={user.email} />
-                  <DetailRow label="Unidade" value={franchise?.tradeName ?? "Unidade não vinculada"} />
-                  <DetailRow label="CNPJ" value={formatDocument(franchise?.document)} />
-                  <DetailRow label="WhatsApp" value={formatPhone(franchise?.whatsapp)} />
-                  <DetailRow label="Cidade/UF" value={location} />
-                  <DetailRow label="Pedidos do usuário" value={String(user._count.orders)} />
-                  <DetailRow label="Pedidos da unidade" value={String(franchise?._count.orders ?? 0)} />
-                  <DetailRow label="Cadastro" value={formatLongDate(user.createdAt)} />
-                  <DetailRow label="Status" value={user.active ? "Ativo" : "Pendente de aprovação"} />
-                </div>
+                <FranchiseeEditForm user={user} modalId={`view-franchisee-${user.id}`} />
                 <div className="mt-5 flex flex-col gap-2 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-end">
                   <AdminInlineActionForm
                     action={toggleFranchiseeUserAction}
@@ -277,7 +275,7 @@ function CommonUsersList({
   return (
     <AdminDataList
       headers={["Cliente", "E-mail", "Pedidos", "Cadastro", "Status", "Ações"]}
-      template="minmax(190px,1.25fr) minmax(210px,1.2fr) 90px 120px 100px 120px"
+      template="minmax(200px,1.35fr) minmax(220px,1.25fr) 90px 120px 100px 72px"
       isEmpty={users.length === 0}
       emptyTitle="Nenhum cliente comum cadastrado"
       emptyDescription="Quando clientes não franqueados criarem conta, eles aparecerão nesta lista."
@@ -285,7 +283,7 @@ function CommonUsersList({
       {users.map((user) => (
         <AdminDataRow
           key={user.id}
-          template="minmax(190px,1.25fr) minmax(210px,1.2fr) 90px 120px 100px 120px"
+          template="minmax(200px,1.35fr) minmax(220px,1.25fr) 90px 120px 100px 72px"
           search={`${user.name} ${user.email}`}
           inactive={!user.active}
         >
@@ -314,17 +312,110 @@ function CommonUsersList({
             <p className="mt-1 text-xs font-bold xl:mt-0">{formatDate(user.createdAt)}</p>
           </div>
           <StatusPill active={user.active} activeText="Ativo" inactiveText="Inativo" />
-          <AdminInlineActionForm
-            action={toggleCommonUserAction}
-            label={user.active ? "DESATIVAR" : "ATIVAR"}
-            successMessage={user.active ? "Cliente desativado." : "Cliente ativado."}
-          >
-            <input type="hidden" name="id" value={user.id} />
-            <input type="hidden" name="active" value={String(user.active)} />
-          </AdminInlineActionForm>
+          <div className="xl:justify-self-end">
+            <AdminManageModal
+              id={`edit-common-user-${user.id}`}
+              title="Editar cliente"
+              description="Atualize os dados do cliente comum."
+              ariaLabel={`Editar cliente ${user.name}`}
+              size="sm"
+            >
+              <CommonUserEditForm user={user} modalId={`edit-common-user-${user.id}`} />
+              <div className="mt-5 flex flex-col gap-2 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-end">
+                <AdminInlineActionForm
+                  action={toggleCommonUserAction}
+                  label={user.active ? "DESATIVAR" : "ATIVAR"}
+                  successMessage={user.active ? "Cliente desativado." : "Cliente ativado."}
+                >
+                  <input type="hidden" name="id" value={user.id} />
+                  <input type="hidden" name="active" value={String(user.active)} />
+                </AdminInlineActionForm>
+              </div>
+            </AdminManageModal>
+          </div>
         </AdminDataRow>
       ))}
     </AdminDataList>
+  )
+}
+
+function FranchiseeEditForm({ user, modalId }: { user: FranchiseeUser; modalId: string }) {
+  const franchise = user.franchise
+  const address = franchise?.addresses[0]
+
+  return (
+    <AdminActionForm
+      action={updateFranchiseeUserAction}
+      submitLabel="SALVAR ALTERAÇÕES"
+      successMessage="Franqueado atualizado."
+      modalId={modalId}
+      className="space-y-5"
+    >
+      <input type="hidden" name="id" value={user.id} />
+      <div>
+        <p className="mb-3 text-[10px] font-black uppercase tracking-[0.14em] text-lime">Dados do usuário</p>
+        <AdminFieldGrid columns="equal">
+          <AdminInput name="name" label="Nome" defaultValue={user.name} required />
+          <AdminInput name="email" label="E-mail" mask="email" defaultValue={user.email} required />
+        </AdminFieldGrid>
+      </div>
+      <div>
+        <p className="mb-3 text-[10px] font-black uppercase tracking-[0.14em] text-lime">Dados da unidade</p>
+        <AdminInput
+          name="tradeName"
+          label="Nome da unidade"
+          defaultValue={franchise?.tradeName ?? ""}
+          required
+        />
+        <AdminFieldGrid className="mt-5" columns="equal">
+          <AdminInput name="document" label="CNPJ" mask="cnpj" defaultValue={franchise?.document ?? ""} />
+          <AdminInput name="whatsapp" label="WhatsApp" mask="phone" defaultValue={franchise?.whatsapp ?? ""} />
+        </AdminFieldGrid>
+        <AdminLocationFields defaultState={address?.state ?? ""} defaultCity={address?.city ?? ""} />
+      </div>
+      <div className="grid gap-3 rounded-xl border border-border bg-graphite p-4 sm:grid-cols-2">
+        <DetailRow label="Pedidos do usuário" value={String(user._count.orders)} />
+        <DetailRow label="Pedidos da unidade" value={String(franchise?._count.orders ?? 0)} />
+        <DetailRow label="Cadastro" value={formatLongDate(user.createdAt)} />
+        <DetailRow label="Status" value={user.active ? "Ativo" : "Pendente de aprovação"} />
+      </div>
+    </AdminActionForm>
+  )
+}
+
+function CommonUserEditForm({
+  user,
+  modalId,
+}: {
+  user: {
+    id: string
+    name: string
+    email: string
+    active: boolean
+    createdAt: Date
+    _count: { orders: number }
+  }
+  modalId: string
+}) {
+  return (
+    <AdminActionForm
+      action={updateCommonUserAction}
+      submitLabel="SALVAR ALTERAÇÕES"
+      successMessage="Cliente atualizado."
+      modalId={modalId}
+      className="space-y-5"
+    >
+      <input type="hidden" name="id" value={user.id} />
+      <AdminFieldGrid columns="equal">
+        <AdminInput name="name" label="Nome" defaultValue={user.name} required />
+        <AdminInput name="email" label="E-mail" mask="email" defaultValue={user.email} required />
+      </AdminFieldGrid>
+      <div className="grid gap-3 rounded-xl border border-border bg-graphite p-4 sm:grid-cols-2">
+        <DetailRow label="Pedidos" value={String(user._count.orders)} />
+        <DetailRow label="Cadastro" value={formatLongDate(user.createdAt)} />
+        <DetailRow label="Status" value={user.active ? "Ativo" : "Inativo"} />
+      </div>
+    </AdminActionForm>
   )
 }
 
@@ -452,17 +543,4 @@ function formatLongDate(date: Date) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date)
-}
-
-function formatPhone(value?: string | null) {
-  const digits = value?.replace(/\D/g, "") ?? ""
-  if (digits.length === 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
-  if (digits.length === 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`
-  return value || "Não informado"
-}
-
-function formatDocument(value?: string | null) {
-  const digits = value?.replace(/\D/g, "") ?? ""
-  if (digits.length !== 14) return value || "CNPJ não informado"
-  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`
 }

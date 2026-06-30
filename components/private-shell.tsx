@@ -57,6 +57,7 @@ export function PrivateShell({ children, area, userName, organizationName }: Pri
         { href: "/marketplace/produtos", label: "Produtos", icon: PackageSearch, activePrefix: "/marketplace/produto" },
         { href: "/marketplace/combos", label: "Combos", icon: Gift },
         { href: "/marketplace/pedidos", label: "Meus pedidos", icon: ReceiptText },
+        { href: "/marketplace/conta", label: "Minha conta", icon: UserRound },
       ]
 
   useEffect(() => {

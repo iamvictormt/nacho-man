@@ -9,11 +9,40 @@ export async function toggleCommonUserAction(formData: FormData) {
 
   const id = String(formData.get("id") ?? "")
   const active = String(formData.get("active")) === "true"
-  if (!id) return
+  if (!id) throw new Error("Usuário não encontrado.")
+
+  const result = await prisma.user.updateMany({
+    where: { id, role: "USER" },
+    data: { active: !active },
+  })
+  if (result.count === 0) throw new Error("Cliente não encontrado.")
+
+  revalidatePath("/admin")
+  revalidatePath("/admin/usuarios")
+}
+
+export async function updateCommonUserAction(formData: FormData) {
+  await requireAdmin()
+
+  const id = String(formData.get("id") ?? "")
+  const name = String(formData.get("name") ?? "").trim()
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase()
+
+  if (!id) throw new Error("Usuário não encontrado.")
+  if (!name) throw new Error("Informe o nome do usuário.")
+  if (!email) throw new Error("Informe o e-mail do usuário.")
+
+  const existingUser = await prisma.user.findFirst({
+    where: { email, id: { not: id } },
+    select: { id: true },
+  })
+  if (existingUser) throw new Error("E-mail já cadastrado.")
 
   await prisma.user.updateMany({
     where: { id, role: "USER" },
-    data: { active: !active },
+    data: { name, email },
   })
 
   revalidatePath("/admin")
@@ -25,13 +54,13 @@ export async function toggleFranchiseeUserAction(formData: FormData) {
 
   const id = String(formData.get("id") ?? "")
   const active = String(formData.get("active")) === "true"
-  if (!id) return
+  if (!id) throw new Error("Usuário não encontrado.")
 
   const user = await prisma.user.findFirst({
     where: { id, role: "FRANCHISEE" },
     select: { franchiseId: true },
   })
-  if (!user) return
+  if (!user) throw new Error("Franqueado não encontrado.")
 
   const nextActive = !active
   const operations = [
@@ -57,11 +86,93 @@ export async function toggleFranchiseeUserAction(formData: FormData) {
   revalidatePath("/admin/franqueados")
 }
 
+export async function updateFranchiseeUserAction(formData: FormData) {
+  await requireAdmin()
+
+  const id = String(formData.get("id") ?? "")
+  const name = String(formData.get("name") ?? "").trim()
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase()
+  const tradeName = String(formData.get("tradeName") ?? "").trim()
+  const document = String(formData.get("document") ?? "").replace(/\D/g, "") || null
+  const whatsapp = String(formData.get("whatsapp") ?? "").replace(/\D/g, "") || null
+  const state = String(formData.get("state") ?? "")
+    .trim()
+    .toUpperCase()
+  const city = String(formData.get("city") ?? "").trim()
+
+  if (!id) throw new Error("Usuário não encontrado.")
+  if (!name) throw new Error("Informe o nome do franqueado.")
+  if (!email) throw new Error("Informe o e-mail do franqueado.")
+  if (!tradeName) throw new Error("Informe o nome da unidade.")
+
+  const user = await prisma.user.findFirst({
+    where: { id, role: "FRANCHISEE" },
+    select: { franchiseId: true },
+  })
+  if (!user?.franchiseId) throw new Error("Este franqueado não está vinculado a uma unidade.")
+  const franchiseId = user.franchiseId
+
+  const [existingUser, existingFranchise] = await Promise.all([
+    prisma.user.findFirst({
+      where: { email, id: { not: id } },
+      select: { id: true },
+    }),
+    document
+      ? prisma.franchise.findFirst({
+          where: { document, id: { not: user.franchiseId } },
+          select: { id: true },
+        })
+      : null,
+  ])
+  if (existingUser) throw new Error("E-mail já cadastrado.")
+  if (existingFranchise) throw new Error("CNPJ já cadastrado.")
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id },
+      data: { name, email },
+    })
+    await tx.franchise.update({
+      where: { id: franchiseId },
+      data: { tradeName, document, whatsapp },
+    })
+
+    if (state && city) {
+      const address = await tx.address.findFirst({
+        where: { franchiseId },
+        select: { id: true },
+      })
+      const addressData = {
+        label: "Principal",
+        street: "Não informado",
+        number: "S/N",
+        complement: null,
+        district: "Não informado",
+        city,
+        state,
+        postalCode: "00000000",
+      }
+
+      if (address) {
+        await tx.address.update({ where: { id: address.id }, data: addressData })
+      } else {
+        await tx.address.create({ data: { ...addressData, franchiseId } })
+      }
+    }
+  })
+
+  revalidatePath("/admin")
+  revalidatePath("/admin/usuarios")
+  revalidatePath("/admin/franqueados")
+}
+
 export async function rejectFranchiseeUserAction(formData: FormData) {
   await requireAdmin()
 
   const id = String(formData.get("id") ?? "")
-  if (!id) return
+  if (!id) throw new Error("Usuário não encontrado.")
 
   const user = await prisma.user.findFirst({
     where: { id, role: "FRANCHISEE", active: false },
@@ -70,7 +181,7 @@ export async function rejectFranchiseeUserAction(formData: FormData) {
       _count: { select: { orders: true } },
     },
   })
-  if (!user) return
+  if (!user) throw new Error("Cadastro pendente não encontrado.")
 
   if (!user.franchiseId) {
     await prisma.user.delete({ where: { id } })

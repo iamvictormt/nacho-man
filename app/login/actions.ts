@@ -76,7 +76,7 @@ export async function loginAction(_state: LoginState, formData: FormData): Promi
   }
 
   if (user.role === "FRANCHISEE" && (!user.active || !user.franchise?.active)) {
-    return { error: "Seu cadastro de franqueado ainda está pendente de aprovação." }
+    return { error: "Seu cadastro ainda está pendente de aprovação." }
   }
 
   if (!user.active) {

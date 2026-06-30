@@ -139,7 +139,7 @@ export function AdminInput({
       <Input
         id={fieldId}
         name={name}
-        type="text"
+        type={mask ? "text" : (_type ?? "text")}
         inputMode={inputMode ?? (mask ? maskInputMode[mask] : undefined)}
         defaultValue={
           typeof defaultValue === "string" || typeof defaultValue === "number"

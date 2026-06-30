@@ -33,8 +33,8 @@ export function AdminActionForm({
       await action(formData)
       toast.success(successMessage)
       if (modalId) window.dispatchEvent(new CustomEvent("admin-modal-success", { detail: modalId }))
-    } catch {
-      toast.error("Não foi possível concluir a ação. Verifique os dados e tente novamente.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível concluir a ação.")
     } finally {
       pendingRef.current = false
       setPending(false)
