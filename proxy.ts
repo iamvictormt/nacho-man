@@ -15,7 +15,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/marketplace", request.url))
   }
 
-  if (session && isMarketplaceRoute && session.role !== "FRANCHISEE") {
+  if (session && isMarketplaceRoute && session.role === "ADMIN") {
     return NextResponse.redirect(new URL("/admin", request.url))
   }
 
