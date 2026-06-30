@@ -13,6 +13,7 @@ import {
   ReceiptText,
   Store,
   Tags,
+  UsersRound,
   UserRound,
   X,
 } from "lucide-react"
@@ -48,7 +49,7 @@ export function PrivateShell({ children, area, userName, organizationName }: Pri
         { href: "/admin/produtos", label: "Produtos", icon: PackageSearch },
         { href: "/admin/combos", label: "Combos", icon: Gift },
         { href: "/admin/campanhas", label: "Promoções", icon: Tags },
-        { href: "/admin/franqueados", label: "Franqueados", icon: Store },
+        { href: "/admin/usuarios", label: "Usuários", icon: UsersRound },
         { href: "/admin/pedidos", label: "Pedidos", icon: ReceiptText },
       ]
     : [

@@ -1,0 +1,468 @@
+import Link from "next/link"
+import { ArrowRight, CheckCircle2, Clock3, Mail, MapPinned, Store, UsersRound } from "lucide-react"
+import { prisma } from "@/lib/prisma"
+import { getCurrentPage, getPagination, type SearchParams } from "@/lib/pagination"
+import { AdminDataLabel, AdminDataList, AdminDataRow } from "@/components/admin-data-list"
+import { AdminInlineActionForm } from "@/components/admin-inline-action-form"
+import { AdminManageModal } from "@/components/admin-manage-modal"
+import { AdminSearch } from "@/components/admin-search"
+import { DeleteActionDialog } from "@/components/delete-action-dialog"
+import { PaginationControls } from "@/components/pagination-controls"
+import { rejectFranchiseeUserAction, toggleCommonUserAction, toggleFranchiseeUserAction } from "./actions"
+
+type UsersPageProps = {
+  searchParams?: Promise<SearchParams>
+}
+
+export default async function UsersPage({ searchParams }: UsersPageProps) {
+  const resolvedSearchParams = await searchParams
+  const view = getView(resolvedSearchParams)
+  const page = getCurrentPage(resolvedSearchParams)
+
+  const [franchiseeTotal, pendingFranchisees, activeFranchisees, commonTotal, activeCommonUsers, inactiveCommonUsers] =
+    await Promise.all([
+      prisma.user.count({ where: { role: "FRANCHISEE" } }),
+      prisma.user.count({ where: { role: "FRANCHISEE", active: false } }),
+      prisma.user.count({ where: { role: "FRANCHISEE", active: true } }),
+      prisma.user.count({ where: { role: "USER" } }),
+      prisma.user.count({ where: { role: "USER", active: true } }),
+      prisma.user.count({ where: { role: "USER", active: false } }),
+    ])
+
+  const pagination = getPagination(page, view === "clientes" ? commonTotal : franchiseeTotal)
+  const [commonUsers, franchiseeUsers] =
+    view === "clientes"
+      ? [
+          await prisma.user.findMany({
+            where: { role: "USER" },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              active: true,
+              createdAt: true,
+              _count: { select: { orders: true } },
+            },
+            orderBy: [{ active: "desc" }, { createdAt: "desc" }],
+            skip: pagination.skip,
+            take: pagination.take,
+          }),
+          [],
+        ]
+      : [
+          [],
+          await prisma.user.findMany({
+            where: { role: "FRANCHISEE" },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              active: true,
+              createdAt: true,
+              franchise: {
+                select: {
+                  tradeName: true,
+                  document: true,
+                  whatsapp: true,
+                  active: true,
+                  addresses: { select: { city: true, state: true }, take: 1 },
+                  _count: { select: { orders: true } },
+                },
+              },
+              _count: { select: { orders: true } },
+            },
+            orderBy: [{ active: "asc" }, { createdAt: "desc" }],
+            skip: pagination.skip,
+            take: pagination.take,
+          }),
+        ]
+
+  return (
+    <main className="mx-auto max-w-7xl px-4 py-12 md:py-16">
+      <div className="flex flex-col gap-6 border-b border-border pb-8 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[.18em] text-lime">Cadastros e acessos</p>
+          <h1 className="mt-3 text-4xl font-black uppercase">Usuários</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
+            Escolha entre franqueados e clientes comuns para acompanhar cadastros, status de acesso e histórico de
+            pedidos.
+          </p>
+        </div>
+      </div>
+
+      <section className="mt-8 grid gap-4 md:grid-cols-2">
+        <UserTypeCard
+          href="/admin/usuarios?tipo=franqueados"
+          active={view === "franqueados"}
+          icon={Store}
+          title="Franqueados"
+          description="Usuários que solicitaram acesso como franqueados e seus dados de franquia."
+          detail={`${franchiseeTotal} usuários · ${pendingFranchisees} pendentes`}
+        />
+        <UserTypeCard
+          href="/admin/usuarios?tipo=clientes"
+          active={view === "clientes"}
+          icon={UsersRound}
+          title="Não franqueados"
+          description="Clientes comuns que compram no marketplace sem vínculo com unidade franqueada."
+          detail={`${commonTotal} clientes · ${activeCommonUsers} ativos`}
+        />
+      </section>
+
+      <section className="mt-8 grid gap-4 sm:grid-cols-3">
+        {view === "franqueados" ? (
+          <>
+            <StatCard label="Franqueados" value={franchiseeTotal} detail="usuários cadastrados" icon={Store} />
+            <StatCard label="Ativos" value={activeFranchisees} detail="com acesso liberado" icon={CheckCircle2} />
+            <StatCard label="Pendentes" value={pendingFranchisees} detail="aguardando aprovação" icon={Clock3} />
+          </>
+        ) : (
+          <>
+            <StatCard label="Clientes" value={commonTotal} detail="contas comuns" icon={UsersRound} />
+            <StatCard label="Ativos" value={activeCommonUsers} detail="podem comprar" icon={CheckCircle2} />
+            <StatCard label="Inativos" value={inactiveCommonUsers} detail="acesso bloqueado" icon={Clock3} />
+          </>
+        )}
+      </section>
+
+      <div className="mt-8 flex justify-end">
+        <AdminSearch
+          containerId="users-grid"
+          placeholder={view === "franqueados" ? "Buscar franqueado, e-mail, unidade ou CNPJ..." : "Buscar cliente ou e-mail..."}
+        />
+      </div>
+
+      <div id="users-grid" className="mt-6">
+        {view === "franqueados" ? (
+          <FranchiseUsersList users={franchiseeUsers} />
+        ) : (
+          <CommonUsersList users={commonUsers} />
+        )}
+      </div>
+
+      <PaginationControls
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        searchParams={resolvedSearchParams}
+      />
+    </main>
+  )
+}
+
+type FranchiseeUser = {
+  id: string
+  name: string
+  email: string
+  active: boolean
+  createdAt: Date
+  franchise: {
+    tradeName: string
+    document: string | null
+    whatsapp: string | null
+    active: boolean
+    addresses: { city: string; state: string }[]
+    _count: { orders: number }
+  } | null
+  _count: { orders: number }
+}
+
+function FranchiseUsersList({ users }: { users: FranchiseeUser[] }) {
+  return (
+    <AdminDataList
+      headers={["Franqueado", "Unidade", "Pedidos", "Cadastro", "Status", "Ações"]}
+      template="minmax(210px,1.35fr) minmax(220px,1.25fr) 90px 120px 100px 72px"
+      isEmpty={users.length === 0}
+      emptyTitle="Nenhum usuário franqueado cadastrado"
+      emptyDescription="Quando alguém solicitar cadastro como franqueado, aparecerá nesta lista."
+    >
+      {users.map((user) => {
+        const franchise = user.franchise
+        const address = franchise?.addresses[0]
+        const location = address ? `${address.city} - ${address.state}` : "Localização não informada"
+        return (
+          <AdminDataRow
+            key={user.id}
+            template="minmax(210px,1.35fr) minmax(220px,1.25fr) 90px 120px 100px 72px"
+            search={`${user.name} ${user.email} ${franchise?.tradeName ?? ""} ${franchise?.document ?? ""} ${franchise?.whatsapp ?? ""}`}
+            inactive={!user.active}
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-lime/20 bg-lime/10 text-sm font-black text-lime">
+                {getInitials(user.name)}
+              </span>
+              <div className="min-w-0">
+                <h2 className="truncate text-sm font-black uppercase">{user.name}</h2>
+                <p className="mt-1 truncate text-[9px] text-muted-foreground">{user.email}</p>
+              </div>
+            </div>
+            <div className="min-w-0">
+              <AdminDataLabel>Unidade</AdminDataLabel>
+              <p className="mt-1 truncate text-xs font-bold xl:mt-0">{franchise?.tradeName ?? "Unidade não vinculada"}</p>
+              <p className="mt-1 flex items-center gap-1 truncate text-[9px] text-muted-foreground">
+                <MapPinned className="h-3 w-3 shrink-0" />
+                {location}
+              </p>
+            </div>
+            <div>
+              <AdminDataLabel>Pedidos</AdminDataLabel>
+              <p className="mt-1 text-xs font-bold xl:mt-0">{user._count.orders}</p>
+            </div>
+            <div>
+              <AdminDataLabel>Cadastro</AdminDataLabel>
+              <p className="mt-1 text-xs font-bold xl:mt-0">{formatDate(user.createdAt)}</p>
+            </div>
+            <StatusPill active={user.active} activeText="Ativo" inactiveText="Pendente" />
+            <div className="xl:justify-self-end">
+              <AdminManageModal
+                id={`view-franchisee-${user.id}`}
+                title="Dados do franqueado"
+                description="Informações enviadas no cadastro."
+                ariaLabel={`Ver dados de ${user.name}`}
+                size="sm"
+              >
+                <div className="grid gap-3">
+                  <DetailRow label="Usuário" value={user.name} />
+                  <DetailRow label="E-mail" value={user.email} />
+                  <DetailRow label="Unidade" value={franchise?.tradeName ?? "Unidade não vinculada"} />
+                  <DetailRow label="CNPJ" value={formatDocument(franchise?.document)} />
+                  <DetailRow label="WhatsApp" value={formatPhone(franchise?.whatsapp)} />
+                  <DetailRow label="Cidade/UF" value={location} />
+                  <DetailRow label="Pedidos do usuário" value={String(user._count.orders)} />
+                  <DetailRow label="Pedidos da unidade" value={String(franchise?._count.orders ?? 0)} />
+                  <DetailRow label="Cadastro" value={formatLongDate(user.createdAt)} />
+                  <DetailRow label="Status" value={user.active ? "Ativo" : "Pendente de aprovação"} />
+                </div>
+                <div className="mt-5 flex flex-col gap-2 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-end">
+                  <AdminInlineActionForm
+                    action={toggleFranchiseeUserAction}
+                    label={user.active ? "DESATIVAR" : "APROVAR"}
+                    successMessage={user.active ? "Franqueado desativado." : "Franqueado aprovado."}
+                  >
+                    <input type="hidden" name="id" value={user.id} />
+                    <input type="hidden" name="active" value={String(user.active)} />
+                  </AdminInlineActionForm>
+                  {!user.active && (
+                    <DeleteActionDialog
+                      action={rejectFranchiseeUserAction}
+                      fields={{ id: user.id }}
+                      title="Reprovar cadastro?"
+                      description="O usuário franqueado pendente será recusado. Se ele ainda não tiver pedidos ou outros acessos vinculados, o cadastro e a unidade criada na solicitação serão removidos."
+                      label="Reprovar"
+                      successMessage="Cadastro reprovado."
+                    />
+                  )}
+                </div>
+              </AdminManageModal>
+            </div>
+          </AdminDataRow>
+        )
+      })}
+    </AdminDataList>
+  )
+}
+
+function CommonUsersList({
+  users,
+}: {
+  users: {
+    id: string
+    name: string
+    email: string
+    active: boolean
+    createdAt: Date
+    _count: { orders: number }
+  }[]
+}) {
+  return (
+    <AdminDataList
+      headers={["Cliente", "E-mail", "Pedidos", "Cadastro", "Status", "Ações"]}
+      template="minmax(190px,1.25fr) minmax(210px,1.2fr) 90px 120px 100px 120px"
+      isEmpty={users.length === 0}
+      emptyTitle="Nenhum cliente comum cadastrado"
+      emptyDescription="Quando clientes não franqueados criarem conta, eles aparecerão nesta lista."
+    >
+      {users.map((user) => (
+        <AdminDataRow
+          key={user.id}
+          template="minmax(190px,1.25fr) minmax(210px,1.2fr) 90px 120px 100px 120px"
+          search={`${user.name} ${user.email}`}
+          inactive={!user.active}
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-lime/20 bg-lime/10 text-sm font-black text-lime">
+              {getInitials(user.name)}
+            </span>
+            <div className="min-w-0">
+              <h2 className="truncate text-sm font-black uppercase">{user.name}</h2>
+              <p className="mt-1 text-[9px] text-muted-foreground">Cliente comum</p>
+            </div>
+          </div>
+          <div className="min-w-0">
+            <AdminDataLabel>E-mail</AdminDataLabel>
+            <p className="mt-1 flex items-center gap-2 truncate text-xs font-bold xl:mt-0">
+              <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              {user.email}
+            </p>
+          </div>
+          <div>
+            <AdminDataLabel>Pedidos</AdminDataLabel>
+            <p className="mt-1 text-xs font-bold xl:mt-0">{user._count.orders}</p>
+          </div>
+          <div>
+            <AdminDataLabel>Cadastro</AdminDataLabel>
+            <p className="mt-1 text-xs font-bold xl:mt-0">{formatDate(user.createdAt)}</p>
+          </div>
+          <StatusPill active={user.active} activeText="Ativo" inactiveText="Inativo" />
+          <AdminInlineActionForm
+            action={toggleCommonUserAction}
+            label={user.active ? "DESATIVAR" : "ATIVAR"}
+            successMessage={user.active ? "Cliente desativado." : "Cliente ativado."}
+          >
+            <input type="hidden" name="id" value={user.id} />
+            <input type="hidden" name="active" value={String(user.active)} />
+          </AdminInlineActionForm>
+        </AdminDataRow>
+      ))}
+    </AdminDataList>
+  )
+}
+
+function UserTypeCard({
+  href,
+  active,
+  icon: Icon,
+  title,
+  description,
+  detail,
+}: {
+  href: string
+  active: boolean
+  icon: typeof UsersRound
+  title: string
+  description: string
+  detail: string
+}) {
+  return (
+    <Link
+      href={href}
+      className={`group rounded-2xl border p-5 transition ${
+        active
+          ? "border-lime/35 bg-lime/[0.055] shadow-[0_0_32px_rgba(239,255,13,.08)]"
+          : "border-border bg-graphite hover:border-lime/25 hover:bg-lime/[0.025]"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <span
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${
+            active ? "border-lime/25 bg-lime/10 text-lime" : "border-purple-medium/30 bg-purple-medium/10 text-purple-medium"
+          }`}
+        >
+          <Icon className="h-5 w-5" />
+        </span>
+        <ArrowRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-1 group-hover:text-lime" />
+      </div>
+      <h2 className="mt-5 text-lg font-black uppercase">{title}</h2>
+      <p className="mt-2 min-h-10 text-sm leading-5 text-muted-foreground">{description}</p>
+      <p className="mt-4 text-[10px] font-black uppercase tracking-[0.14em] text-lime">{detail}</p>
+    </Link>
+  )
+}
+
+function StatCard({
+  label,
+  value,
+  detail,
+  icon: Icon,
+}: {
+  label: string
+  value: number
+  detail: string
+  icon: typeof UsersRound
+}) {
+  return (
+    <article className="rounded-2xl border border-border bg-graphite p-5">
+      <div className="flex items-start justify-between gap-4">
+        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-lime/15 bg-lime/5 text-lime">
+          <Icon className="h-4 w-4" />
+        </span>
+      </div>
+      <p className="mt-5 text-3xl font-black">{value}</p>
+      <p className="mt-1 text-[11px] text-muted-foreground">{detail}</p>
+    </article>
+  )
+}
+
+function StatusPill({
+  active,
+  activeText,
+  inactiveText,
+}: {
+  active: boolean
+  activeText: string
+  inactiveText: string
+}) {
+  return (
+    <div>
+      <span
+        className={`inline-flex rounded-full border px-3 py-1.5 text-[9px] font-black uppercase ${
+          active ? "border-lime/25 bg-lime/10 text-lime" : "border-red-400/25 bg-red-500/10 text-red-300"
+        }`}
+      >
+        {active ? activeText : inactiveText}
+      </span>
+    </div>
+  )
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-border bg-graphite px-4 py-3">
+      <p className="text-[9px] font-black uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
+      <p className="mt-1 break-words text-sm font-bold text-foreground">{value}</p>
+    </div>
+  )
+}
+
+function getView(searchParams?: SearchParams) {
+  const rawView = Array.isArray(searchParams?.tipo) ? searchParams?.tipo[0] : searchParams?.tipo
+  return rawView === "clientes" ? "clientes" : "franqueados"
+}
+
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase()
+}
+
+function formatDate(date: Date) {
+  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" }).format(date)
+}
+
+function formatLongDate(date: Date) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date)
+}
+
+function formatPhone(value?: string | null) {
+  const digits = value?.replace(/\D/g, "") ?? ""
+  if (digits.length === 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
+  if (digits.length === 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`
+  return value || "Não informado"
+}
+
+function formatDocument(value?: string | null) {
+  const digits = value?.replace(/\D/g, "") ?? ""
+  if (digits.length !== 14) return value || "CNPJ não informado"
+  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`
+}

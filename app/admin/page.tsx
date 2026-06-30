@@ -11,6 +11,7 @@ import {
   Store,
   Tag,
   TrendingUp,
+  UsersRound,
 } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
@@ -399,10 +400,10 @@ export default async function AdminPage() {
           <QuickLink href="/admin/produtos" icon={PackageSearch} label="Produtos" detail={`${products} ativos`} />
           <QuickLink href="/admin/campanhas" icon={Tag} label="Campanhas" detail={`${activePromotions} ativas agora`} />
           <QuickLink
-            href="/admin/franqueados"
-            icon={Store}
-            label="Franqueados"
-            detail={`${franchises} unidades ativas`}
+            href="/admin/usuarios"
+            icon={UsersRound}
+            label="Usuários"
+            detail={`${franchises} franqueados ativos`}
           />
           <QuickLink
             href="/admin/pedidos"
