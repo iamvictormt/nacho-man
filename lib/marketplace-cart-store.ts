@@ -6,6 +6,7 @@ import { createJSONStorage, persist } from "zustand/middleware"
 export type MarketplaceCartItem = {
   id: string
   type: "PRODUCT" | "COMBO"
+  selectionKey?: string
   name: string
   image?: string | null
   unit: string
@@ -13,14 +14,19 @@ export type MarketplaceCartItem = {
   unitPriceInCents: number
   minimumQuantity: number
   quantity: number
+  selectedOptions?: {
+    productId: string
+    name: string
+    quantity: number
+  }[]
 }
 
 type MarketplaceCart = {
   items: MarketplaceCartItem[]
   open: boolean
   add: (item: Omit<MarketplaceCartItem, "quantity">) => void
-  remove: (id: string, type: MarketplaceCartItem["type"]) => void
-  setQuantity: (id: string, type: MarketplaceCartItem["type"], quantity: number) => void
+  remove: (id: string, type: MarketplaceCartItem["type"], selectionKey?: string) => void
+  setQuantity: (id: string, type: MarketplaceCartItem["type"], quantity: number, selectionKey?: string) => void
   clear: () => void
   openCart: () => void
   closeCart: () => void
@@ -33,11 +39,14 @@ export const useMarketplaceCart = create<MarketplaceCart>()(
       open: false,
       add: (item) =>
         set((state) => {
-          const existing = state.items.find((current) => current.id === item.id && current.type === item.type)
+          const existing = state.items.find(
+            (current) =>
+              current.id === item.id && current.type === item.type && current.selectionKey === item.selectionKey
+          )
           if (existing) {
             return {
               items: state.items.map((current) =>
-                current.id === item.id && current.type === item.type
+                current.id === item.id && current.type === item.type && current.selectionKey === item.selectionKey
                   ? { ...current, quantity: current.quantity + current.minimumQuantity }
                   : current
               ),
@@ -45,12 +54,16 @@ export const useMarketplaceCart = create<MarketplaceCart>()(
           }
           return { items: [...state.items, { ...item, quantity: item.minimumQuantity }] }
         }),
-      remove: (id, type) =>
-        set((state) => ({ items: state.items.filter((item) => item.id !== id || item.type !== type) })),
-      setQuantity: (id, type, quantity) =>
+      remove: (id, type, selectionKey) =>
+        set((state) => ({
+          items: state.items.filter(
+            (item) => item.id !== id || item.type !== type || item.selectionKey !== selectionKey
+          ),
+        })),
+      setQuantity: (id, type, quantity, selectionKey) =>
         set((state) => ({
           items: state.items.map((item) =>
-            item.id === id && item.type === type
+            item.id === id && item.type === type && item.selectionKey === selectionKey
               ? { ...item, quantity: Math.max(item.minimumQuantity, Math.min(999, quantity)) }
               : item
           ),

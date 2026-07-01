@@ -19,7 +19,7 @@ export default async function MarketplaceComboDetailPage({ params }: { params: P
       ],
     },
     include: {
-      items: {
+      options: {
         include: {
           product: {
             select: {

@@ -3,7 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
-import { Check, Gift, Minus, Package, Plus } from "lucide-react"
+import { Check, Gift, Minus, Package, Plus, SlidersHorizontal } from "lucide-react"
 import { useMarketplaceCart } from "@/lib/marketplace-cart-store"
 import { formatMoneyFromCents } from "@/lib/money"
 import {
@@ -20,9 +20,9 @@ type ComboDetail = {
   name: string
   description: string | null
   priceInCents: number
-  items: {
+  totalUnits: number
+  options: {
     id: string
-    quantity: number
     product: {
       id: string
       name: string
@@ -34,6 +34,7 @@ type ComboDetail = {
 
 export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
   const [quantity, setQuantity] = useState(1)
+  const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({})
   const [added, setAdded] = useState(false)
   const add = useMarketplaceCart((state) => state.add)
   const setCartQuantity = useMarketplaceCart((state) => state.setQuantity)
@@ -41,12 +42,23 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const images = useMemo(
     () =>
-      combo.items
-        .map((item) => ({ src: item.product.image, alt: item.product.name }))
+      combo.options
+        .map((option) => ({ src: option.product.image, alt: option.product.name }))
         .filter((image): image is { src: string; alt: string } => Boolean(image.src)),
-    [combo.items]
+    [combo.options]
   )
   const heroImage = images[activeImageIndex]
+  const selectedTotal = Object.values(selectedQuantities).reduce((total, current) => total + current, 0)
+  const remaining = combo.totalUnits - selectedTotal
+  const selectedOptions = combo.options
+    .map((option) => ({
+      productId: option.product.id,
+      name: option.product.name,
+      quantity: selectedQuantities[option.product.id] ?? 0,
+    }))
+    .filter((option) => option.quantity > 0)
+  const selectionKey = selectedOptions.map((option) => `${option.productId}:${option.quantity}`).join("|")
+  const canAdd = selectedTotal === combo.totalUnits && selectedOptions.length > 0
 
   useEffect(() => {
     if (images.length <= 1) return
@@ -57,23 +69,40 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
     return () => window.clearInterval(interval)
   }, [images.length])
 
+  function changeOptionQuantity(productId: string, nextQuantity: number) {
+    setSelectedQuantities((current) => {
+      const currentValue = current[productId] ?? 0
+      const selectedWithoutCurrent = selectedTotal - currentValue
+      const clamped = Math.max(0, Math.min(combo.totalUnits - selectedWithoutCurrent, nextQuantity))
+
+      return { ...current, [productId]: clamped }
+    })
+  }
+
   function handleAdd() {
-    const existing = items.find((item) => item.id === combo.id && item.type === "COMBO")
+    if (!canAdd) return
+
+    const packageLabel = selectedOptions.map((option) => `${option.quantity}x ${option.name}`).join(" | ")
+    const existing = items.find(
+      (item) => item.id === combo.id && item.type === "COMBO" && item.selectionKey === selectionKey
+    )
 
     if (existing) {
-      setCartQuantity(combo.id, "COMBO", existing.quantity + quantity)
+      setCartQuantity(combo.id, "COMBO", existing.quantity + quantity, selectionKey)
     } else {
       add({
         id: combo.id,
         type: "COMBO",
+        selectionKey,
         name: combo.name,
         image: heroImage?.src ?? null,
         unit: "COMBO",
-        packageLabel: `${combo.items.length} produtos`,
+        packageLabel,
         unitPriceInCents: combo.priceInCents,
         minimumQuantity: 1,
+        selectedOptions,
       })
-      if (quantity !== 1) setCartQuantity(combo.id, "COMBO", quantity)
+      if (quantity !== 1) setCartQuantity(combo.id, "COMBO", quantity, selectionKey)
     }
 
     setAdded(true)
@@ -125,7 +154,7 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
             <div className="absolute inset-[-1px] bg-gradient-to-t from-background via-background/30 to-transparent" />
             <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-[0.18em]">
               <span className="rounded-full border border-lime/25 bg-background/78 px-3 py-1 text-lime backdrop-blur">
-                {combo.items.length} produtos
+                {combo.totalUnits} unidades
               </span>
             </div>
             {images.length > 1 && (
@@ -153,7 +182,7 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
           <div className="space-y-6">
             <div className="flex flex-wrap items-center gap-3">
               <span className="rounded-full border border-lime/25 bg-lime/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-lime">
-                Oferta montada
+                Combo montável
               </span>
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-medium">
                 Nacho Factory
@@ -177,11 +206,9 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
                 </p>
               </div>
               <div>
-                <span className="text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">
-                  Composição
-                </span>
+                <span className="text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">Montagem</span>
                 <p className="mt-2 text-sm font-bold leading-relaxed text-foreground">
-                  {combo.items.length} produtos selecionados
+                  Escolha {combo.totalUnits} unidades entre {combo.options.length} opções
                 </p>
                 <p className="mt-1 text-xs font-bold text-purple-medium">Pedido mínimo: 1 combo</p>
               </div>
@@ -189,33 +216,79 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
 
             <div>
               <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">
-                Itens do combo
+                Escolha os sabores
               </p>
-              <div className="grid gap-3">
-                {combo.items.map((item) => (
-                  <Link
-                    key={item.id}
-                    href={`/marketplace/produto/${item.product.id}`}
-                    className="flex items-center gap-3 rounded-lg border border-border bg-graphite p-3 transition hover:border-lime/30"
+              <div className="mb-4 overflow-hidden rounded-xl border border-border bg-graphite">
+                <div className="flex items-center justify-between gap-4 px-4 py-3">
+                  <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-lime">
+                    <SlidersHorizontal className="h-4 w-4" />
+                    {selectedTotal} de {combo.totalUnits}
+                  </span>
+                  <span
+                    className={`text-[10px] font-black uppercase ${
+                      remaining === 0 ? "text-lime" : "text-muted-foreground"
+                    }`}
                   >
-                    <span className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-background">
-                      {item.product.image ? (
-                        <Image src={item.product.image} alt={item.product.name} fill className="object-cover" />
-                      ) : (
-                        <Package className="h-5 w-5 text-purple-medium" />
-                      )}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-black uppercase">{item.product.name}</span>
-                      <span className="mt-1 block truncate text-[10px] font-bold text-muted-foreground">
-                        {item.product.packageLabel}
+                    {remaining === 0 ? "Combo completo" : `Faltam ${remaining}`}
+                  </span>
+                </div>
+                <div className="h-1.5 bg-background">
+                  <div
+                    className="h-full bg-lime transition-all"
+                    style={{ width: `${Math.min(100, (selectedTotal / combo.totalUnits) * 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                {combo.options.map((option) => {
+                  const optionQuantity = selectedQuantities[option.product.id] ?? 0
+
+                  return (
+                    <div
+                      key={option.id}
+                      className="flex items-center gap-3 rounded-lg border border-border bg-graphite p-3 transition hover:border-lime/30"
+                    >
+                      <span className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-background">
+                        {option.product.image ? (
+                          <Image src={option.product.image} alt={option.product.name} fill className="object-cover" />
+                        ) : (
+                          <Package className="h-5 w-5 text-purple-medium" />
+                        )}
                       </span>
-                    </span>
-                    <span className="rounded-full border border-lime/25 bg-lime/10 px-3 py-1 text-xs font-black text-lime">
-                      {item.quantity}x
-                    </span>
-                  </Link>
-                ))}
+                      <span className="min-w-0 flex-1">
+                        <Link
+                          href={`/marketplace/produto/${option.product.id}`}
+                          className="block truncate text-sm font-black uppercase transition hover:text-lime"
+                        >
+                          {option.product.name}
+                        </Link>
+                        <span className="mt-1 block truncate text-[10px] font-bold text-muted-foreground">
+                          {option.product.packageLabel}
+                        </span>
+                      </span>
+                      <span className="flex shrink-0 items-center gap-2 rounded-full border border-border bg-background px-2 py-1">
+                        <button
+                          type="button"
+                          onClick={() => changeOptionQuantity(option.product.id, optionQuantity - 1)}
+                          disabled={optionQuantity <= 0}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-foreground/70 hover:bg-foreground/10 disabled:opacity-30"
+                        >
+                          <Minus className="h-3.5 w-3.5" />
+                        </button>
+                        <span className="w-6 text-center text-sm font-black">{optionQuantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => changeOptionQuantity(option.product.id, optionQuantity + 1)}
+                          disabled={selectedTotal >= combo.totalUnits}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-foreground/70 hover:bg-foreground/10 disabled:opacity-30"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
             </div>
 
@@ -238,10 +311,17 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
               </div>
               <button
                 onClick={handleAdd}
-                className={`flex min-h-14 flex-1 items-center justify-center gap-3 rounded-full px-6 py-4 text-xs font-black tracking-wider transition sm:text-sm ${added ? "bg-purple-medium text-white" : "bg-lime text-background hover:shadow-[0_0_30px_rgba(239,255,13,0.4)]"}`}
+                disabled={!canAdd}
+                className={`flex min-h-14 flex-1 items-center justify-center gap-3 rounded-full px-6 py-4 text-xs font-black tracking-wider transition sm:text-sm ${
+                  added
+                    ? "bg-purple-medium text-white"
+                    : canAdd
+                      ? "bg-lime text-background hover:shadow-[0_0_30px_rgba(239,255,13,0.4)]"
+                      : "cursor-not-allowed border border-border bg-background text-muted-foreground"
+                }`}
               >
                 {added ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                {added ? "ADICIONADO" : "ADICIONAR AO PEDIDO"}
+                {added ? "ADICIONADO" : canAdd ? "ADICIONAR AO PEDIDO" : `ESCOLHA ${combo.totalUnits} UNIDADES`}
               </button>
             </div>
           </div>

@@ -151,7 +151,7 @@ model Product {
   featured       Boolean     @default(false)
   categoryId     String
   category       Category    @relation(fields: [categoryId], references: [id])
-  comboItems     ComboItem[]
+  comboItems     ComboOption[]
   orderItems     OrderItem[]
   promotions     Promotion[]
   createdAt      DateTime    @default(now())
@@ -169,25 +169,27 @@ model Combo {
   description    String?
   image           String?
   priceInCents   Int
+  totalUnits      Int         @default(1)
   active         Boolean     @default(true)
   startsAt       DateTime?
   endsAt         DateTime?
-  items          ComboItem[]
+  options        ComboOption[]
   orderItems     OrderItem[]
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 }
 
-model ComboItem {
+model ComboOption {
   id        String  @id @default(cuid())
   comboId   String
   productId String
-  quantity  Int
+  quantity  Int     @default(1)
   combo     Combo   @relation(fields: [comboId], references: [id], onDelete: Cascade)
   product   Product @relation(fields: [productId], references: [id])
 
   @@unique([comboId, productId])
   @@index([productId])
+  @@map("ComboItem")
 }
 
 model Promotion {
@@ -276,6 +278,7 @@ model OrderItem {
   quantity         Int
   unitPriceInCents Int
   totalInCents     Int
+  selectedOptions   Json?
 
   @@index([orderId])
   @@index([productId])

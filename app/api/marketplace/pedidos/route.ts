@@ -17,6 +17,15 @@ const orderSchema = z.object({
         id: z.string().min(1),
         type: z.enum(["PRODUCT", "COMBO"]),
         quantity: z.number().int().positive().max(999),
+        selectedOptions: z
+          .array(
+            z.object({
+              productId: z.string().min(1),
+              name: z.string().min(1).max(200),
+              quantity: z.number().int().positive().max(999),
+            })
+          )
+          .optional(),
       })
     )
     .min(1),
@@ -41,6 +50,21 @@ function getPaymentDiscountPercent(method: "PIX" | "CARD", settings: Awaited<Ret
 
 function canUseMarketplace(user: Awaited<ReturnType<typeof getCurrentUser>>) {
   return Boolean(user && user.role !== "ADMIN" && (user.role !== "FRANCHISEE" || user.franchise?.active))
+}
+
+function formatSelectedOptions(value: unknown) {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .map((option) => {
+      if (!option || typeof option !== "object") return null
+      const record = option as { name?: unknown; quantity?: unknown }
+      const name = typeof record.name === "string" ? record.name : ""
+      const quantity = typeof record.quantity === "number" ? record.quantity : 0
+
+      return name && quantity > 0 ? `${quantity}x ${name}` : null
+    })
+    .filter((option): option is string => Boolean(option))
 }
 
 export async function PUT(request: Request) {
@@ -128,6 +152,7 @@ export async function POST(request: Request) {
           { OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
         ],
       },
+      include: { options: { include: { product: { select: { id: true, name: true } } } } },
     }),
   ])
 
@@ -181,8 +206,38 @@ export async function POST(request: Request) {
     }
   })
 
+  const invalidComboSelection = comboRequests.find((requestedItem) => {
+    const combo = comboMap.get(requestedItem.id)!
+    const selectedOptions = requestedItem.selectedOptions ?? []
+    const optionMap = new Map(combo.options.map((option) => [option.productId, option.product]))
+    const selectedTotal = selectedOptions.reduce((total, option) => total + option.quantity, 0)
+    const hasInvalidOption = selectedOptions.some((option) => !optionMap.has(option.productId))
+
+    return selectedTotal !== combo.totalUnits || hasInvalidOption
+  })
+  if (invalidComboSelection) {
+    const combo = comboMap.get(invalidComboSelection.id)!
+
+    return NextResponse.json(
+      { error: `Escolha exatamente ${combo.totalUnits} unidades para o combo ${combo.name}.` },
+      { status: 400 }
+    )
+  }
+
   const comboItems = comboRequests.map((requestedItem) => {
     const combo = comboMap.get(requestedItem.id)!
+    const selectedOptions = requestedItem.selectedOptions ?? []
+    const optionMap = new Map(combo.options.map((option) => [option.productId, option.product]))
+
+    const normalizedOptions = selectedOptions.map((option) => {
+      const product = optionMap.get(option.productId)!
+
+      return {
+        productId: product.id,
+        name: product.name,
+        quantity: option.quantity,
+      }
+    })
     const totalInCents = combo.priceInCents * requestedItem.quantity
     subtotalInCents += totalInCents
     return {
@@ -193,6 +248,7 @@ export async function POST(request: Request) {
       quantity: requestedItem.quantity,
       unitPriceInCents: combo.priceInCents,
       totalInCents,
+      selectedOptions: normalizedOptions,
     }
   })
   const items = [...productItems, ...comboItems]
@@ -252,10 +308,16 @@ export async function POST(request: Request) {
   })
 
   const orderNumber = `NF-${String(order.number).padStart(5, "0")}`
-  const itemLines = order.items.map(
-    (item, index) =>
-      `${index + 1}. ${item.name} - ${item.quantity} ${item.unit} - ${formatMoneyFromCents(item.totalInCents)}`
-  )
+  const itemLines = order.items.map((item, index) => {
+    const selectedOptions = formatSelectedOptions(item.selectedOptions)
+
+    return [
+      `${index + 1}. ${item.name} - ${item.quantity} ${item.unit} - ${formatMoneyFromCents(item.totalInCents)}`,
+      selectedOptions.length > 0 ? `   Sabores: ${selectedOptions.join(", ")}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n")
+  })
   const paymentText =
     order.paymentMethod === "PIX" ? "PIX - aguardo o codigo PIX para pagamento." : "Cartao - aguardo o link de pagamento."
   const buyerLine =

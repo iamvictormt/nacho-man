@@ -127,6 +127,7 @@ function OrderCard({
       quantity: number
       unitPriceInCents: number
       totalInCents: number
+      selectedOptions: unknown
     }[]
   }
 }) {
@@ -202,6 +203,7 @@ function OrderCard({
                     <p className="mt-1 text-[10px] text-muted-foreground">
                       {item.quantity} {item.unit} x {formatMoneyFromCents(item.unitPriceInCents)}
                     </p>
+                    <SelectedOptionsList value={item.selectedOptions} />
                   </div>
                   <p className="text-sm font-black text-lime sm:text-right">
                     {formatMoneyFromCents(item.totalInCents)}
@@ -235,6 +237,34 @@ function OrderCard({
       </div>
     </article>
   )
+}
+
+function SelectedOptionsList({ value }: { value: unknown }) {
+  const options = formatSelectedOptions(value)
+  if (options.length === 0) return null
+
+  return (
+    <ul className="mt-2 space-y-1 text-[10px] font-bold uppercase text-foreground/70">
+      {options.map((option) => (
+        <li key={option}>{option}</li>
+      ))}
+    </ul>
+  )
+}
+
+function formatSelectedOptions(value: unknown) {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .map((option) => {
+      if (!option || typeof option !== "object") return null
+      const record = option as { name?: unknown; quantity?: unknown }
+      const name = typeof record.name === "string" ? record.name : ""
+      const quantity = typeof record.quantity === "number" ? record.quantity : 0
+
+      return name && quantity > 0 ? `${quantity}x ${name}` : null
+    })
+    .filter((option): option is string => Boolean(option))
 }
 
 function SummaryCard({ value, label, accent = "lime" }: { value: number; label: string; accent?: "lime" | "purple" }) {

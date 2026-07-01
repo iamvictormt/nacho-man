@@ -19,6 +19,7 @@ type OrderEmailItem = {
   unit: string
   quantity: number
   totalInCents: number
+  selectedOptions?: unknown
 }
 
 type OrderConfirmationEmailInput = {
@@ -46,6 +47,21 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#039;")
 }
 
+function formatSelectedOptions(value: unknown) {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .map((option) => {
+      if (!option || typeof option !== "object") return null
+      const record = option as { name?: unknown; quantity?: unknown }
+      const name = typeof record.name === "string" ? record.name : ""
+      const quantity = typeof record.quantity === "number" ? record.quantity : 0
+
+      return name && quantity > 0 ? `${quantity}x ${name}` : null
+    })
+    .filter((option): option is string => Boolean(option))
+}
+
 function buildOrderConfirmationHtml(input: OrderConfirmationEmailInput) {
   const statusLabel = statusLabels[input.status] ?? input.status
   const paymentLabel = input.paymentMethod === "PIX" ? "PIX" : "Cartao"
@@ -63,18 +79,25 @@ function buildOrderConfirmationHtml(input: OrderConfirmationEmailInput) {
   ].join("")
 
   const itemRows = input.items
-    .map(
-      (item) => `
+    .map((item) => {
+      const selectedOptions = formatSelectedOptions(item.selectedOptions)
+
+      return `
         <tr>
           <td style="padding:14px 0;border-bottom:1px solid #2a2a2a;">
             <strong style="display:block;color:#ffffff;font-size:14px;">${escapeHtml(item.name)}</strong>
             <span style="color:#9ca3af;font-size:12px;">${item.quantity} ${escapeHtml(item.unit)}</span>
+            ${
+              selectedOptions.length > 0
+                ? `<span style="display:block;margin-top:6px;color:#d6ff2f;font-size:12px;">${selectedOptions.map(escapeHtml).join(" | ")}</span>`
+                : ""
+            }
           </td>
           <td align="right" style="padding:14px 0;border-bottom:1px solid #2a2a2a;color:#ffffff;font-size:14px;font-weight:800;">
             ${formatMoneyFromCents(item.totalInCents)}
           </td>
         </tr>`
-    )
+    })
     .join("")
 
   return `<!doctype html>
@@ -150,9 +173,16 @@ function buildOrderConfirmationText(input: OrderConfirmationEmailInput) {
     `Status atual: ${statusLabels[input.status] ?? input.status}`,
     `Pagamento: ${input.paymentMethod === "PIX" ? "PIX" : "Cartao"}`,
     "",
-    ...input.items.map(
-      (item) => `${item.quantity} ${item.unit} - ${item.name}: ${formatMoneyFromCents(item.totalInCents)}`
-    ),
+    ...input.items.map((item) => {
+      const selectedOptions = formatSelectedOptions(item.selectedOptions)
+
+      return [
+        `${item.quantity} ${item.unit} - ${item.name}: ${formatMoneyFromCents(item.totalInCents)}`,
+        selectedOptions.length > 0 ? `Sabores: ${selectedOptions.join(", ")}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n")
+    }),
     "",
     `Subtotal: ${formatMoneyFromCents(input.subtotalInCents)}`,
     input.promotionDiscountInCents > 0 ? `Descontos: -${formatMoneyFromCents(input.promotionDiscountInCents)}` : "",

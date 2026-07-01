@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { CheckCircle2, LoaderCircle, Minus, Plus, ShoppingCart, Trash2, X } from "lucide-react"
 import { useMarketplaceCart } from "@/lib/marketplace-cart-store"
 import { formatMoneyFromCents } from "@/lib/money"
@@ -42,7 +42,6 @@ export function MarketplaceCartDrawer({
   const [error, setError] = useState("")
   const [confirmed, setConfirmed] = useState(false)
   const [whatsappFallbackUrl, setWhatsappFallbackUrl] = useState("")
-  const whatsappTabRef = useRef<Window | null>(null)
 
   useLockBodyScroll(open)
 
@@ -109,10 +108,6 @@ export function MarketplaceCartDrawer({
 
   async function checkout() {
     if (items.length === 0 || loading) return
-    whatsappTabRef.current = window.open("about:blank", "_blank")
-    whatsappTabRef.current?.document.write(
-      "<!doctype html><title>Pedido confirmado</title><body style='margin:0;background:#0f0f0f;color:#fff;font-family:Arial,sans-serif;display:grid;min-height:100vh;place-items:center;text-align:center'><main><h1>Pedido confirmado</h1><p>O WhatsApp será aberto em instantes.</p></main></body>"
-    )
 
     setLoading(true)
     setError("")
@@ -123,7 +118,12 @@ export function MarketplaceCartDrawer({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: items.map((item) => ({ id: item.id, type: item.type, quantity: item.quantity })),
+          items: items.map((item) => ({
+            id: item.id,
+            type: item.type,
+            quantity: item.quantity,
+            selectedOptions: item.selectedOptions,
+          })),
           paymentMethod,
           coupon: coupon.trim(),
           notes: notes.trim(),
@@ -132,8 +132,6 @@ export function MarketplaceCartDrawer({
       const result = (await response.json()) as CheckoutResponse
 
       if (!response.ok || !result.whatsappUrl) {
-        whatsappTabRef.current?.close()
-        whatsappTabRef.current = null
         setError(result.error ?? "Não foi possível criar o pedido.")
         return
       }
@@ -141,12 +139,6 @@ export function MarketplaceCartDrawer({
       setConfirmed(true)
       clear()
       window.setTimeout(() => {
-        if (whatsappTabRef.current && !whatsappTabRef.current.closed) {
-          whatsappTabRef.current.location.href = result.whatsappUrl!
-          closeCart()
-          return
-        }
-
         const opened = window.open(result.whatsappUrl, "_blank")
         if (opened) {
           closeCart()
@@ -154,10 +146,8 @@ export function MarketplaceCartDrawer({
           setWhatsappFallbackUrl(result.whatsappUrl!)
           setError("Seu navegador bloqueou a nova guia. Use o botão abaixo para abrir o WhatsApp.")
         }
-      }, 2000)
+      }, 1000)
     } catch {
-      whatsappTabRef.current?.close()
-      whatsappTabRef.current = null
       setError("Falha de conexão. Tente novamente.")
     } finally {
       setLoading(false)
@@ -207,15 +197,27 @@ export function MarketplaceCartDrawer({
         ) : (
         <div className="flex-1 space-y-4 overflow-y-auto p-5">
           {items.map((item) => (
-            <article key={`${item.type}-${item.id}`} className="rounded-xl border border-border bg-graphite p-4">
+            <article
+              key={`${item.type}-${item.id}-${item.selectionKey ?? "default"}`}
+              className="rounded-xl border border-border bg-graphite p-4"
+            >
               <div className="flex justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-black uppercase">{item.name}</h3>
                   <p className="mt-1 text-xs text-muted-foreground">{item.packageLabel}</p>
+                  {item.selectedOptions && item.selectedOptions.length > 0 && (
+                    <ul className="mt-2 space-y-1 text-[10px] font-bold uppercase text-foreground/70">
+                      {item.selectedOptions.map((option) => (
+                        <li key={option.productId}>
+                          {option.quantity}x {option.name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
                 <button
                   onClick={() => {
-                    remove(item.id, item.type)
+                    remove(item.id, item.type, item.selectionKey)
                     invalidateCouponPreview()
                   }}
                   className="text-muted-foreground hover:text-red-300"
@@ -227,7 +229,7 @@ export function MarketplaceCartDrawer({
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => {
-                      setQuantity(item.id, item.type, item.quantity - 1)
+                      setQuantity(item.id, item.type, item.quantity - 1, item.selectionKey)
                       invalidateCouponPreview()
                     }}
                     className="flex size-9 items-center justify-center rounded-full border border-border"
@@ -237,7 +239,7 @@ export function MarketplaceCartDrawer({
                   <span className="w-8 text-center text-sm font-black">{item.quantity}</span>
                   <button
                     onClick={() => {
-                      setQuantity(item.id, item.type, item.quantity + 1)
+                      setQuantity(item.id, item.type, item.quantity + 1, item.selectionKey)
                       invalidateCouponPreview()
                     }}
                     className="flex size-9 items-center justify-center rounded-full border border-border"

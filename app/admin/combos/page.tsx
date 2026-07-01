@@ -25,7 +25,7 @@ export default async function CombosPage({ searchParams }: { searchParams?: Prom
       orderBy: { name: "asc" },
     }),
     prisma.combo.findMany({
-      include: { items: { include: { product: true } }, _count: { select: { orderItems: true } } },
+      include: { options: { include: { product: true } }, _count: { select: { orderItems: true } } },
       orderBy: [{ active: "desc" }, { createdAt: "desc" }],
       skip: pagination.skip,
       take: pagination.take,
@@ -70,7 +70,7 @@ export default async function CombosPage({ searchParams }: { searchParams?: Prom
             <AdminDataRow
               key={combo.id}
               template="minmax(200px,1.3fr) minmax(210px,1.5fr) 110px 90px 90px 72px"
-              search={`${combo.name} ${combo.items.map((item) => item.product.name).join(" ")}`}
+              search={`${combo.name} ${combo.options.map((option) => option.product.name).join(" ")}`}
               inactive={!combo.active}
             >
               <div className="flex min-w-0 items-center gap-3">
@@ -82,12 +82,14 @@ export default async function CombosPage({ searchParams }: { searchParams?: Prom
               <div className="min-w-0">
                 <AdminDataLabel>Composição</AdminDataLabel>
                 <p className="mt-1 truncate text-xs font-bold xl:mt-0">
-                  {combo.items
+                  {combo.options
                     .slice(0, 2)
-                    .map((item) => `${item.quantity}x ${item.product.name}`)
+                    .map((option) => option.product.name)
                     .join(" · ")}
                 </p>
-                <p className="mt-1 text-[9px] uppercase text-muted-foreground">{combo.items.length} produtos</p>
+                <p className="mt-1 text-[9px] uppercase text-muted-foreground">
+                  {combo.totalUnits} unidades · {combo.options.length} opções
+                </p>
               </div>
               <div>
                 <AdminDataLabel>Preço</AdminDataLabel>
@@ -174,11 +176,12 @@ function ComboForm({
     id: string
     name: string
     priceInCents: number
+    totalUnits: number
     description: string | null
-    items: { productId: string; quantity: number }[]
+    options: { productId: string }[]
   }
 }) {
-  const quantities = Object.fromEntries(combo?.items.map((item) => [item.productId, item.quantity]) ?? [])
+  const quantities = Object.fromEntries(combo?.options.map((option) => [option.productId, 1]) ?? [])
   return (
     <AdminActionForm
       action={action}
@@ -195,6 +198,15 @@ function ComboForm({
           label="Preço (R$)"
           mask="money"
           defaultValue={combo ? moneyInput(combo.priceInCents) : ""}
+          required
+        />
+        <AdminInput
+          name="totalUnits"
+          label="Unidades do combo"
+          mask="integer"
+          min={1}
+          defaultValue={combo ? String(combo.totalUnits) : ""}
+          placeholder="Ex: 6"
           required
         />
       </AdminFieldGrid>

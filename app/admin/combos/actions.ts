@@ -10,14 +10,13 @@ export async function createComboAction(formData: FormData) {
   await requireAdmin()
   const name = String(formData.get("name") ?? "").trim()
   const priceInCents = parseMoneyToCents(formData.get("price"))
-  const rawItems = String(formData.get("items") ?? "")
-  const itemPairs = rawItems
-    .split(",")
-    .map((entry) => entry.trim().split(":"))
-    .map(([productId, quantity]) => ({ productId, quantity: Number(quantity) }))
-    .filter((item) => item.productId && Number.isInteger(item.quantity) && item.quantity > 0)
+  const totalUnits = Number(String(formData.get("totalUnits") ?? "").replace(/\D/g, ""))
+  const rawOptions = String(formData.get("options") ?? "")
+  const options = [...new Set(rawOptions.split(",").map((productId) => productId.trim()).filter(Boolean))].map(
+    (productId) => ({ productId })
+  )
 
-  if (!name || priceInCents <= 0 || itemPairs.length === 0) return
+  if (!name || priceInCents <= 0 || !Number.isInteger(totalUnits) || totalUnits <= 0 || options.length === 0) return
 
   let slug = createSlug(name)
   if (await prisma.combo.findUnique({ where: { slug } })) slug = `${slug}-${Date.now()}`
@@ -29,7 +28,8 @@ export async function createComboAction(formData: FormData) {
       description: String(formData.get("description") ?? "").trim() || null,
       image: null,
       priceInCents,
-      items: { create: itemPairs },
+      totalUnits,
+      options: { create: options },
     },
   })
 
@@ -47,12 +47,13 @@ export async function toggleComboAction(formData: FormData) {
   revalidatePath("/marketplace")
 }
 
-function parseComboItems(formData: FormData) {
-  return String(formData.get("items") ?? "")
+function parseComboOptions(formData: FormData) {
+  return String(formData.get("options") ?? "")
     .split(",")
-    .map((entry) => entry.trim().split(":"))
-    .map(([productId, quantity]) => ({ productId, quantity: Number(quantity) }))
-    .filter((item) => item.productId && Number.isInteger(item.quantity) && item.quantity > 0)
+    .map((productId) => productId.trim())
+    .filter(Boolean)
+    .filter((productId, index, productIds) => productIds.indexOf(productId) === index)
+    .map((productId) => ({ productId }))
 }
 
 export async function updateComboAction(formData: FormData) {
@@ -60,8 +61,9 @@ export async function updateComboAction(formData: FormData) {
   const id = String(formData.get("id") ?? "")
   const name = String(formData.get("name") ?? "").trim()
   const priceInCents = parseMoneyToCents(formData.get("price"))
-  const items = parseComboItems(formData)
-  if (!id || !name || priceInCents <= 0 || items.length === 0) return
+  const totalUnits = Number(String(formData.get("totalUnits") ?? "").replace(/\D/g, ""))
+  const options = parseComboOptions(formData)
+  if (!id || !name || priceInCents <= 0 || !Number.isInteger(totalUnits) || totalUnits <= 0 || options.length === 0) return
 
   await prisma.combo.update({
     where: { id },
@@ -70,7 +72,8 @@ export async function updateComboAction(formData: FormData) {
       description: String(formData.get("description") ?? "").trim() || null,
       image: null,
       priceInCents,
-      items: { deleteMany: {}, create: items },
+      totalUnits,
+      options: { deleteMany: {}, create: options },
     },
   })
   revalidateComboPaths()

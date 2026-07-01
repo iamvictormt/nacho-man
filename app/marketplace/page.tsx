@@ -62,7 +62,7 @@ export default async function MarketplacePage() {
     showCombos
       ? prisma.combo.findMany({
           where: activeComboWhere,
-          include: { items: { include: { product: { select: { name: true, image: true } } } } },
+          include: { options: { include: { product: { select: { name: true, image: true } } } } },
           orderBy: { createdAt: "desc" },
           take: 3,
         })

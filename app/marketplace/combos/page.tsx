@@ -26,7 +26,7 @@ export default async function MarketplaceCombosPage({ searchParams }: { searchPa
   const pagination = getPagination(page, totalCombos)
   const combos = await prisma.combo.findMany({
     where,
-    include: { items: { include: { product: { select: { name: true, image: true } } } } },
+    include: { options: { include: { product: { select: { name: true, image: true } } } } },
     orderBy: { createdAt: "desc" },
     skip: pagination.skip,
     take: pagination.take,
@@ -68,7 +68,7 @@ export default async function MarketplaceCombosPage({ searchParams }: { searchPa
             {combos.map((combo) => (
               <div
                 key={combo.id}
-                data-search={`${combo.name} ${combo.description ?? ""} ${combo.items.map((item) => item.product.name).join(" ")}`}
+                data-search={`${combo.name} ${combo.description ?? ""} ${combo.options.map((option) => option.product.name).join(" ")}`}
               >
                 <MarketplaceComboCard combo={combo} />
               </div>

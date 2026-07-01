@@ -3,8 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
-import { ArrowUpRight, Check, Gift, Package, Plus } from "lucide-react"
-import { useMarketplaceCart } from "@/lib/marketplace-cart-store"
+import { ArrowUpRight, Gift, Package, SlidersHorizontal } from "lucide-react"
 import { formatMoneyFromCents } from "@/lib/money"
 
 type ComboCardProps = {
@@ -14,19 +13,18 @@ type ComboCardProps = {
     description: string | null
     image: string | null
     priceInCents: number
-    items: { id: string; quantity: number; product: { name: string; image: string | null } }[]
+    totalUnits: number
+    options: { id: string; product: { name: string; image: string | null } }[]
   }
 }
 
 export function MarketplaceComboCard({ combo }: ComboCardProps) {
-  const add = useMarketplaceCart((state) => state.add)
-  const [added, setAdded] = useState(false)
   const images = useMemo(
     () =>
-      combo.items
-        .map((item) => ({ src: item.product.image, alt: item.product.name }))
+      combo.options
+        .map((option) => ({ src: option.product.image, alt: option.product.name }))
         .filter((image): image is { src: string; alt: string } => Boolean(image.src)),
-    [combo.items]
+    [combo.options]
   )
   const [activeImageIndex, setActiveImageIndex] = useState(0)
 
@@ -40,21 +38,6 @@ export function MarketplaceComboCard({ combo }: ComboCardProps) {
 
   const activeImage = images[activeImageIndex]
   const detailHref = `/marketplace/combos/${combo.id}`
-
-  function handleAdd() {
-    add({
-      id: combo.id,
-      type: "COMBO",
-      name: combo.name,
-      image: activeImage?.src ?? null,
-      unit: "COMBO",
-      packageLabel: `${combo.items.length} produtos`,
-      unitPriceInCents: combo.priceInCents,
-      minimumQuantity: 1,
-    })
-    setAdded(true)
-    setTimeout(() => setAdded(false), 1000)
-  }
 
   return (
     <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-background transition-all duration-300 hover:-translate-y-1.5 hover:border-lime/40 hover:shadow-[0_18px_50px_rgba(0,0,0,0.35),0_0_28px_rgba(239,255,13,0.08)]">
@@ -93,7 +76,7 @@ export function MarketplaceComboCard({ combo }: ComboCardProps) {
         <div className="absolute -inset-px bg-gradient-to-t from-background via-background/10 to-background/10" />
         <div className="absolute left-4 right-4 top-4 flex items-start justify-between gap-3">
           <span className="rounded-full border border-lime/25 bg-background/80 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-lime backdrop-blur-md">
-            {combo.items.length} produtos
+            {combo.totalUnits} unidades
           </span>
         </div>
         <div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-4">
@@ -126,31 +109,31 @@ export function MarketplaceComboCard({ combo }: ComboCardProps) {
           <div className="min-w-0">
             <p className="text-[9px] font-black uppercase tracking-[0.16em] text-muted-foreground">Composição</p>
             <p className="mt-0.5 truncate text-xs font-bold text-foreground">
-              {combo.items.length} produtos selecionados
+              {combo.totalUnits} unidades para escolher
             </p>
           </div>
         </div>
 
         <ul className="mt-5 space-y-2 text-sm text-foreground/75">
-          {combo.items.slice(0, 3).map((item) => (
-            <li key={item.id} className="line-clamp-1">
-              {item.quantity}x {item.product.name}
+          {combo.options.slice(0, 3).map((option) => (
+            <li key={option.id} className="line-clamp-1">
+              {option.product.name}
             </li>
           ))}
-          {combo.items.length > 3 && (
-            <li className="text-[10px] font-black uppercase text-purple-medium">+{combo.items.length - 3} itens</li>
+          {combo.options.length > 3 && (
+            <li className="text-[10px] font-black uppercase text-purple-medium">+{combo.options.length - 3} opções</li>
           )}
         </ul>
 
         <div className="mt-auto grid grid-cols-[1fr_auto] gap-3 pt-5">
-          <button
-            onClick={handleAdd}
-            className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-5 text-xs font-black tracking-wider transition-all duration-300 ${added ? "bg-purple-medium text-white" : "bg-lime text-background hover:shadow-[0_0_24px_rgba(239,255,13,0.25)]"}`}
-            aria-label={`Adicionar combo ${combo.name} ao pedido`}
+          <Link
+            href={detailHref}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-lime px-5 text-xs font-black tracking-wider text-background transition-all duration-300 hover:shadow-[0_0_24px_rgba(239,255,13,0.25)]"
+            aria-label={`Montar combo ${combo.name}`}
           >
-            {added ? <Check className="h-4 w-4" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}
-            {added ? "ADICIONADO" : "ADICIONAR AO PEDIDO"}
-          </button>
+            <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+            MONTAR COMBO
+          </Link>
         </div>
       </div>
     </article>
