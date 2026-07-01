@@ -133,6 +133,7 @@ function OrderCard({
   const number = `NF-${String(order.number).padStart(5, "0")}`
   const discountTotal = order.promotionDiscountInCents + order.couponDiscountInCents + order.pixDiscountInCents
   const progress = progressByStatus[order.status] ?? 12
+  const paymentDiscountLabel = order.paymentMethod === "PIX" ? "PIX" : "Cartao"
 
   return (
     <article className="overflow-hidden rounded-2xl border border-border bg-graphite">
@@ -171,7 +172,7 @@ function OrderCard({
             ) : (
               <CreditCard className="h-4 w-4 text-purple-medium" />
             )}
-            {order.paymentMethod === "PIX" ? "PIX com desconto" : "Cartão pelo WhatsApp"}
+            {order.paymentMethod === "PIX" ? "PIX" : "Cart�o pelo WhatsApp"}
           </p>
         </div>
       </div>
@@ -225,7 +226,9 @@ function OrderCard({
               <SummaryLine label="Promoções" value={-order.promotionDiscountInCents} />
             )}
             {order.couponDiscountInCents > 0 && <SummaryLine label="Cupom" value={-order.couponDiscountInCents} />}
-            {order.pixDiscountInCents > 0 && <SummaryLine label="PIX" value={-order.pixDiscountInCents} />}
+            {order.pixDiscountInCents > 0 && (
+              <SummaryLine label={paymentDiscountLabel} value={-order.pixDiscountInCents} />
+            )}
             {discountTotal <= 0 && <p className="text-muted-foreground">Sem descontos aplicados.</p>}
           </div>
         </div>
@@ -266,3 +269,5 @@ function formatDateTime(date: Date) {
     minute: "2-digit",
   }).format(date)
 }
+
+

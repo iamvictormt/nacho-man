@@ -19,7 +19,18 @@ type CouponPreview = {
   totalInCents: number
 }
 
-export function MarketplaceCartDrawer() {
+function paymentDiscountLabel(method: "PIX" | "CARD", discountPercent: number) {
+  if (discountPercent <= 0) return method === "PIX" ? "Sem desconto" : "Link pelo WhatsApp"
+  return `${discountPercent}% de desconto`
+}
+
+export function MarketplaceCartDrawer({
+  pixDiscountPercent,
+  cardDiscountPercent,
+}: {
+  pixDiscountPercent: number
+  cardDiscountPercent: number
+}) {
   const { items, open, closeCart, remove, setQuantity, clear } = useMarketplaceCart()
   const [paymentMethod, setPaymentMethod] = useState<"PIX" | "CARD">("PIX")
   const [coupon, setCoupon] = useState("")
@@ -46,11 +57,10 @@ export function MarketplaceCartDrawer() {
   if (!open) return null
 
   const subtotal = items.reduce((total, item) => total + item.unitPriceInCents * item.quantity, 0)
+  const activePaymentDiscountPercent = paymentMethod === "PIX" ? pixDiscountPercent : cardDiscountPercent
   const estimatedPixDiscount = couponPreview
     ? couponPreview.pixDiscountInCents
-    : paymentMethod === "PIX"
-      ? Math.round(subtotal * 0.04)
-      : 0
+    : Math.round(subtotal * (activePaymentDiscountPercent / 100))
   const estimatedTotal = couponPreview ? couponPreview.totalInCents : subtotal - estimatedPixDiscount
 
   async function applyCoupon() {
@@ -253,14 +263,14 @@ export function MarketplaceCartDrawer() {
                 className={`rounded-xl border p-4 text-left ${paymentMethod === "PIX" ? "border-lime bg-lime/10" : "border-border"}`}
               >
                 <span className="block text-xs font-black">PIX</span>
-                <span className="mt-1 block text-[10px] text-lime">4% de desconto</span>
+                <span className="mt-1 block text-[10px] text-lime">{paymentDiscountLabel("PIX", pixDiscountPercent)}</span>
               </button>
               <button
                 onClick={() => changePaymentMethod("CARD")}
                 className={`rounded-xl border p-4 text-left ${paymentMethod === "CARD" ? "border-lime bg-lime/10" : "border-border"}`}
               >
                 <span className="block text-xs font-black">CARTÃO</span>
-                <span className="mt-1 block text-[10px] text-muted-foreground">Link pelo WhatsApp</span>
+                <span className="mt-1 block text-[10px] text-muted-foreground">{paymentDiscountLabel("CARD", cardDiscountPercent)}</span>
               </button>
             </div>
             <div>
@@ -323,9 +333,9 @@ export function MarketplaceCartDrawer() {
                   <span>-{formatMoneyFromCents(couponPreview.franchiseDiscountInCents)}</span>
                 </div>
               )}
-              {paymentMethod === "PIX" && (
+              {estimatedPixDiscount > 0 && (
                 <div className="flex justify-between text-lime">
-                  <span>Desconto PIX estimado</span>
+                  <span>Desconto {paymentMethod === "PIX" ? "PIX" : "cart�o"} estimado</span>
                   <span>-{formatMoneyFromCents(estimatedPixDiscount)}</span>
                 </div>
               )}
@@ -344,7 +354,7 @@ export function MarketplaceCartDrawer() {
               {loading ? "CRIANDO PEDIDO..." : "FINALIZAR PELO WHATSAPP"}
             </button>
             <p className="text-center text-[10px] leading-4 text-muted-foreground">
-              A Factory enviará o código PIX ou o link de cartão na conversa.
+              A Factory enviará o código PIX ou o link de cartao na conversa.
             </p>
           </footer>
         )}
@@ -352,3 +362,4 @@ export function MarketplaceCartDrawer() {
     </>
   )
 }
+

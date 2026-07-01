@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { LoginExperience } from "@/components/login-experience"
 import { getCurrentUser } from "@/lib/auth"
+import { getLoginSideContent } from "@/lib/site-settings"
 
 export const metadata: Metadata = {
   title: "Acesso ao Marketplace",
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
 export default async function LoginPage() {
   const user = await getCurrentUser()
   if (user) redirect(user.role === "ADMIN" ? "/admin" : "/marketplace")
+  const sideContent = await getLoginSideContent()
 
-  return <LoginExperience />
+  return <LoginExperience sideContent={sideContent} />
 }

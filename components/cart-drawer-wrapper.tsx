@@ -2,6 +2,6 @@
 
 import { CartDrawer } from "@/components/cart-drawer"
 
-export function CartDrawerWrapper() {
-  return <CartDrawer />
+export function CartDrawerWrapper({ whatsappNumber }: { whatsappNumber: string }) {
+  return <CartDrawer whatsappNumber={whatsappNumber} />
 }

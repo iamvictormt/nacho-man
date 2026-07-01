@@ -5,38 +5,9 @@ import Link from "next/link"
 import { useState } from "react"
 import { ArrowLeft } from "lucide-react"
 import { LoginForm, type LoginMode } from "@/components/login-form"
+import type { LoginSideContent } from "@/lib/site-settings"
 
-const sideContent: Record<
-  LoginMode,
-  {
-    image: string
-    eyebrow: string
-    title: string
-    description: string
-  }
-> = {
-  login: {
-    image: "/embalagens-3.webp",
-    eyebrow: "Acesso ao marketplace",
-    title: "Entre para comprar com a Nacho Man.",
-    description: "Acesse sua conta para consultar produtos, montar pedidos e falar com a Nacho Factory.",
-  },
-  register: {
-    image: "/local-nacho-factory.webp",
-    eyebrow: "Novo cadastro",
-    title: "Cliente ou franqueado, seu acesso começa aqui.",
-    description:
-      "Crie uma conta comum para comprar ou solicite aprovação como franqueado informando os dados da unidade.",
-  },
-  forgot: {
-    image: "/camara-fria.webp",
-    eyebrow: "Recuperar senha",
-    title: "Receba um código e volte para sua conta.",
-    description: "Enviamos um código alfanumérico de 4 caracteres para confirmar sua identidade e trocar a senha.",
-  },
-}
-
-export function LoginExperience() {
+export function LoginExperience({ sideContent }: { sideContent: LoginSideContent }) {
   const [mode, setMode] = useState<LoginMode>("login")
   const content = sideContent[mode]
 
@@ -62,7 +33,6 @@ export function LoginExperience() {
             Voltar ao site
           </Link>
           <img src="/nacho-man-logo.png" alt="Nacho Man" className="h-20 w-auto" />
-          <p className="mt-8 text-xs font-black uppercase tracking-[.2em] text-purple-medium">Marketplace Nacho Man</p>
           <h2 className="mt-3 text-3xl font-black uppercase">Acesse sua conta</h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
             Entre, crie seu cadastro ou recupere sua senha para continuar.
@@ -75,3 +45,4 @@ export function LoginExperience() {
     </main>
   )
 }
+

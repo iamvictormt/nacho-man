@@ -14,10 +14,16 @@ export function AdminProductImageUpload({
   name = "image",
   label = "Imagem do produto",
   defaultValue = "",
+  folder = "produtos",
+  readyMessage = "Imagem pronta para salvar.",
+  emptyMessage = "Nenhuma imagem selecionada.",
 }: {
   name?: string
   label?: string
   defaultValue?: string | null
+  folder?: "produtos" | "login"
+  readyMessage?: string
+  emptyMessage?: string
 }) {
   const [imageUrl, setImageUrl] = React.useState(defaultValue ?? "")
   const [isUploading, setIsUploading] = React.useState(false)
@@ -32,6 +38,7 @@ export function AdminProductImageUpload({
 
     const body = new FormData()
     body.append("file", file)
+    body.append("folder", folder)
 
     try {
       const response = await fetch("/api/admin/cloudinary-upload", {
@@ -84,7 +91,7 @@ export function AdminProductImageUpload({
         </label>
         <div className="flex min-h-14 flex-col gap-3 px-4 py-3 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
           <p className="min-w-0 truncate text-[10px] font-bold text-muted-foreground">
-            {imageUrl ? "Imagem pronta para salvar no produto." : "Nenhuma imagem selecionada."}
+            {imageUrl ? readyMessage : emptyMessage}
           </p>
           {imageUrl && (
             <button

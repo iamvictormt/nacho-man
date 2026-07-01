@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { X } from "lucide-react"
+import { Plus, X } from "lucide-react"
+import { cn } from "@/lib/utils"
 import {
   Dialog,
   DialogClose,
@@ -14,14 +15,16 @@ import {
 
 export function AdminModal({
   id,
-  trigger,
+  triggerLabel,
+  triggerClassName,
   title,
   description,
   children,
   size = "md",
 }: {
   id: string
-  trigger: React.ReactNode
+  triggerLabel: string
+  triggerClassName: string
   title: string
   description?: string
   children: React.ReactNode
@@ -39,7 +42,17 @@ export function AdminModal({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "group transition hover:shadow-[0_0_24px_rgba(239,255,13,.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime/60",
+            triggerClassName
+          )}
+        >
+          <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" /> {triggerLabel}
+        </button>
+      </DialogTrigger>
       <DialogContent
         showCloseButton={false}
         className={`max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] overflow-y-auto border-border bg-background p-0 sm:max-h-[90vh] ${

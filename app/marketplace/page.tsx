@@ -12,6 +12,8 @@ import {
 import { prisma } from "@/lib/prisma"
 import { requireMarketplaceUser } from "@/lib/auth"
 import { formatMoneyFromCents } from "@/lib/money"
+import { getPaymentDiscountSettings, getStoreWhatsAppNumber } from "@/lib/site-settings"
+import { buildWhatsAppUrl } from "@/lib/whatsapp"
 import { adaptMarketplaceProduct } from "@/lib/marketplace-product-adapter"
 import { MarketplaceComboCard } from "@/components/marketplace-combo-card"
 import { PrivatePageHeader } from "@/components/private-page-header"
@@ -31,6 +33,13 @@ const activeOrderStatuses = ["AWAITING_SERVICE", "AWAITING_PAYMENT", "PAYMENT_CO
 
 export default async function MarketplacePage() {
   const user = await requireMarketplaceUser()
+  const [whatsappNumber, paymentDiscounts] = await Promise.all([getStoreWhatsAppNumber(), getPaymentDiscountSettings()])
+  const paymentDiscountSummary = [
+    paymentDiscounts.pixDiscountPercent > 0 ? `PIX com ${paymentDiscounts.pixDiscountPercent}% OFF` : null,
+    paymentDiscounts.cardDiscountPercent > 0 ? `cartao com ${paymentDiscounts.cardDiscountPercent}% OFF` : null,
+  ]
+    .filter(Boolean)
+    .join(" - ")
   const now = new Date()
   const showCombos = user.role === "FRANCHISEE"
   const audience = user.role === "FRANCHISEE" ? "FRANCHISEE" : "PUBLIC"
@@ -92,7 +101,7 @@ export default async function MarketplacePage() {
         <div className="flex max-w-xs items-center gap-3 rounded-2xl border border-lime/20 bg-lime/10 p-4">
           <ShieldCheck className="h-6 w-6 shrink-0 text-lime" />
           <div>
-            <p className="text-xs font-black uppercase">PIX com 4% OFF</p>
+            <p className="text-xs font-black uppercase">{paymentDiscountSummary || "Pagamento pelo WhatsApp"}</p>
             <p className="mt-1 text-[10px] leading-4 text-muted-foreground">
               Desconto aplicado automaticamente ao pedido.
             </p>
@@ -152,7 +161,7 @@ export default async function MarketplacePage() {
                 text="Conferir status, valores e itens já solicitados."
               />
               <QuickLink
-                href="https://wa.me/554797269146"
+                href={buildWhatsAppUrl(whatsappNumber)}
                 title="Falar com suporte"
                 text="Tirar dúvidas com o time Nacho Factory."
                 external

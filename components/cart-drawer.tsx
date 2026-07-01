@@ -3,11 +3,11 @@
 import { CheckCircle2, Minus, Plus, ShieldCheck, ShoppingCart, Trash2, X } from "lucide-react"
 import { useCartStore } from "@/lib/cart-store"
 import { formatPrice } from "@/lib/format"
-import { generateWhatsAppMessage, buildWhatsAppUrl, STORE_WHATSAPP_NUMBER } from "@/lib/whatsapp"
+import { generateWhatsAppMessage, buildWhatsAppUrl } from "@/lib/whatsapp"
 import { useEffect, useRef, useState, useCallback } from "react"
 import { useLockBodyScroll } from "@/hooks/use-lock-body-scroll"
 
-export function CartDrawer() {
+export function CartDrawer({ whatsappNumber }: { whatsappNumber: string }) {
   const { items, isOpen, closeCart, removeItem, updateQuantity, totalItems, totalPrice, clearCart } = useCartStore()
 
   // Controls the animated state (delayed close for exit animation)
@@ -97,7 +97,7 @@ export function CartDrawer() {
     if (items.length === 0) return
 
     const message = generateWhatsAppMessage(items)
-    const url = buildWhatsAppUrl(STORE_WHATSAPP_NUMBER, message)
+    const url = buildWhatsAppUrl(whatsappNumber, message)
 
     const newWindow = window.open(url, "_blank")
 
@@ -230,7 +230,7 @@ export function CartDrawer() {
               <p className="text-xs text-center text-red-400 font-semibold">
                 O redirecionamento foi bloqueado pelo navegador. Permita pop-ups ou{" "}
                 <a
-                  href={buildWhatsAppUrl(STORE_WHATSAPP_NUMBER, generateWhatsAppMessage(items))}
+                  href={buildWhatsAppUrl(whatsappNumber, generateWhatsAppMessage(items))}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline text-lime"

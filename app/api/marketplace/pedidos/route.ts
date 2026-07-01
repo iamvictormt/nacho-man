@@ -4,7 +4,8 @@ import { z } from "zod"
 import { getCurrentUser } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
-import { buildWhatsAppUrl, STORE_WHATSAPP_NUMBER } from "@/lib/whatsapp"
+import { getPaymentDiscountSettings, getStoreWhatsAppNumber } from "@/lib/site-settings"
+import { buildWhatsAppUrl } from "@/lib/whatsapp"
 import { sendOrderConfirmationEmail } from "@/lib/order-email"
 
 export const runtime = "nodejs"
@@ -34,6 +35,10 @@ function calculateDiscount(type: "PERCENTAGE" | "FIXED", value: number, base: nu
   return type === "PERCENTAGE" ? Math.round(base * (value / 100)) : Math.min(value, base)
 }
 
+function getPaymentDiscountPercent(method: "PIX" | "CARD", settings: Awaited<ReturnType<typeof getPaymentDiscountSettings>>) {
+  return method === "PIX" ? settings.pixDiscountPercent : settings.cardDiscountPercent
+}
+
 function canUseMarketplace(user: Awaited<ReturnType<typeof getCurrentUser>>) {
   return Boolean(user && user.role !== "ADMIN" && (user.role !== "FRANCHISEE" || user.franchise?.active))
 }
@@ -50,6 +55,7 @@ export async function PUT(request: Request) {
   }
 
   const now = new Date()
+  const paymentSettings = await getPaymentDiscountSettings()
   const code = parsed.data.coupon.toUpperCase()
   const coupon = await prisma.coupon.findUnique({ where: { code } })
 
@@ -69,7 +75,8 @@ export async function PUT(request: Request) {
   const franchiseDiscountInCents =
     user?.role === "FRANCHISEE" && user.franchise ? Math.round(afterCoupon * (user.franchise.priceDiscount / 100)) : 0
   const pixBase = Math.max(0, afterCoupon - franchiseDiscountInCents)
-  const pixDiscountInCents = parsed.data.paymentMethod === "PIX" ? Math.round(pixBase * 0.04) : 0
+  const paymentDiscountPercent = getPaymentDiscountPercent(parsed.data.paymentMethod, paymentSettings)
+  const pixDiscountInCents = Math.round(pixBase * (paymentDiscountPercent / 100))
 
   return NextResponse.json({
     code,
@@ -100,6 +107,7 @@ export async function POST(request: Request) {
   const productIds = [...new Set(productRequests.map((item) => item.id))]
   const comboIds = [...new Set(comboRequests.map((item) => item.id))]
   const now = new Date()
+  const paymentSettings = await getPaymentDiscountSettings()
   const productAudience = user!.role === "FRANCHISEE" ? "FRANCHISEE" : "PUBLIC"
   const [products, combos] = await Promise.all([
     prisma.product.findMany({
@@ -212,7 +220,8 @@ export async function POST(request: Request) {
       ? Math.round(afterCoupon * (user!.franchise.priceDiscount / 100))
       : 0
   const pixBase = Math.max(0, afterCoupon - franchiseDiscountInCents)
-  const pixDiscountInCents = parsed.data.paymentMethod === "PIX" ? Math.round(pixBase * 0.04) : 0
+  const paymentDiscountPercent = getPaymentDiscountPercent(parsed.data.paymentMethod, paymentSettings)
+  const pixDiscountInCents = Math.round(pixBase * (paymentDiscountPercent / 100))
   const totalInCents = Math.max(0, pixBase - pixDiscountInCents)
 
   const order = await prisma.$transaction(async (transaction) => {
@@ -266,7 +275,9 @@ export async function POST(request: Request) {
     order.couponDiscountInCents > 0
       ? `Cupom ${coupon?.code}: -${formatMoneyFromCents(order.couponDiscountInCents)}`
       : null,
-    order.pixDiscountInCents > 0 ? `Desconto PIX (4%): -${formatMoneyFromCents(order.pixDiscountInCents)}` : null,
+    order.pixDiscountInCents > 0
+      ? `Desconto ${order.paymentMethod === "PIX" ? "PIX" : "cartao"} (${paymentDiscountPercent}%): -${formatMoneyFromCents(order.pixDiscountInCents)}`
+      : null,
     `*Total estimado: ${formatMoneyFromCents(order.totalInCents)}*`,
     "",
     `Pagamento: ${paymentText}`,
@@ -295,6 +306,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     orderNumber,
-    whatsappUrl: buildWhatsAppUrl(STORE_WHATSAPP_NUMBER, message),
+    whatsappUrl: buildWhatsAppUrl(await getStoreWhatsAppNumber(), message),
   })
 }

@@ -1,13 +1,24 @@
 import type { CartItem } from "./cart-store"
 import { formatPrice } from "./format"
 
-/** Número de WhatsApp comercial da Nacho Factory (com código do país). */
-export const STORE_WHATSAPP_NUMBER = "554797269146"
+export const DEFAULT_STORE_WHATSAPP_NUMBER = "554797269146"
+export const STORE_WHATSAPP_NUMBER = DEFAULT_STORE_WHATSAPP_NUMBER
 
-/**
- * Gera mensagem formatada para envio via WhatsApp com os itens do orçamento.
- * Inclui saudação, lista numerada com nome, quantidade e subtotal estimado por item.
- */
+export function sanitizeWhatsAppNumber(value: FormDataEntryValue | string | null | undefined) {
+  const digits = String(value ?? "").replace(/\D/g, "")
+  if (!digits) return DEFAULT_STORE_WHATSAPP_NUMBER
+  return digits.startsWith("55") ? digits : `55${digits}`
+}
+
+export function formatWhatsAppDisplay(number: string): string {
+  const local = number.replace(/^55/, "")
+  const ddd = local.slice(0, 2)
+  const subscriber = local.slice(2)
+  const first = subscriber.slice(0, Math.max(4, subscriber.length - 4))
+  const last = subscriber.slice(-4)
+  return `+55 ${ddd} ${first}-${last}`
+}
+
 export function generateWhatsAppMessage(items: CartItem[]): string {
   const greeting = "Olá! Gostaria de solicitar um orçamento com os seguintes itens:"
 
@@ -32,10 +43,8 @@ export function generateWhatsAppMessage(items: CartItem[]): string {
   return lines.join("\n")
 }
 
-/**
- * Constrói a URL do WhatsApp (wa.me) com número e mensagem URL-encoded.
- */
-export function buildWhatsAppUrl(phone: string, message: string): string {
+export function buildWhatsAppUrl(phone: string, message = ""): string {
   const encodedMessage = encodeURIComponent(message)
-  return `https://wa.me/${phone}?text=${encodedMessage}`
+  return message ? `https://wa.me/${phone}?text=${encodedMessage}` : `https://wa.me/${phone}`
 }
+

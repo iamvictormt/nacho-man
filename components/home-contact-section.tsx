@@ -12,7 +12,7 @@ import {
   Phone,
   ShoppingCart,
 } from "lucide-react"
-import { buildWhatsAppUrl, STORE_WHATSAPP_NUMBER } from "@/lib/whatsapp"
+import { buildWhatsAppUrl, formatWhatsAppDisplay } from "@/lib/whatsapp"
 
 const topics = [
   {
@@ -41,12 +41,12 @@ const serviceBenefits = [
   "Atendimento direto com nosso time",
 ]
 
-export function HomeContactSection() {
+export function HomeContactSection({ whatsappNumber }: { whatsappNumber: string }) {
   const [popupBlocked, setPopupBlocked] = useState(false)
   const [blockedUrl, setBlockedUrl] = useState("")
 
   function openWhatsApp(message: string) {
-    const url = buildWhatsAppUrl(STORE_WHATSAPP_NUMBER, message)
+    const url = buildWhatsAppUrl(whatsappNumber, message)
     const newWindow = window.open(url, "_blank")
 
     if (!newWindow) {
@@ -107,7 +107,7 @@ export function HomeContactSection() {
             ))}
 
             <div className="grid grid-cols-1 gap-3 pt-3 sm:grid-cols-3">
-              <ContactInfo icon={Phone} label="WhatsApp" value="+55 47 9726-9146" />
+              <ContactInfo icon={Phone} label="WhatsApp" value={formatWhatsAppDisplay(whatsappNumber)} />
               <ContactInfo icon={Clock} label="Horário" value="Seg a sex, 7h–17h30" />
               <ContactInfo icon={MapPin} label="Localização" value="Blumenau, SC" />
             </div>

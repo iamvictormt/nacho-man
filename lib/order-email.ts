@@ -8,7 +8,7 @@ const statusLabels: Record<string, string> = {
   AWAITING_SERVICE: "Aguardando atendimento",
   AWAITING_PAYMENT: "Aguardando pagamento",
   PAYMENT_CONFIRMED: "Pagamento confirmado",
-  PICKING: "Em separação",
+  PICKING: "Em separaÃ§Ã£o",
   SHIPPED: "Enviado",
   DELIVERED: "Entregue",
   CANCELLED: "Cancelado",
@@ -48,7 +48,8 @@ function escapeHtml(value: string) {
 
 function buildOrderConfirmationHtml(input: OrderConfirmationEmailInput) {
   const statusLabel = statusLabels[input.status] ?? input.status
-  const paymentLabel = input.paymentMethod === "PIX" ? "PIX" : "Cartão"
+  const paymentLabel = input.paymentMethod === "PIX" ? "PIX" : "Cartao"
+  const paymentDiscountLabel = input.paymentMethod === "PIX" ? "Desconto PIX" : "Desconto cartao"
   const discountRows = [
     input.promotionDiscountInCents > 0
       ? `<tr><td style="padding:6px 0;color:#9ca3af;">Descontos</td><td align="right" style="padding:6px 0;color:#fca5a5;font-weight:800;">-${formatMoneyFromCents(input.promotionDiscountInCents)}</td></tr>`
@@ -57,7 +58,7 @@ function buildOrderConfirmationHtml(input: OrderConfirmationEmailInput) {
       ? `<tr><td style="padding:6px 0;color:#9ca3af;">Cupom</td><td align="right" style="padding:6px 0;color:#fca5a5;font-weight:800;">-${formatMoneyFromCents(input.couponDiscountInCents)}</td></tr>`
       : "",
     input.pixDiscountInCents > 0
-      ? `<tr><td style="padding:6px 0;color:#9ca3af;">Desconto PIX</td><td align="right" style="padding:6px 0;color:#fca5a5;font-weight:800;">-${formatMoneyFromCents(input.pixDiscountInCents)}</td></tr>`
+      ? `<tr><td style="padding:6px 0;color:#9ca3af;">${paymentDiscountLabel}</td><td align="right" style="padding:6px 0;color:#fca5a5;font-weight:800;">-${formatMoneyFromCents(input.pixDiscountInCents)}</td></tr>`
       : "",
   ].join("")
 
@@ -92,7 +93,7 @@ function buildOrderConfirmationHtml(input: OrderConfirmationEmailInput) {
             <tr>
               <td style="padding:26px;">
                 <p style="margin:0 0 18px;color:#e5e7eb;font-size:15px;line-height:1.6;">
-                  Olá, ${escapeHtml(input.customerName)}. Recebemos o pedido <strong style="color:#d6ff2f;">${escapeHtml(input.orderNumber)}</strong> da unidade <strong>${escapeHtml(input.franchiseName)}</strong>.
+                  OlÃ¡, ${escapeHtml(input.customerName)}. Recebemos o pedido <strong style="color:#d6ff2f;">${escapeHtml(input.orderNumber)}</strong> da unidade <strong>${escapeHtml(input.franchiseName)}</strong>.
                 </p>
 
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 22px;">
@@ -124,7 +125,7 @@ function buildOrderConfirmationHtml(input: OrderConfirmationEmailInput) {
 
                 ${
                   input.notes
-                    ? `<p style="margin:24px 0 0;padding:14px;border-left:3px solid #7c3aed;background:#111111;color:#d1d5db;font-size:13px;line-height:1.5;"><strong style="color:#ffffff;">Observações:</strong> ${escapeHtml(input.notes)}</p>`
+                    ? `<p style="margin:24px 0 0;padding:14px;border-left:3px solid #7c3aed;background:#111111;color:#d1d5db;font-size:13px;line-height:1.5;"><strong style="color:#ffffff;">ObservaÃ§Ãµes:</strong> ${escapeHtml(input.notes)}</p>`
                     : ""
                 }
 
@@ -142,11 +143,12 @@ function buildOrderConfirmationHtml(input: OrderConfirmationEmailInput) {
 }
 
 function buildOrderConfirmationText(input: OrderConfirmationEmailInput) {
+  const paymentDiscountLabel = input.paymentMethod === "PIX" ? "Desconto PIX" : "Desconto cartao"
   const lines = [
     `Pedido ${input.orderNumber} confirmado.`,
     `Unidade: ${input.franchiseName}`,
     `Status atual: ${statusLabels[input.status] ?? input.status}`,
-    `Pagamento: ${input.paymentMethod === "PIX" ? "PIX" : "Cartão"}`,
+    `Pagamento: ${input.paymentMethod === "PIX" ? "PIX" : "Cartao"}`,
     "",
     ...input.items.map(
       (item) => `${item.quantity} ${item.unit} - ${item.name}: ${formatMoneyFromCents(item.totalInCents)}`
@@ -155,7 +157,9 @@ function buildOrderConfirmationText(input: OrderConfirmationEmailInput) {
     `Subtotal: ${formatMoneyFromCents(input.subtotalInCents)}`,
     input.promotionDiscountInCents > 0 ? `Descontos: -${formatMoneyFromCents(input.promotionDiscountInCents)}` : "",
     input.couponDiscountInCents > 0 ? `Cupom: -${formatMoneyFromCents(input.couponDiscountInCents)}` : "",
-    input.pixDiscountInCents > 0 ? `Desconto PIX: -${formatMoneyFromCents(input.pixDiscountInCents)}` : "",
+    input.pixDiscountInCents > 0
+      ? `${paymentDiscountLabel}: -${formatMoneyFromCents(input.pixDiscountInCents)}`
+      : "",
     `Total estimado: ${formatMoneyFromCents(input.totalInCents)}`,
   ]
 
@@ -170,4 +174,5 @@ export async function sendOrderConfirmationEmail(input: OrderConfirmationEmailIn
     text: buildOrderConfirmationText(input),
   })
 }
+
 

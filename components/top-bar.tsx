@@ -1,17 +1,22 @@
 "use client"
 
 import { Factory, MessageCircle, PackageCheck, Snowflake } from "lucide-react"
+import { formatWhatsAppDisplay } from "@/lib/whatsapp"
 
-const mobileMessages = [
-  { icon: MessageCircle, text: "WhatsApp +55 47 9726-9146" },
+const staticMessages = [
   { icon: PackageCheck, text: "Produtos prontos para uso" },
   { icon: Snowflake, text: "Carnes, molhos e congelados" },
   { icon: Factory, text: "Estrutura industrial 700m²" },
 ]
 
-export function TopBar() {
+export function TopBar({ whatsappNumber }: { whatsappNumber: string }) {
+  const mobileMessages = [
+    { icon: MessageCircle, text: `WhatsApp ${formatWhatsAppDisplay(whatsappNumber)}` },
+    ...staticMessages,
+  ]
+
   return (
-    <div data-site-topbar className="w-full bg-lime relative overflow-hidden">
+    <div data-site-topbar className="relative w-full overflow-hidden bg-lime">
       <div className="relative mx-auto flex h-9 max-w-7xl items-center justify-center px-4 sm:h-10">
         <div className="h-4 overflow-hidden" aria-label="Atendimento comercial e informações da Nacho Factory">
           <div className="topbar-vertical-ticker flex flex-col">
@@ -33,3 +38,4 @@ export function TopBar() {
     </div>
   )
 }
+

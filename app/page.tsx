@@ -8,7 +8,8 @@ import { ProductDetailCard } from "@/components/product-detail-card"
 import { SectionHeading } from "@/components/section-heading"
 import { catalogProductsBySlug } from "@/lib/products"
 import { absoluteUrl } from "@/lib/seo"
-import { buildWhatsAppUrl, STORE_WHATSAPP_NUMBER } from "@/lib/whatsapp"
+import { getStoreWhatsAppNumber } from "@/lib/site-settings"
+import { buildWhatsAppUrl } from "@/lib/whatsapp"
 
 export const metadata: Metadata = {
   title: "Alimentos Prontos para sua Operação",
@@ -80,9 +81,10 @@ const homeBestSellerProducts = homeBestSellerSlugs
   .map((slug) => catalogProductsBySlug.get(slug))
   .filter((product) => product !== undefined)
 
-export default function Home() {
+export default async function Home() {
+  const whatsappNumber = await getStoreWhatsAppNumber()
   const whatsappUrl = buildWhatsAppUrl(
-    STORE_WHATSAPP_NUMBER,
+    whatsappNumber,
     "Olá! Vim pelo site da Nacho Factory e gostaria de solicitar um orçamento."
   )
 
@@ -93,7 +95,7 @@ export default function Home() {
       <CatalogSection />
       <ProcessSection />
       <HomeAboutSection />
-      <HomeContactSection />
+      <HomeContactSection whatsappNumber={whatsappNumber} />
     </>
   )
 }
@@ -236,3 +238,4 @@ function ProcessSection() {
     </section>
   )
 }
+

@@ -2,8 +2,9 @@
 
 import { ArrowRight, MessageCircle } from "lucide-react"
 import Link from "next/link"
+import { buildWhatsAppUrl } from "@/lib/whatsapp"
 
-export function NewsletterSection() {
+export function NewsletterSection({ whatsappNumber }: { whatsappNumber: string }) {
   return (
     <section className="py-24 bg-graphite relative overflow-hidden">
       {/* Neon accent lines */}
@@ -72,7 +73,7 @@ export function NewsletterSection() {
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
           <a
-            href="https://wa.me/5547999999999"
+            href={buildWhatsAppUrl(whatsappNumber)}
             target="_blank"
             rel="noopener noreferrer"
             className="group inline-flex items-center justify-center gap-3 border-2 border-purple-medium/40 text-foreground font-bold text-sm px-8 py-4 rounded-full hover:border-purple-medium hover:text-purple-medium hover:shadow-[0_0_20px_rgba(91,45,130,0.2)] transition-all duration-300"

@@ -1,4 +1,4 @@
-import { MapPinned, Plus } from "lucide-react"
+import { MapPinned } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import { AdminActionForm } from "@/components/admin-action-form"
 import { AdminModal } from "@/components/admin-modal"
@@ -46,11 +46,8 @@ export default async function FranchisesPage({ searchParams }: { searchParams?: 
           title="Cadastrar unidade"
           description="Crie a unidade e o primeiro acesso ao marketplace."
           size="md"
-          trigger={
-            <button className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-lime px-6 text-[10px] font-black text-background md:w-auto">
-              <Plus className="h-4 w-4" /> NOVA UNIDADE
-            </button>
-          }
+          triggerLabel="NOVA UNIDADE"
+          triggerClassName="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-lime px-6 text-[10px] font-black text-background md:w-auto"
         >
           <FranchiseForm
             action={createFranchiseAction}

@@ -1,4 +1,4 @@
-import { Package, PackagePlus, Plus } from "lucide-react"
+import { Package, PackagePlus } from "lucide-react"
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
@@ -65,11 +65,8 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
           title="Cadastrar produto"
           description={`Preencha as informações exibidas em ${PRODUCT_AUDIENCES[audience].label.toLowerCase()}.`}
           size="lg"
-          trigger={
-            <button className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-lime px-6 text-[10px] font-black text-background md:w-auto">
-              <Plus className="h-4 w-4" /> NOVO PRODUTO
-            </button>
-          }
+          triggerLabel="NOVO PRODUTO"
+          triggerClassName="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-lime px-6 text-[10px] font-black text-background md:w-auto"
         >
           <ProductForm
             action={createProductAction}
@@ -350,3 +347,4 @@ function PageTitle({ audience }: { audience: ProductAudienceValue }) {
 function moneyInput(cents: number) {
   return (cents / 100).toFixed(2).replace(".", ",")
 }
+

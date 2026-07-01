@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { STORE_WHATSAPP_NUMBER, buildWhatsAppUrl } from "@/lib/whatsapp"
+import { buildWhatsAppUrl, formatWhatsAppDisplay } from "@/lib/whatsapp"
 
 const structureLinks = [
   { label: "Produção terceirizada", href: "/#estrutura" },
@@ -8,20 +8,11 @@ const structureLinks = [
   { label: "Desenvolvimento de Receitas", href: "/#estrutura" },
 ]
 
-function formatWhatsAppDisplay(number: string): string {
-  const local = number.replace(/^55/, "")
-  const ddd = local.slice(0, 2)
-  const subscriber = local.slice(2)
-  const first = subscriber.slice(0, Math.max(4, subscriber.length - 4))
-  const last = subscriber.slice(-4)
-  return `+55 ${ddd} ${first}-${last}`
-}
-
-export function SiteFooter() {
+export function SiteFooter({ whatsappNumber }: { whatsappNumber: string }) {
   const year = new Date().getFullYear()
-  const whatsappDisplay = formatWhatsAppDisplay(STORE_WHATSAPP_NUMBER)
+  const whatsappDisplay = formatWhatsAppDisplay(whatsappNumber)
   const whatsappUrl = buildWhatsAppUrl(
-    STORE_WHATSAPP_NUMBER,
+    whatsappNumber,
     "Olá! Vim pelo site da Nacho Factory e gostaria de atendimento comercial."
   )
 

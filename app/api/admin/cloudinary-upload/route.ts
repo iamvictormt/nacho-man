@@ -28,7 +28,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Envie uma imagem válida." }, { status: 400 })
   }
 
-  const folder = "nacho-man/produtos"
+  const uploadFolder = String(formData.get("folder") ?? "produtos")
+  const folder = uploadFolder === "login" ? "nacho-man/login" : "nacho-man/produtos"
   const timestamp = Math.floor(Date.now() / 1000).toString()
   const signaturePayload = `folder=${folder}&timestamp=${timestamp}${apiSecret}`
   const signature = createHash("sha1").update(signaturePayload).digest("hex")
@@ -52,3 +53,4 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ url: data.secure_url ?? data.url })
 }
+

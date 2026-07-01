@@ -11,6 +11,7 @@ import {
   MessageCircle,
   PackageSearch,
   ReceiptText,
+  Settings,
   Store,
   Tags,
   UsersRound,
@@ -19,6 +20,7 @@ import {
 } from "lucide-react"
 import { logoutAction } from "@/app/login/actions"
 import { LogoutSubmitButton } from "@/components/logout-submit-button"
+import { buildWhatsAppUrl } from "@/lib/whatsapp"
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -35,7 +37,9 @@ type PrivateShellProps = {
   children: React.ReactNode
   area: "admin" | "marketplace"
   userName: string
+  userRole?: "ADMIN" | "FRANCHISEE" | "USER"
   organizationName?: string
+  whatsappNumber: string
   showMarketplaceCombos?: boolean
 }
 
@@ -43,12 +47,19 @@ export function PrivateShell({
   children,
   area,
   userName,
+  userRole,
   organizationName,
+  whatsappNumber,
   showMarketplaceCombos = true,
 }: PrivateShellProps) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const admin = area === "admin"
+  const footerDescription = admin
+    ? "Painel administrativo Nacho Man"
+    : userRole === "FRANCHISEE"
+      ? "Portal exclusivo para franqueados Nacho Man"
+      : "Portal de compras Nacho Man"
   const homeHref = admin ? "/admin" : "/marketplace"
   const links = admin
     ? [
@@ -58,6 +69,7 @@ export function PrivateShell({
         { href: "/admin/campanhas", label: "Promoções", icon: Tags },
         { href: "/admin/usuarios", label: "Usuários", icon: UsersRound },
         { href: "/admin/pedidos", label: "Pedidos", icon: ReceiptText },
+        { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
       ]
     : [
         { href: "/marketplace", label: "Início", icon: Store, exact: true },
@@ -231,11 +243,11 @@ export function PrivateShell({
             <img src="/nacho-man-logo.png" alt="" className="h-10 w-auto opacity-80" />
             <div className="border-l border-border pl-4">
               <p className="text-[10px] font-black uppercase tracking-wider text-foreground">Nacho Factory</p>
-              <p className="mt-1 text-[10px] text-muted-foreground">Portal exclusivo da rede Nacho Man</p>
+              <p className="mt-1 text-[10px] text-muted-foreground">{footerDescription}</p>
             </div>
           </div>
           <a
-            href="https://wa.me/554797269146"
+            href={buildWhatsAppUrl(whatsappNumber)}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-foreground/65 hover:text-lime"

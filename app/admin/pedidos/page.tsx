@@ -125,7 +125,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
                       ) : (
                         <CreditCard className="h-4 w-4 text-purple-medium" />
                       )}
-                      {order.paymentMethod === "PIX" ? "PIX" : "Cartão"}
+                      {order.paymentMethod === "PIX" ? "PIX" : "Cartao"}
                     </p>
                   </div>
                   <div>
@@ -193,6 +193,7 @@ function OrderManagement({
   modalId: string
 }) {
   const number = `NF-${String(order.number).padStart(5, "0")}`
+  const paymentDiscountLabel = order.paymentMethod === "PIX" ? "Desconto PIX" : "Desconto cartao"
   return (
     <div className="space-y-7 pt-1">
       <section>
@@ -249,7 +250,9 @@ function OrderManagement({
               <SummaryLine label="Promoções" value={-order.promotionDiscountInCents} />
             )}
             {order.couponDiscountInCents > 0 && <SummaryLine label="Cupom" value={-order.couponDiscountInCents} />}
-            {order.pixDiscountInCents > 0 && <SummaryLine label="Desconto PIX" value={-order.pixDiscountInCents} />}
+            {order.pixDiscountInCents > 0 && (
+              <SummaryLine label={paymentDiscountLabel} value={-order.pixDiscountInCents} />
+            )}
             <div className="flex justify-between border-t border-border pt-3 text-base font-black">
               <span>Total</span>
               <span className="text-lime">{formatMoneyFromCents(order.totalInCents)}</span>
@@ -261,7 +264,7 @@ function OrderManagement({
             ) : (
               <CreditCard className="h-4 w-4 text-purple-medium" />
             )}
-            {order.paymentMethod === "PIX" ? "Pagamento via PIX" : "Pagamento via cartão"}
+            {order.paymentMethod === "PIX" ? "Pagamento via PIX" : "Pagamento via cartao"}
           </p>
         </div>
       </section>

@@ -1,4 +1,4 @@
-import { Percent, Plus, Ticket } from "lucide-react"
+import { Percent, Ticket } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
 import { AdminActionForm } from "@/components/admin-action-form"
@@ -60,11 +60,8 @@ export default async function CampaignsPage({ searchParams }: { searchParams?: P
             id="create-promotion"
             title="Criar promoção"
             size="md"
-            trigger={
-              <button className="flex h-11 w-full items-center justify-center gap-2 rounded-full border border-lime/30 px-4 text-[10px] font-black text-lime md:w-auto md:px-5">
-                <Plus className="h-4 w-4" /> PROMOÇÃO
-              </button>
-            }
+            triggerLabel="PROMOÇÃO"
+            triggerClassName="flex h-11 w-full items-center justify-center gap-2 rounded-full border border-lime/30 px-4 text-[10px] font-black text-lime md:w-auto md:px-5"
           >
             <PromotionForm
               action={createPromotionAction}
@@ -78,11 +75,8 @@ export default async function CampaignsPage({ searchParams }: { searchParams?: P
             id="create-coupon"
             title="Criar cupom"
             size="md"
-            trigger={
-              <button className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-lime px-4 text-[10px] font-black text-background md:w-auto md:px-5">
-                <Plus className="h-4 w-4" /> CUPOM
-              </button>
-            }
+            triggerLabel="CUPOM"
+            triggerClassName="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-lime px-4 text-[10px] font-black text-background md:w-auto md:px-5"
           >
             <CouponForm
               action={createCouponAction}
@@ -421,8 +415,14 @@ function moneyInput(cents: number) {
   return (cents / 100).toFixed(2).replace(".", ",")
 }
 function dateInput(date: Date) {
-  return date.toLocaleDateString("pt-BR")
+  return formatBrazilianDate(date)
 }
 function formatPeriod(start: Date, end: Date) {
-  return `${start.toLocaleDateString("pt-BR")} até ${end.toLocaleDateString("pt-BR")}`
+  return `${formatBrazilianDate(start)} até ${formatBrazilianDate(end)}`
+}
+function formatBrazilianDate(date: Date) {
+  const day = String(date.getUTCDate()).padStart(2, "0")
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0")
+  const year = date.getUTCFullYear()
+  return `${day}/${month}/${year}`
 }

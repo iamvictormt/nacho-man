@@ -7,7 +7,7 @@ import { SiteFooter } from "@/components/site-footer"
 import { CartDrawerWrapper } from "@/components/cart-drawer-wrapper"
 import { HashScrollHandler } from "@/components/hash-scroll-handler"
 
-export function SiteChrome({ children }: { children: React.ReactNode }) {
+export function SiteChrome({ children, whatsappNumber }: { children: React.ReactNode; whatsappNumber: string }) {
   const pathname = usePathname()
   const privateArea = pathname === "/login" || pathname.startsWith("/admin") || pathname.startsWith("/marketplace")
 
@@ -15,12 +15,12 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <TopBar />
+      <TopBar whatsappNumber={whatsappNumber} />
       <Navbar />
       <HashScrollHandler />
       <main>{children}</main>
-      <SiteFooter />
-      <CartDrawerWrapper />
+      <SiteFooter whatsappNumber={whatsappNumber} />
+      <CartDrawerWrapper whatsappNumber={whatsappNumber} />
     </>
   )
 }

@@ -122,6 +122,8 @@ export function AdminInput({
   onChange,
   type: _type,
   defaultValue,
+  min,
+  max,
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement> & {
   label: string
@@ -132,6 +134,18 @@ export function AdminInput({
   const fieldId = id ?? name
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (mask) event.currentTarget.value = formatMaskedValue(event.currentTarget.value, mask)
+    if ((mask === "integer" || mask === "decimal") && (min !== undefined || max !== undefined)) {
+      const value = event.currentTarget.value
+      if (value) {
+        const numericValue = Number(value.replace(",", "."))
+        const minValue = min === undefined ? undefined : Number(min)
+        const maxValue = max === undefined ? undefined : Number(max)
+        if (Number.isFinite(numericValue)) {
+          if (maxValue !== undefined && numericValue > maxValue) event.currentTarget.value = String(maxValue)
+          if (minValue !== undefined && numericValue < minValue) event.currentTarget.value = String(minValue)
+        }
+      }
+    }
     onChange?.(event)
   }
   return (
@@ -141,6 +155,8 @@ export function AdminInput({
         name={name}
         type={mask ? "text" : (_type ?? "text")}
         inputMode={inputMode ?? (mask ? maskInputMode[mask] : undefined)}
+        min={min}
+        max={max}
         defaultValue={
           typeof defaultValue === "string" || typeof defaultValue === "number"
             ? formatMaskedValue(String(defaultValue), mask)

@@ -82,6 +82,13 @@ model PasswordResetCode {
   @@index([expiresAt])
 }
 
+model SiteSetting {
+  key       String   @id
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Franchise {
   id            String   @id @default(cuid())
   tradeName     String

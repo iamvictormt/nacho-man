@@ -1,4 +1,3 @@
-import { Plus } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
 import { ComboProductSelector } from "@/components/combo-product-selector"
@@ -44,11 +43,8 @@ export default async function CombosPage({ searchParams }: { searchParams?: Prom
           id="create-combo"
           title="Criar combo"
           size="lg"
-          trigger={
-            <button className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-lime px-6 text-[10px] font-black text-background md:w-auto">
-              <Plus className="h-4 w-4" /> NOVO COMBO
-            </button>
-          }
+          triggerLabel="NOVO COMBO"
+          triggerClassName="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-lime px-6 text-[10px] font-black text-background md:w-auto"
         >
           <ComboForm
             action={createComboAction}

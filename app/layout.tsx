@@ -3,6 +3,8 @@ import { Montserrat } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { SiteChrome } from "@/components/site-chrome"
 import { absoluteUrl, defaultSeoDescription, siteName, siteUrl } from "@/lib/seo"
+import { getStoreWhatsAppNumber } from "@/lib/site-settings"
+import { formatWhatsAppDisplay } from "@/lib/whatsapp"
 import "./globals.css"
 
 const montserrat = Montserrat({
@@ -94,7 +96,6 @@ const organizationJsonLd = {
   url: siteUrl,
   image: absoluteUrl("/estrutura.webp"),
   email: "factory.administrativo@nachomanbrasil.com.br",
-  telephone: "+55 47 9726-9146",
   address: {
     "@type": "PostalAddress",
     addressLocality: "Blumenau",
@@ -105,19 +106,29 @@ const organizationJsonLd = {
   sameAs: ["https://instagram.com/nachoman", "https://facebook.com/nachoman"],
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const whatsappNumber = await getStoreWhatsAppNumber()
+  const whatsappDisplay = formatWhatsAppDisplay(whatsappNumber)
+  const organizationJsonLdWithSettings = {
+    ...organizationJsonLd,
+    telephone: whatsappDisplay,
+  }
+
   return (
     <html lang="pt-BR" className="bg-background">
       <head>
         <meta name="apple-mobile-web-app-title" content="Nacho Factory" />
       </head>
       <body className={`${montserrat.className} font-sans antialiased`}>
-        <SiteChrome>{children}</SiteChrome>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
+        <SiteChrome whatsappNumber={whatsappNumber}>{children}</SiteChrome>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLdWithSettings) }}
+        />
         {process.env.NODE_ENV === "production" && <Analytics />}
       </body>
     </html>
