@@ -36,7 +36,6 @@ export const useMarketplaceCart = create<MarketplaceCart>()(
           const existing = state.items.find((current) => current.id === item.id && current.type === item.type)
           if (existing) {
             return {
-              open: true,
               items: state.items.map((current) =>
                 current.id === item.id && current.type === item.type
                   ? { ...current, quantity: current.quantity + current.minimumQuantity }
@@ -44,7 +43,7 @@ export const useMarketplaceCart = create<MarketplaceCart>()(
               ),
             }
           }
-          return { open: true, items: [...state.items, { ...item, quantity: item.minimumQuantity }] }
+          return { items: [...state.items, { ...item, quantity: item.minimumQuantity }] }
         }),
       remove: (id, type) =>
         set((state) => ({ items: state.items.filter((item) => item.id !== id || item.type !== type) })),

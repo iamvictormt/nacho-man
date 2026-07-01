@@ -12,6 +12,7 @@ export default async function MarketplaceLayout({ children }: { children: React.
       area="marketplace"
       userName={user.name}
       organizationName={user.franchise?.tradeName ?? "Cliente Nacho Man"}
+      showMarketplaceCombos={user.role === "FRANCHISEE"}
     >
       {children}
       <MarketplaceCartButton />

@@ -32,6 +32,13 @@ function getCatalogCategory(product: MarketplaceProductRecord): CatalogProduct["
   return categoryName.includes("congel") ? "CONGELADO" : "SECO"
 }
 
+function getProductFeatures(product: MarketplaceProductRecord, description: string, publicDetails?: CatalogProduct) {
+  const features = publicDetails?.features ?? [description, product.packageLabel || "Embalagem sob consulta"]
+  const visibleFeatures = features.map((feature) => feature.trim()).filter(Boolean)
+
+  return visibleFeatures.length > 0 ? visibleFeatures : ["Embalagem sob consulta"]
+}
+
 export function adaptMarketplaceProduct(product: MarketplaceProductRecord): CatalogProduct {
   const publicDetails = catalogProductsBySlug.get(product.slug)
   const description = product.description || publicDetails?.description || ""
@@ -51,7 +58,7 @@ export function adaptMarketplaceProduct(product: MarketplaceProductRecord): Cata
     tag: publicDetails?.tag ?? null,
     tagColor: publicDetails?.tagColor ?? "",
     subtitle: publicDetails?.subtitle,
-    features: publicDetails?.features ?? [description, product.packageLabel || "Embalagem sob consulta"],
+    features: getProductFeatures(product, description, publicDetails),
     applications: publicDetails?.applications ?? [],
   }
 }

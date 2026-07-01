@@ -106,7 +106,7 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
 
       <section className="py-10">
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
-          <div className="relative aspect-[4/5] overflow-hidden rounded-lg border border-border/90 bg-graphite lg:sticky lg:top-36">
+          <div className="relative aspect-[4/5] max-h-[calc(100vh-9rem)] overflow-hidden rounded-lg border border-border/90 bg-white lg:sticky lg:top-36">
             {heroImage ? (
               <Image
                 key={heroImage.src}
@@ -115,7 +115,7 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
                 fill
                 priority
                 sizes="(max-width: 1023px) 100vw, 50vw"
-                className="animate-in fade-in duration-500 object-cover"
+                className="animate-in fade-in object-contain p-4 duration-500"
               />
             ) : (
               <div className="flex h-full items-center justify-center">

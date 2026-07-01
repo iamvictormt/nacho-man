@@ -40,15 +40,61 @@ const statusColors: Record<string, string> = {
   CANCELLED: "bg-red-400",
 }
 
+const businessTimeZone = "America/Sao_Paulo"
+
+function getZonedParts(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: businessTimeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date)
+
+  return Object.fromEntries(parts.map((part) => [part.type, part.value]))
+}
+
+function getTimeZoneOffsetMs(date: Date) {
+  const parts = getZonedParts(date)
+  const zonedTimeAsUtc = Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour),
+    Number(parts.minute),
+    Number(parts.second)
+  )
+
+  return zonedTimeAsUtc - date.getTime()
+}
+
+function zonedMonthStartUtc(year: number, month: number) {
+  const normalized = new Date(Date.UTC(year, month - 1, 1))
+  const localMidnightAsUtc = new Date(
+    Date.UTC(normalized.getUTCFullYear(), normalized.getUTCMonth(), 1, 0, 0, 0)
+  )
+  let utcDate = new Date(localMidnightAsUtc.getTime() - getTimeZoneOffsetMs(localMidnightAsUtc))
+  utcDate = new Date(localMidnightAsUtc.getTime() - getTimeZoneOffsetMs(utcDate))
+
+  return utcDate
+}
+
 function monthKey(date: Date) {
-  return `${date.getFullYear()}-${date.getMonth()}`
+  const parts = getZonedParts(date)
+  return `${parts.year}-${parts.month}`
 }
 
 export default async function AdminPage() {
   const now = new Date()
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-  const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-  const sixMonthsStart = new Date(now.getFullYear(), now.getMonth() - 5, 1)
+  const currentMonthParts = getZonedParts(now)
+  const currentYear = Number(currentMonthParts.year)
+  const currentMonth = Number(currentMonthParts.month)
+  const monthStart = zonedMonthStartUtc(currentYear, currentMonth)
+  const nextMonthStart = zonedMonthStartUtc(currentYear, currentMonth + 1)
+  const sixMonthsStart = zonedMonthStartUtc(currentYear, currentMonth - 5)
 
   const [products, franchises, userCount, activePromotions, periodOrders, recentOrders, orderItems, comboItems] =
     await Promise.all([
@@ -115,10 +161,13 @@ export default async function AdminPage() {
   ).length
 
   const monthlyData = Array.from({ length: 6 }, (_, index) => {
-    const date = new Date(now.getFullYear(), now.getMonth() - 5 + index, 1)
+    const date = zonedMonthStartUtc(currentYear, currentMonth - 5 + index)
     return {
       key: monthKey(date),
-      label: new Intl.DateTimeFormat("pt-BR", { month: "short" }).format(date).replace(".", "").toUpperCase(),
+      label: new Intl.DateTimeFormat("pt-BR", { month: "short", timeZone: businessTimeZone })
+        .format(date)
+        .replace(".", "")
+        .toUpperCase(),
       orders: 0,
       totalInCents: 0,
     }

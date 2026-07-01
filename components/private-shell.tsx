@@ -36,9 +36,16 @@ type PrivateShellProps = {
   area: "admin" | "marketplace"
   userName: string
   organizationName?: string
+  showMarketplaceCombos?: boolean
 }
 
-export function PrivateShell({ children, area, userName, organizationName }: PrivateShellProps) {
+export function PrivateShell({
+  children,
+  area,
+  userName,
+  organizationName,
+  showMarketplaceCombos = true,
+}: PrivateShellProps) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const admin = area === "admin"
@@ -55,7 +62,7 @@ export function PrivateShell({ children, area, userName, organizationName }: Pri
     : [
         { href: "/marketplace", label: "Início", icon: Store, exact: true },
         { href: "/marketplace/produtos", label: "Produtos", icon: PackageSearch, activePrefix: "/marketplace/produto" },
-        { href: "/marketplace/combos", label: "Combos", icon: Gift },
+        ...(showMarketplaceCombos ? [{ href: "/marketplace/combos", label: "Combos", icon: Gift }] : []),
         { href: "/marketplace/pedidos", label: "Meus pedidos", icon: ReceiptText },
         { href: "/marketplace/conta", label: "Minha conta", icon: UserRound },
       ]

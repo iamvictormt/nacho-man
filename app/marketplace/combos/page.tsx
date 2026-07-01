@@ -1,4 +1,5 @@
 import { Gift } from "lucide-react"
+import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { requireMarketplaceUser } from "@/lib/auth"
 import { AdminSearch } from "@/components/admin-search"
@@ -10,6 +11,8 @@ import { getCurrentPage, getPagination, type SearchParams } from "@/lib/paginati
 export default async function MarketplaceCombosPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const resolvedSearchParams = await searchParams
   const user = await requireMarketplaceUser()
+  if (user.role !== "FRANCHISEE") redirect("/marketplace/produtos")
+
   const page = getCurrentPage(resolvedSearchParams)
   const now = new Date()
   const where = {

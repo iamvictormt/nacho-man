@@ -26,7 +26,6 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const [added, setAdded] = useState(false)
   const addItem = useCartStore((s) => s.addItem)
-  const openCart = useCartStore((s) => s.openCart)
 
   function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault()
@@ -38,7 +37,6 @@ export function ProductCard({ product }: ProductCardProps) {
       image: product.image,
     })
     setAdded(true)
-    openCart()
     setTimeout(() => setAdded(false), 1000)
   }
 
@@ -47,14 +45,14 @@ export function ProductCard({ product }: ProductCardProps) {
       href={`/produto/${product.slug}`}
       className="group block overflow-hidden rounded-lg border border-border/90 bg-background transition-all duration-500 hover:border-lime/40 hover:shadow-[0_0_24px_rgba(239,255,13,0.12)]"
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-graphite [transform:translateZ(0)]">
+      <div className="relative aspect-[4/3] overflow-hidden bg-white [transform:translateZ(0)]">
         <Image
           src={product.image}
           alt={product.name}
           fill
           sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw"
           loading="lazy"
-          className="object-cover transition-transform duration-500 ease-out [backface-visibility:hidden] group-hover:scale-[1.05]"
+          className="object-contain p-3 transition-transform duration-500 ease-out [backface-visibility:hidden] group-hover:scale-[1.035]"
         />
         <div className="absolute inset-[-1px] bg-gradient-to-t from-background via-background/35 to-transparent" />
 

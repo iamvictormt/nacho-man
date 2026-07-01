@@ -62,7 +62,7 @@ export function MarketplaceComboCard({ combo }: ComboCardProps) {
 
       <Link
         href={detailHref}
-        className="relative -mb-px block h-80 overflow-hidden bg-background sm:h-96"
+        className="relative -mb-px block h-80 overflow-hidden bg-white sm:h-96"
         aria-label={`Ver combo ${combo.name}`}
       >
         {activeImage ? (
@@ -72,7 +72,7 @@ export function MarketplaceComboCard({ combo }: ComboCardProps) {
               alt={activeImage.alt}
               fill
               sizes="(max-width: 767px) 100vw, (max-width: 1535px) 50vw, 33vw"
-              className="scale-[1.015] object-cover transition-transform duration-700 ease-out group-hover:scale-[1.075]"
+              className="object-contain p-4 transition-transform duration-700 ease-out group-hover:scale-[1.035]"
             />
             {images.length > 1 && (
               <div className="absolute bottom-4 right-4 flex gap-1.5">

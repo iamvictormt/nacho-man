@@ -42,6 +42,7 @@ export function MarketplaceProductDetail({
   const add = useMarketplaceCart((state) => state.add)
   const setCartQuantity = useMarketplaceCart((state) => state.setQuantity)
   const items = useMarketplaceCart((state) => state.items)
+  const visibleFeatures = product.features.map((feature) => feature.trim()).filter(Boolean)
 
   const careInfo =
     product.category === "CONGELADO"
@@ -108,14 +109,14 @@ export function MarketplaceProductDetail({
       <section className="py-10">
         <div className="mx-auto max-w-7xl px-4">
           <div className="grid grid-cols-1 gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
-            <div className="relative aspect-[4/5] overflow-hidden rounded-lg border border-border/90 bg-graphite lg:sticky lg:top-36">
+            <div className="relative aspect-[4/5] max-h-[calc(100vh-9rem)] overflow-hidden rounded-lg border border-border/90 bg-white lg:sticky lg:top-36">
               <Image
                 src={product.image}
                 alt={product.name}
                 fill
                 priority
                 sizes="(max-width: 1023px) 100vw, 50vw"
-                className="object-cover"
+                className="object-contain p-4"
               />
               <div className="absolute inset-[-1px] bg-gradient-to-t from-background via-background/30 to-transparent" />
               <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-[0.18em]">
@@ -150,7 +151,7 @@ export function MarketplaceProductDetail({
                     Características
                   </p>
                   <ul className="space-y-2">
-                    {product.features.map((feature) => (
+                    {visibleFeatures.map((feature) => (
                       <li key={feature} className="flex gap-2 text-sm text-muted-foreground">
                         <Check className="mt-0.5 h-4 w-4 shrink-0 text-lime" />
                         <span>{feature}</span>

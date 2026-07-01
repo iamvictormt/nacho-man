@@ -24,8 +24,8 @@ type ProductDetailCardProps = {
 export function ProductDetailCard({ product, commerce }: ProductDetailCardProps) {
   const [added, setAdded] = useState(false)
   const addPublicItem = useCartStore((state) => state.addItem)
-  const openPublicCart = useCartStore((state) => state.openCart)
   const addMarketplaceItem = useMarketplaceCart((state) => state.add)
+  const visibleFeatures = product.features.map((feature) => feature.trim()).filter(Boolean).slice(0, 3)
   const visibleApplications = product.applications.slice(0, 3)
   const remainingApplications = product.applications.length - visibleApplications.length
   const detailHref = commerce ? `/marketplace/produto/${commerce.id}` : `/produto/${product.slug}`
@@ -49,7 +49,6 @@ export function ProductDetailCard({ product, commerce }: ProductDetailCardProps)
         priceUnit: product.priceUnit,
         image: product.image,
       })
-      openPublicCart()
     }
     setAdded(true)
     setTimeout(() => setAdded(false), 1000)
@@ -61,7 +60,7 @@ export function ProductDetailCard({ product, commerce }: ProductDetailCardProps)
 
       <Link
         href={detailHref}
-        className="relative -mb-px block h-80 overflow-hidden bg-background sm:h-96"
+        className="relative -mb-px block h-80 overflow-hidden bg-white sm:h-96"
         aria-label={`Ver detalhes de ${product.displayName}`}
       >
         <Image
@@ -69,7 +68,7 @@ export function ProductDetailCard({ product, commerce }: ProductDetailCardProps)
           alt={product.displayName}
           fill
           sizes="(max-width: 767px) 100vw, (max-width: 1535px) 50vw, 33vw"
-          className="scale-[1.015] object-cover will-change-transform transition-transform duration-700 ease-out group-hover:scale-[1.075]"
+          className="object-contain p-4 will-change-transform transition-transform duration-700 ease-out group-hover:scale-[1.035]"
         />
         <div className="absolute -inset-px bg-gradient-to-t from-background via-background/10 to-background/10" />
 
@@ -112,7 +111,7 @@ export function ProductDetailCard({ product, commerce }: ProductDetailCardProps)
         </div>
 
         <ul className="mt-5 grid gap-2.5">
-          {product.features.slice(0, 3).map((feature) => (
+          {visibleFeatures.map((feature) => (
             <li key={feature} className="flex items-start gap-2.5 text-sm leading-5 text-foreground/75">
               <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-lime/10">
                 <Check className="h-3 w-3 text-lime" aria-hidden="true" />

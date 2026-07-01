@@ -93,6 +93,10 @@ export async function POST(request: Request) {
 
   const productRequests = parsed.data.items.filter((item) => item.type === "PRODUCT")
   const comboRequests = parsed.data.items.filter((item) => item.type === "COMBO")
+  if (user!.role !== "FRANCHISEE" && comboRequests.length > 0) {
+    return NextResponse.json({ error: "Combos estao disponiveis apenas para franqueados." }, { status: 403 })
+  }
+
   const productIds = [...new Set(productRequests.map((item) => item.id))]
   const comboIds = [...new Set(comboRequests.map((item) => item.id))]
   const now = new Date()
