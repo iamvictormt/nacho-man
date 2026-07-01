@@ -1,15 +1,17 @@
 import type { Metadata } from "next"
-import Image from "next/image"
 import Link from "next/link"
 import { ArrowRight, Building2, ChefHat, Factory, MessageCircle, Pizza, Store } from "lucide-react"
 import { HomeAboutSection } from "@/components/home-about-section"
 import { HomeContactSection } from "@/components/home-contact-section"
 import { ProductDetailCard } from "@/components/product-detail-card"
 import { SectionHeading } from "@/components/section-heading"
-import { catalogProductsBySlug } from "@/lib/products"
+import { adaptMarketplaceProduct } from "@/lib/marketplace-product-adapter"
+import { prisma } from "@/lib/prisma"
 import { absoluteUrl } from "@/lib/seo"
 import { getStoreWhatsAppNumber } from "@/lib/site-settings"
 import { buildWhatsAppUrl } from "@/lib/whatsapp"
+
+export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
   title: "Alimentos Prontos para sua Operação",
@@ -68,20 +70,13 @@ const processSteps = [
   { title: "Receba no seu negócio", description: "Produtos entregues prontos para uso." },
 ]
 
-const homeBestSellerSlugs = [
-  "carne-bovina-desfiada-artesanal",
-  "chili-de-carne-com-feijao",
-  "carne-suina-desfiada-com-barbecue",
-  "feijao-cremoso-temperado",
-  "jalapeno-2l",
-  "sweet-chili-2l",
-]
-
-const homeBestSellerProducts = homeBestSellerSlugs
-  .map((slug) => catalogProductsBySlug.get(slug))
-  .filter((product) => product !== undefined)
-
 export default async function Home() {
+  const products = await prisma.product.findMany({
+    where: { audience: "PUBLIC", active: true, category: { active: true } },
+    include: { category: true },
+    orderBy: [{ featured: "desc" }, { name: "asc" }],
+    take: 6,
+  })
   const whatsappNumber = await getStoreWhatsAppNumber()
   const whatsappUrl = buildWhatsAppUrl(
     whatsappNumber,
@@ -92,7 +87,7 @@ export default async function Home() {
     <>
       <HeroSection whatsappUrl={whatsappUrl} />
       <AudienceSection />
-      <CatalogSection />
+      <CatalogSection products={products.map(adaptMarketplaceProduct)} />
       <ProcessSection />
       <HomeAboutSection />
       <HomeContactSection whatsappNumber={whatsappNumber} />
@@ -104,7 +99,18 @@ function HeroSection({ whatsappUrl }: { whatsappUrl: string }) {
   return (
     <section id="inicio" className="relative isolate overflow-hidden border-b border-border bg-background">
       <div className="absolute inset-0 -z-10">
-        <Image src="/embalagens-3.webp" alt="" fill priority sizes="100vw" className="object-cover object-center" />
+        <video
+          className="h-full w-full object-cover object-center"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          poster="/embalagens-3.webp"
+          aria-hidden="true"
+        >
+          <source src="/hero-video.mp4" type="video/mp4" />
+        </video>
         <div className="absolute inset-0 bg-background/55" />
         <div className="absolute inset-0 bg-gradient-to-r from-background via-background/90 to-background/25" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/45" />
@@ -188,7 +194,7 @@ function AudienceSection() {
   )
 }
 
-function CatalogSection() {
+function CatalogSection({ products }: { products: ReturnType<typeof adaptMarketplaceProduct>[] }) {
   return (
     <section className="border-b border-border bg-background py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-4">
@@ -207,7 +213,7 @@ function CatalogSection() {
           }
         />
         <div className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3">
-          {homeBestSellerProducts.map((product) => (
+          {products.map((product) => (
             <ProductDetailCard key={product.slug} product={product} />
           ))}
         </div>
