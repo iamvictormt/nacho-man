@@ -110,10 +110,10 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
   }
 
   return (
-    <div>
-      <div className="mx-auto max-w-7xl px-4 pt-6">
+    <div className="overflow-x-hidden">
+      <div className="mx-auto max-w-7xl min-w-0 px-4 pt-6">
         <Breadcrumb>
-          <BreadcrumbList>
+          <BreadcrumbList className="min-w-0">
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
                 <Link href="/marketplace">Nacho Factory</Link>
@@ -126,15 +126,15 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{combo.name}</BreadcrumbPage>
+            <BreadcrumbItem className="min-w-0">
+              <BreadcrumbPage className="block max-w-[46vw] truncate sm:max-w-none">{combo.name}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
       </div>
 
-      <section className="py-10">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
+      <section className="py-8 sm:py-10">
+        <div className="mx-auto grid max-w-7xl min-w-0 grid-cols-1 gap-8 px-4 sm:gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
           <div className="relative aspect-[4/5] max-h-[calc(100vh-9rem)] overflow-hidden rounded-lg border border-border/90 bg-white lg:sticky lg:top-36">
             {heroImage ? (
               <Image
@@ -179,7 +179,7 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
             )}
           </div>
 
-          <div className="space-y-6">
+          <div className="min-w-0 space-y-6">
             <div className="flex flex-wrap items-center gap-3">
               <span className="rounded-full border border-lime/25 bg-lime/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-lime">
                 Combo montável
@@ -196,16 +196,16 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
               <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">{combo.description}</p>
             )}
 
-            <div className="grid grid-cols-[1.1fr_0.9fr] gap-5 border-y border-border/70 py-5">
-              <div>
+            <div className="grid grid-cols-1 gap-5 border-y border-border/70 py-5 sm:grid-cols-[1.1fr_0.9fr]">
+              <div className="min-w-0">
                 <span className="text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">
                   Preço do combo
                 </span>
-                <p className="mt-2 text-4xl font-black leading-none text-lime">
+                <p className="mt-2 text-3xl font-black leading-none text-lime min-[380px]:text-4xl">
                   {formatMoneyFromCents(combo.priceInCents)}
                 </p>
               </div>
-              <div>
+              <div className="min-w-0">
                 <span className="text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">Montagem</span>
                 <p className="mt-2 text-sm font-bold leading-relaxed text-foreground">
                   Escolha {combo.totalUnits} unidades entre {combo.options.length} opções
@@ -240,14 +240,14 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
                 </div>
               </div>
 
-              <div className="grid gap-3">
+              <div className="grid min-w-0 gap-3">
                 {combo.options.map((option) => {
                   const optionQuantity = selectedQuantities[option.product.id] ?? 0
 
                   return (
                     <div
                       key={option.id}
-                      className="flex items-center gap-3 rounded-lg border border-border bg-graphite p-3 transition hover:border-lime/30"
+                      className="grid min-w-0 grid-cols-[3.5rem_minmax(0,1fr)] gap-3 rounded-lg border border-border bg-graphite p-3 transition hover:border-lime/30 min-[460px]:flex min-[460px]:items-center"
                     >
                       <span className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-background">
                         {option.product.image ? (
@@ -256,10 +256,10 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
                           <Package className="h-5 w-5 text-purple-medium" />
                         )}
                       </span>
-                      <span className="min-w-0 flex-1">
+                      <span className="min-w-0 min-[460px]:flex-1">
                         <Link
                           href={`/marketplace/produto/${option.product.id}`}
-                          className="block truncate text-sm font-black uppercase transition hover:text-lime"
+                          className="block text-sm font-black uppercase leading-snug transition hover:text-lime min-[460px]:truncate"
                         >
                           {option.product.name}
                         </Link>
@@ -267,7 +267,7 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
                           {option.product.packageLabel}
                         </span>
                       </span>
-                      <span className="flex shrink-0 items-center gap-2 rounded-full border border-border bg-background px-2 py-1">
+                      <span className="col-span-2 flex w-full items-center justify-between gap-2 rounded-full border border-border bg-background px-2 py-1 min-[460px]:w-auto min-[460px]:shrink-0">
                         <button
                           type="button"
                           onClick={() => changeOptionQuantity(option.product.id, optionQuantity - 1)}
@@ -292,8 +292,8 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
               </div>
             </div>
 
-            <div className="flex flex-col items-stretch gap-3 border border-border bg-graphite p-3 sm:flex-row sm:items-center">
-              <div className="flex self-start items-center justify-center gap-2 rounded-full border border-border bg-background px-2 py-1">
+            <div className="flex min-w-0 flex-col items-stretch gap-3 border border-border bg-graphite p-3 sm:flex-row sm:items-center">
+              <div className="flex w-full items-center justify-between gap-2 rounded-full border border-border bg-background px-2 py-1 sm:w-auto sm:justify-center">
                 <button
                   onClick={() => setQuantity((current) => Math.max(1, current - 1))}
                   disabled={quantity <= 1}
@@ -312,7 +312,7 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
               <button
                 onClick={handleAdd}
                 disabled={!canAdd}
-                className={`flex min-h-14 flex-1 items-center justify-center gap-3 rounded-full px-6 py-4 text-xs font-black tracking-wider transition sm:text-sm ${
+                className={`flex min-h-14 min-w-0 flex-1 items-center justify-center gap-3 rounded-full px-4 py-4 text-center text-xs font-black tracking-wider transition sm:px-6 sm:text-sm ${
                   added
                     ? "bg-purple-medium text-white"
                     : canAdd

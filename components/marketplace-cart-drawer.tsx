@@ -252,7 +252,27 @@ export function MarketplaceCartDrawer({
             </article>
           ))}
           {items.length === 0 && (
-            <p className="py-20 text-center text-sm text-muted-foreground">Seu carrinho está vazio.</p>
+            <div className="flex h-full flex-col items-center justify-center space-y-4 text-center">
+              <div className="relative flex h-32 w-32 items-center justify-center rounded-full border border-lime/20 bg-lime/10">
+                <img
+                  src="/burrito-pegando-fogo-fundo-amarelo.svg"
+                  alt=""
+                  width={76}
+                  height={76}
+                  loading="eager"
+                  decoding="sync"
+                  className="h-24 w-24 object-contain p-2 opacity-50"
+                  aria-hidden="true"
+                />
+              </div>
+              <p className="text-sm font-semibold text-muted-foreground">Seu carrinho está vazio</p>
+              <button
+                onClick={closeCart}
+                className="min-h-11 px-4 text-xs font-black tracking-wider text-lime hover:underline"
+              >
+                VER PRODUTOS
+              </button>
+            </div>
           )}
         </div>
         )}
