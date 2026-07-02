@@ -52,7 +52,7 @@ export function AdminManageModal({
       </DialogTrigger>
       <DialogContent
         showCloseButton={false}
-        className={`max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] overflow-y-auto border-border bg-background p-0 sm:max-h-[90vh] ${
+        className={`grid-rows-[auto_minmax(0,1fr)] max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] min-w-0 max-w-[calc(100vw-1rem)] overflow-hidden border-border bg-background p-0 sm:max-h-[90vh] [&>*]:min-w-0 ${
           size === "sm"
             ? "sm:max-w-lg"
             : size === "lg"
@@ -75,7 +75,7 @@ export function AdminManageModal({
             </button>
           </DialogClose>
         </DialogHeader>
-        <div className="px-4 pb-6 pt-5 sm:px-6 sm:pb-7 sm:pt-6">{children}</div>
+        <div className="min-w-0 overflow-y-auto px-4 pb-6 pt-5 sm:px-6 sm:pb-7 sm:pt-6">{children}</div>
       </DialogContent>
     </Dialog>
   )

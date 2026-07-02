@@ -18,14 +18,14 @@ export function ComboProductSelector({
     .join(",")
 
   return (
-    <div>
+    <div className="min-w-0">
       <input type="hidden" name="options" value={serialized} />
       <p className="mb-3 text-xs font-bold leading-5 text-muted-foreground">Opções disponíveis no combo</p>
-      <div className="max-h-64 space-y-3 overflow-y-auto rounded-xl border border-border bg-background p-4">
+      <div className="max-h-64 min-w-0 space-y-3 overflow-y-auto rounded-xl border border-border bg-background p-3 sm:p-4">
         {products.map((product) => (
           <label
             key={product.id}
-            className="flex items-center justify-between gap-4 rounded-lg border border-border/60 bg-graphite/60 px-3 py-3 text-xs"
+            className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-border/60 bg-graphite/60 px-3 py-3 text-xs sm:gap-4"
           >
             <span className="min-w-0 truncate">{product.name}</span>
             <input
@@ -34,7 +34,7 @@ export function ComboProductSelector({
               onChange={(event) => {
                 setQuantities((current) => ({ ...current, [product.id]: event.target.checked ? 1 : 0 }))
               }}
-              className="h-5 w-5 accent-lime"
+              className="h-5 w-5 shrink-0 accent-lime"
             />
           </label>
         ))}
