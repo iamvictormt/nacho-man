@@ -16,7 +16,16 @@ export async function createComboAction(formData: FormData) {
     (productId) => ({ productId })
   )
 
-  if (!name || priceInCents <= 0 || !Number.isInteger(totalUnits) || totalUnits <= 0 || options.length === 0) return
+  if (
+    !name ||
+    priceInCents <= 0 ||
+    !Number.isInteger(totalUnits) ||
+    totalUnits <= 0 ||
+    options.length === 0 ||
+    totalUnits < options.length
+  ) {
+    return
+  }
 
   let slug = createSlug(name)
   if (await prisma.combo.findUnique({ where: { slug } })) slug = `${slug}-${Date.now()}`
@@ -63,7 +72,17 @@ export async function updateComboAction(formData: FormData) {
   const priceInCents = parseMoneyToCents(formData.get("price"))
   const totalUnits = Number(String(formData.get("totalUnits") ?? "").replace(/\D/g, ""))
   const options = parseComboOptions(formData)
-  if (!id || !name || priceInCents <= 0 || !Number.isInteger(totalUnits) || totalUnits <= 0 || options.length === 0) return
+  if (
+    !id ||
+    !name ||
+    priceInCents <= 0 ||
+    !Number.isInteger(totalUnits) ||
+    totalUnits <= 0 ||
+    options.length === 0 ||
+    totalUnits < options.length
+  ) {
+    return
+  }
 
   await prisma.combo.update({
     where: { id },

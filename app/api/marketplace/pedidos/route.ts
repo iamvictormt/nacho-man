@@ -210,16 +210,19 @@ export async function POST(request: Request) {
     const combo = comboMap.get(requestedItem.id)!
     const selectedOptions = requestedItem.selectedOptions ?? []
     const optionMap = new Map(combo.options.map((option) => [option.productId, option.product]))
+    const selectedProductIds = new Set(selectedOptions.map((option) => option.productId))
     const selectedTotal = selectedOptions.reduce((total, option) => total + option.quantity, 0)
     const hasInvalidOption = selectedOptions.some((option) => !optionMap.has(option.productId))
+    const hasDuplicateOption = selectedProductIds.size !== selectedOptions.length
+    const hasMissingRequiredOption = combo.options.some((option) => !selectedProductIds.has(option.productId))
 
-    return selectedTotal !== combo.totalUnits || hasInvalidOption
+    return selectedTotal !== combo.totalUnits || hasInvalidOption || hasDuplicateOption || hasMissingRequiredOption
   })
   if (invalidComboSelection) {
     const combo = comboMap.get(invalidComboSelection.id)!
 
     return NextResponse.json(
-      { error: `Escolha exatamente ${combo.totalUnits} unidades para o combo ${combo.name}.` },
+      { error: `Escolha exatamente ${combo.totalUnits} unidades para o combo ${combo.name}, com pelo menos 1 de cada produto.` },
       { status: 400 }
     )
   }

@@ -34,7 +34,9 @@ type ComboDetail = {
 
 export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
   const [quantity, setQuantity] = useState(1)
-  const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({})
+  const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>(() =>
+    Object.fromEntries(combo.options.map((option) => [option.product.id, 1]))
+  )
   const [added, setAdded] = useState(false)
   const add = useMarketplaceCart((state) => state.add)
   const setCartQuantity = useMarketplaceCart((state) => state.setQuantity)
@@ -58,7 +60,8 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
     }))
     .filter((option) => option.quantity > 0)
   const selectionKey = selectedOptions.map((option) => `${option.productId}:${option.quantity}`).join("|")
-  const canAdd = selectedTotal === combo.totalUnits && selectedOptions.length > 0
+  const missingRequiredOptions = combo.options.length - selectedOptions.length
+  const canAdd = selectedTotal === combo.totalUnits && missingRequiredOptions === 0
 
   useEffect(() => {
     if (images.length <= 1) return
@@ -73,7 +76,7 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
     setSelectedQuantities((current) => {
       const currentValue = current[productId] ?? 0
       const selectedWithoutCurrent = selectedTotal - currentValue
-      const clamped = Math.max(0, Math.min(combo.totalUnits - selectedWithoutCurrent, nextQuantity))
+      const clamped = Math.max(1, Math.min(combo.totalUnits - selectedWithoutCurrent, nextQuantity))
 
       return { ...current, [productId]: clamped }
     })
@@ -210,7 +213,9 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
                 <p className="mt-2 text-sm font-bold leading-relaxed text-foreground">
                   Escolha {combo.totalUnits} unidades entre {combo.options.length} opções
                 </p>
-                <p className="mt-1 text-xs font-bold text-purple-medium">Pedido mínimo: 1 combo</p>
+                <p className="mt-1 text-xs font-bold text-purple-medium">
+                  Inclua pelo menos 1 unidade de cada opção
+                </p>
               </div>
             </div>
 
@@ -226,10 +231,14 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
                   </span>
                   <span
                     className={`text-[10px] font-black uppercase ${
-                      remaining === 0 ? "text-lime" : "text-muted-foreground"
+                      remaining === 0 && missingRequiredOptions === 0 ? "text-lime" : "text-muted-foreground"
                     }`}
                   >
-                    {remaining === 0 ? "Combo completo" : `Faltam ${remaining}`}
+                    {remaining === 0
+                      ? missingRequiredOptions === 0
+                        ? "Combo completo"
+                        : "Falta incluir alguma opção"
+                      : `Faltam ${remaining}`}
                   </span>
                 </div>
                 <div className="h-1.5 bg-background">
@@ -271,7 +280,7 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
                         <button
                           type="button"
                           onClick={() => changeOptionQuantity(option.product.id, optionQuantity - 1)}
-                          disabled={optionQuantity <= 0}
+                          disabled={optionQuantity <= 1}
                           className="flex h-8 w-8 items-center justify-center rounded-full text-foreground/70 hover:bg-foreground/10 disabled:opacity-30"
                         >
                           <Minus className="h-3.5 w-3.5" />
@@ -321,7 +330,13 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
                 }`}
               >
                 {added ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                {added ? "ADICIONADO" : canAdd ? "ADICIONAR AO PEDIDO" : `ESCOLHA ${combo.totalUnits} UNIDADES`}
+                {added
+                  ? "ADICIONADO"
+                  : canAdd
+                    ? "ADICIONAR AO PEDIDO"
+                    : missingRequiredOptions > 0
+                      ? "INCLUA TODAS AS OPÇÕES DO COMBO"
+                      : `ADICIONE MAIS ${remaining} ${remaining === 1 ? "UNIDADE" : "UNIDADES"}`}
               </button>
             </div>
           </div>
