@@ -20,6 +20,26 @@ export const paymentDiscountSettings = {
   },
 } as const
 
+export const orderMessageSettings = {
+  whatsapp: {
+    key: "order.message.whatsapp",
+    label: "Mensagem padrão do WhatsApp",
+    fallback:
+      "Olá! Quero finalizar o pedido {pedido}.\n\n{cliente}\n\n{itens}\n\nSubtotal: {subtotal}\n{descontos}\nTotal estimado: {total}\n\nPagamento: {pagamento}\n{observacoes}",
+  },
+  emailSubject: {
+    key: "order.email.subject",
+    label: "Título do e-mail de pedido",
+    fallback: "Pedido {pedido} confirmado - Nacho Factory",
+  },
+  emailMessage: {
+    key: "order.email.message",
+    label: "Mensagem do e-mail de pedido",
+    fallback:
+      "Olá, {cliente}. Recebemos o pedido {pedido} de {empresa}. A equipe Nacho Factory vai seguir com o atendimento e atualizar o status pelo marketplace.",
+  },
+} as const
+
 function parsePercentage(value: string | undefined, fallback: string) {
   const parsed = Number(String(value ?? fallback).replace(",", "."))
   if (!Number.isFinite(parsed)) return Number(fallback)
@@ -112,5 +132,28 @@ export async function getPaymentDiscountSettings() {
       values.get(paymentDiscountSettings.card.key),
       paymentDiscountSettings.card.fallback
     ),
+  }
+}
+
+export async function getOrderMessageSettings() {
+  const settings = await prisma.siteSetting.findMany({
+    where: {
+      key: {
+        in: [
+          orderMessageSettings.whatsapp.key,
+          orderMessageSettings.emailSubject.key,
+          orderMessageSettings.emailMessage.key,
+        ],
+      },
+    },
+  })
+  const values = new Map(settings.map((setting) => [setting.key, setting.value]))
+
+  return {
+    whatsappTemplate: values.get(orderMessageSettings.whatsapp.key) || orderMessageSettings.whatsapp.fallback,
+    emailSubjectTemplate:
+      values.get(orderMessageSettings.emailSubject.key) || orderMessageSettings.emailSubject.fallback,
+    emailMessageTemplate:
+      values.get(orderMessageSettings.emailMessage.key) || orderMessageSettings.emailMessage.fallback,
   }
 }

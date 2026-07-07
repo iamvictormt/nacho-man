@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { requireAdmin } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { loginImageSettings, paymentDiscountSettings, storeWhatsAppSetting } from "@/lib/site-settings"
+import { loginImageSettings, orderMessageSettings, paymentDiscountSettings, storeWhatsAppSetting } from "@/lib/site-settings"
 import { sanitizeWhatsAppNumber } from "@/lib/whatsapp"
 
 function sanitizePercentage(value: FormDataEntryValue | null, fallback: string) {
@@ -25,6 +25,24 @@ export async function updateLoginImagesAction(formData: FormData) {
       {
         key: storeWhatsAppSetting.key,
         value: sanitizeWhatsAppNumber(formData.get(storeWhatsAppSetting.key)),
+      },
+      {
+        key: orderMessageSettings.whatsapp.key,
+        value:
+          String(formData.get(orderMessageSettings.whatsapp.key) ?? "").trim() ||
+          orderMessageSettings.whatsapp.fallback,
+      },
+      {
+        key: orderMessageSettings.emailSubject.key,
+        value:
+          String(formData.get(orderMessageSettings.emailSubject.key) ?? "").trim() ||
+          orderMessageSettings.emailSubject.fallback,
+      },
+      {
+        key: orderMessageSettings.emailMessage.key,
+        value:
+          String(formData.get(orderMessageSettings.emailMessage.key) ?? "").trim() ||
+          orderMessageSettings.emailMessage.fallback,
       },
       {
         key: paymentDiscountSettings.pix.key,

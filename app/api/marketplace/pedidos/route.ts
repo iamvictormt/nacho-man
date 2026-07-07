@@ -4,7 +4,7 @@ import { z } from "zod"
 import { getCurrentUser } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
-import { getPaymentDiscountSettings, getStoreWhatsAppNumber } from "@/lib/site-settings"
+import { getOrderMessageSettings, getPaymentDiscountSettings, getStoreWhatsAppNumber } from "@/lib/site-settings"
 import { buildWhatsAppUrl } from "@/lib/whatsapp"
 import { sendOrderConfirmationEmail } from "@/lib/order-email"
 
@@ -44,7 +44,10 @@ function calculateDiscount(type: "PERCENTAGE" | "FIXED", value: number, base: nu
   return type === "PERCENTAGE" ? Math.round(base * (value / 100)) : Math.min(value, base)
 }
 
-function getPaymentDiscountPercent(method: "PIX" | "CARD", settings: Awaited<ReturnType<typeof getPaymentDiscountSettings>>) {
+function getPaymentDiscountPercent(
+  method: "PIX" | "CARD",
+  settings: Awaited<ReturnType<typeof getPaymentDiscountSettings>>
+) {
   return method === "PIX" ? settings.pixDiscountPercent : settings.cardDiscountPercent
 }
 
@@ -67,15 +70,19 @@ function formatSelectedOptions(value: unknown) {
     .filter((option): option is string => Boolean(option))
 }
 
+function renderTemplate(template: string, values: Record<string, string>) {
+  return Object.entries(values).reduce((message, [key, value]) => message.replaceAll(`{${key}}`, value), template)
+}
+
 export async function PUT(request: Request) {
   const user = await getCurrentUser()
   if (!canUseMarketplace(user)) {
-    return NextResponse.json({ error: "Sessao invalida." }, { status: 401 })
+    return NextResponse.json({ error: "Sessão inválida." }, { status: 401 })
   }
 
   const parsed = couponPreviewSchema.safeParse(await request.json())
   if (!parsed.success) {
-    return NextResponse.json({ error: "Informe um cupom valido." }, { status: 400 })
+    return NextResponse.json({ error: "Informe um cupom válido." }, { status: 400 })
   }
 
   const now = new Date()
@@ -91,7 +98,7 @@ export async function PUT(request: Request) {
     (coupon.maximumUses !== null && coupon.uses >= coupon.maximumUses) ||
     (coupon.minimumInCents !== null && parsed.data.subtotalInCents < coupon.minimumInCents)
   ) {
-    return NextResponse.json({ error: "Cupom invalido, expirado ou indisponivel para este pedido." }, { status: 400 })
+    return NextResponse.json({ error: "Cupom inválido, expirado ou indisponível para este pedido." }, { status: 400 })
   }
 
   const couponDiscountInCents = calculateDiscount(coupon.type, coupon.value, parsed.data.subtotalInCents)
@@ -114,18 +121,18 @@ export async function PUT(request: Request) {
 export async function POST(request: Request) {
   const user = await getCurrentUser()
   if (!canUseMarketplace(user)) {
-    return NextResponse.json({ error: "Sessao invalida." }, { status: 401 })
+    return NextResponse.json({ error: "Sessão inválida." }, { status: 401 })
   }
 
   const parsed = orderSchema.safeParse(await request.json())
   if (!parsed.success) {
-    return NextResponse.json({ error: "Itens do pedido invalidos." }, { status: 400 })
+    return NextResponse.json({ error: "Itens do pedido inválidos." }, { status: 400 })
   }
 
   const productRequests = parsed.data.items.filter((item) => item.type === "PRODUCT")
   const comboRequests = parsed.data.items.filter((item) => item.type === "COMBO")
   if (user!.role !== "FRANCHISEE" && comboRequests.length > 0) {
-    return NextResponse.json({ error: "Combos estao disponiveis apenas para franqueados." }, { status: 403 })
+    return NextResponse.json({ error: "Combos estão disponíveis apenas para franqueados." }, { status: 403 })
   }
 
   const productIds = [...new Set(productRequests.map((item) => item.id))]
@@ -157,7 +164,7 @@ export async function POST(request: Request) {
   ])
 
   if (products.length !== productIds.length || combos.length !== comboIds.length) {
-    return NextResponse.json({ error: "Um ou mais produtos nao estao disponiveis." }, { status: 400 })
+    return NextResponse.json({ error: "Um ou mais produtos não estão disponíveis." }, { status: 400 })
   }
 
   const productMap = new Map(products.map((product) => [product.id, product]))
@@ -222,7 +229,9 @@ export async function POST(request: Request) {
     const combo = comboMap.get(invalidComboSelection.id)!
 
     return NextResponse.json(
-      { error: `Escolha exatamente ${combo.totalUnits} unidades para o combo ${combo.name}, com pelo menos 1 de cada produto.` },
+      {
+        error: `Escolha exatamente ${combo.totalUnits} unidades para o combo ${combo.name}, com pelo menos 1 de cada produto.`,
+      },
       { status: 400 }
     )
   }
@@ -268,16 +277,14 @@ export async function POST(request: Request) {
       (coupon.maximumUses !== null && coupon.uses >= coupon.maximumUses) ||
       (coupon.minimumInCents !== null && subtotalInCents < coupon.minimumInCents))
   ) {
-    return NextResponse.json({ error: "Cupom invalido, expirado ou indisponivel para este pedido." }, { status: 400 })
+    return NextResponse.json({ error: "Cupom inválido, expirado ou indisponível para este pedido." }, { status: 400 })
   }
 
   const afterPromotions = Math.max(0, subtotalInCents - promotionDiscountInCents)
   const couponDiscountInCents = coupon ? calculateDiscount(coupon.type, coupon.value, afterPromotions) : 0
   const afterCoupon = Math.max(0, afterPromotions - couponDiscountInCents)
   const franchiseDiscountInCents =
-    user!.role === "FRANCHISEE" && user!.franchise
-      ? Math.round(afterCoupon * (user!.franchise.priceDiscount / 100))
-      : 0
+    user!.role === "FRANCHISEE" && user!.franchise ? Math.round(afterCoupon * (user!.franchise.priceDiscount / 100)) : 0
   const pixBase = Math.max(0, afterCoupon - franchiseDiscountInCents)
   const paymentDiscountPercent = getPaymentDiscountPercent(parsed.data.paymentMethod, paymentSettings)
   const pixDiscountInCents = Math.round(pixBase * (paymentDiscountPercent / 100))
@@ -322,34 +329,35 @@ export async function POST(request: Request) {
       .join("\n")
   })
   const paymentText =
-    order.paymentMethod === "PIX" ? "PIX - aguardo o codigo PIX para pagamento." : "Cartao - aguardo o link de pagamento."
+    order.paymentMethod === "PIX"
+      ? "PIX - aguardo o código PIX para pagamento."
+      : "Cartão - aguardo o link de pagamento."
   const buyerLine =
     user!.role === "FRANCHISEE" && user!.franchise
       ? `Unidade: *${user!.franchise.tradeName}*`
       : `Cliente: *${user!.name}*`
-
-  const message = [
-    `Ola! Quero finalizar o pedido *${orderNumber}*.`,
-    "",
-    buyerLine,
-    "",
-    ...itemLines,
-    "",
-    `Subtotal: ${formatMoneyFromCents(order.subtotalInCents)}`,
+  const discountLines = [
     order.promotionDiscountInCents > 0 ? `Descontos: -${formatMoneyFromCents(order.promotionDiscountInCents)}` : null,
     order.couponDiscountInCents > 0
       ? `Cupom ${coupon?.code}: -${formatMoneyFromCents(order.couponDiscountInCents)}`
       : null,
     order.pixDiscountInCents > 0
-      ? `Desconto ${order.paymentMethod === "PIX" ? "PIX" : "cartao"} (${paymentDiscountPercent}%): -${formatMoneyFromCents(order.pixDiscountInCents)}`
+      ? `Desconto ${order.paymentMethod === "PIX" ? "PIX" : "Cartão"} (${paymentDiscountPercent}%): -${formatMoneyFromCents(order.pixDiscountInCents)}`
       : null,
-    `*Total estimado: ${formatMoneyFromCents(order.totalInCents)}*`,
-    "",
-    `Pagamento: ${paymentText}`,
-    parsed.data.notes ? `Observacoes: ${parsed.data.notes}` : null,
   ]
     .filter(Boolean)
     .join("\n")
+  const messageSettings = await getOrderMessageSettings()
+  const message = renderTemplate(messageSettings.whatsappTemplate, {
+    pedido: `*${orderNumber}*`,
+    cliente: buyerLine,
+    itens: itemLines.join("\n"),
+    subtotal: formatMoneyFromCents(order.subtotalInCents),
+    descontos: discountLines,
+    total: `*${formatMoneyFromCents(order.totalInCents)}*`,
+    pagamento: paymentText,
+    observacoes: parsed.data.notes ? `Observações: ${parsed.data.notes}` : "",
+  })
 
   await sendOrderConfirmationEmail({
     to: user!.email,
@@ -366,7 +374,7 @@ export async function POST(request: Request) {
     totalInCents: order.totalInCents,
     notes: order.notes,
   }).catch((error) => {
-    console.error("Falha ao enviar e-mail de confirmacao do pedido.", error)
+    console.error("Falha ao enviar e-mail de confirmação do pedido.", error)
   })
 
   return NextResponse.json({

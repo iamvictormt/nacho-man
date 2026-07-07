@@ -2,6 +2,7 @@ import "server-only"
 
 import { formatMoneyFromCents } from "@/lib/money"
 import { sendMail } from "@/lib/email"
+import { getOrderMessageSettings } from "@/lib/site-settings"
 
 const statusLabels: Record<string, string> = {
   DRAFT: "Rascunho",
@@ -47,6 +48,10 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#039;")
 }
 
+function renderTemplate(template: string, values: Record<string, string>) {
+  return Object.entries(values).reduce((message, [key, value]) => message.replaceAll(`{${key}}`, value), template)
+}
+
 function formatSelectedOptions(value: unknown) {
   if (!Array.isArray(value)) return []
 
@@ -62,10 +67,10 @@ function formatSelectedOptions(value: unknown) {
     .filter((option): option is string => Boolean(option))
 }
 
-function buildOrderConfirmationHtml(input: OrderConfirmationEmailInput) {
+function buildOrderConfirmationHtml(input: OrderConfirmationEmailInput, introMessage: string) {
   const statusLabel = statusLabels[input.status] ?? input.status
-  const paymentLabel = input.paymentMethod === "PIX" ? "PIX" : "Cartao"
-  const paymentDiscountLabel = input.paymentMethod === "PIX" ? "Desconto PIX" : "Desconto cartao"
+  const paymentLabel = input.paymentMethod === "PIX" ? "PIX" : "Cartão"
+  const paymentDiscountLabel = input.paymentMethod === "PIX" ? "Desconto PIX" : "Desconto Cartão"
   const discountRows = [
     input.promotionDiscountInCents > 0
       ? `<tr><td style="padding:6px 0;color:#9ca3af;">Descontos</td><td align="right" style="padding:6px 0;color:#fca5a5;font-weight:800;">-${formatMoneyFromCents(input.promotionDiscountInCents)}</td></tr>`
@@ -116,7 +121,7 @@ function buildOrderConfirmationHtml(input: OrderConfirmationEmailInput) {
             <tr>
               <td style="padding:26px;">
                 <p style="margin:0 0 18px;color:#e5e7eb;font-size:15px;line-height:1.6;">
-                  OlÃ¡, ${escapeHtml(input.customerName)}. Recebemos o pedido <strong style="color:#d6ff2f;">${escapeHtml(input.orderNumber)}</strong> da unidade <strong>${escapeHtml(input.franchiseName)}</strong>.
+                  ${escapeHtml(introMessage)}
                 </p>
 
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 22px;">
@@ -165,13 +170,15 @@ function buildOrderConfirmationHtml(input: OrderConfirmationEmailInput) {
 </html>`
 }
 
-function buildOrderConfirmationText(input: OrderConfirmationEmailInput) {
-  const paymentDiscountLabel = input.paymentMethod === "PIX" ? "Desconto PIX" : "Desconto cartao"
+function buildOrderConfirmationText(input: OrderConfirmationEmailInput, introMessage: string) {
+  const paymentDiscountLabel = input.paymentMethod === "PIX" ? "Desconto PIX" : "Desconto Cartão"
   const lines = [
-    `Pedido ${input.orderNumber} confirmado.`,
-    `Unidade: ${input.franchiseName}`,
+    introMessage,
+    "",
+    `Pedido: ${input.orderNumber}`,
+    `Empresa: ${input.franchiseName}`,
     `Status atual: ${statusLabels[input.status] ?? input.status}`,
-    `Pagamento: ${input.paymentMethod === "PIX" ? "PIX" : "Cartao"}`,
+    `Pagamento: ${input.paymentMethod === "PIX" ? "PIX" : "Cartão"}`,
     "",
     ...input.items.map((item) => {
       const selectedOptions = formatSelectedOptions(item.selectedOptions)
@@ -187,9 +194,7 @@ function buildOrderConfirmationText(input: OrderConfirmationEmailInput) {
     `Subtotal: ${formatMoneyFromCents(input.subtotalInCents)}`,
     input.promotionDiscountInCents > 0 ? `Descontos: -${formatMoneyFromCents(input.promotionDiscountInCents)}` : "",
     input.couponDiscountInCents > 0 ? `Cupom: -${formatMoneyFromCents(input.couponDiscountInCents)}` : "",
-    input.pixDiscountInCents > 0
-      ? `${paymentDiscountLabel}: -${formatMoneyFromCents(input.pixDiscountInCents)}`
-      : "",
+    input.pixDiscountInCents > 0 ? `${paymentDiscountLabel}: -${formatMoneyFromCents(input.pixDiscountInCents)}` : "",
     `Total estimado: ${formatMoneyFromCents(input.totalInCents)}`,
   ]
 
@@ -197,12 +202,24 @@ function buildOrderConfirmationText(input: OrderConfirmationEmailInput) {
 }
 
 export async function sendOrderConfirmationEmail(input: OrderConfirmationEmailInput) {
+  const settings = await getOrderMessageSettings()
+  const statusLabel = statusLabels[input.status] ?? input.status
+  const paymentLabel = input.paymentMethod === "PIX" ? "PIX" : "Cartão"
+  const templateValues = {
+    pedido: input.orderNumber,
+    cliente: input.customerName,
+    empresa: input.franchiseName,
+    status: statusLabel,
+    pagamento: paymentLabel,
+    total: formatMoneyFromCents(input.totalInCents),
+  }
+  const subject = renderTemplate(settings.emailSubjectTemplate, templateValues)
+  const introMessage = renderTemplate(settings.emailMessageTemplate, templateValues)
+
   await sendMail({
     to: input.to,
-    subject: `Pedido ${input.orderNumber} confirmado - Nacho Factory`,
-    html: buildOrderConfirmationHtml(input),
-    text: buildOrderConfirmationText(input),
+    subject,
+    html: buildOrderConfirmationHtml(input, introMessage),
+    text: buildOrderConfirmationText(input, introMessage),
   })
 }
-
-
