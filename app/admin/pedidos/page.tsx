@@ -8,7 +8,7 @@ import { DeleteActionDialog } from "@/components/delete-action-dialog"
 import { AdminManageModal } from "@/components/admin-manage-modal"
 import { PaginationControls } from "@/components/pagination-controls"
 import { getCurrentPage, getPagination, type SearchParams } from "@/lib/pagination"
-import { deleteOrderAction, updateOrderStatusAction } from "./actions"
+import { cancelOrderAction, deleteOrderAction, updateOrderStatusAction } from "./actions"
 
 const statusLabels: Record<string, string> = {
   AWAITING_SERVICE: "Aguardando atendimento",
@@ -29,6 +29,8 @@ const statusClasses: Record<string, string> = {
   DELIVERED: "border-lime/30 bg-lime/10 text-lime",
   CANCELLED: "border-red-400/30 bg-red-500/10 text-red-300",
 }
+
+const editableStatusLabels = Object.entries(statusLabels).filter(([status]) => status !== "CANCELLED")
 
 export default async function AdminOrdersPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const resolvedSearchParams = await searchParams
@@ -195,6 +197,7 @@ function OrderManagement({
 }) {
   const number = `NF-${String(order.number).padStart(5, "0")}`
   const paymentDiscountLabel = order.paymentMethod === "PIX" ? "Desconto PIX" : "Desconto cartao"
+  const defaultEditableStatus = order.status === "CANCELLED" ? undefined : order.status
   return (
     <div className="space-y-7 pt-1">
       <section>
@@ -229,14 +232,26 @@ function OrderManagement({
             className="mt-4"
           >
             <input type="hidden" name="orderId" value={order.id} />
-            <AdminSelect name="status" label="Status do pedido" defaultValue={order.status}>
-              {Object.entries(statusLabels).map(([value, label]) => (
+            <AdminSelect name="status" label="Status do pedido" defaultValue={defaultEditableStatus}>
+              {editableStatusLabels.map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
                 </option>
               ))}
             </AdminSelect>
           </AdminActionForm>
+          {order.status !== "CANCELLED" && (
+            <div className="mt-4 flex justify-end border-t border-border pt-4">
+              <DeleteActionDialog
+                action={cancelOrderAction}
+                fields={{ orderId: order.id }}
+                title="Cancelar pedido?"
+                description={`O pedido ${number} será marcado como cancelado. Ele continuará no histórico e poderá ser excluído depois se necessário.`}
+                label="CANCELAR PEDIDO"
+                successMessage="Pedido cancelado."
+              />
+            </div>
+          )}
           {order.notes && (
             <div className="mt-5 rounded-xl border border-border bg-graphite/50 p-4">
               <p className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">Observações</p>

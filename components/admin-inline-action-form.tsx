@@ -18,7 +18,8 @@ export function AdminInlineActionForm({
 }) {
   const [pending, setPending] = useState(false)
   const pendingRef = useRef(false)
-  const destructive = label.toLowerCase().includes("desativar")
+  const normalizedLabel = label.toLowerCase()
+  const destructive = normalizedLabel.includes("desativar") || normalizedLabel.includes("cancelar")
   async function run(formData: FormData) {
     if (pendingRef.current) return
     pendingRef.current = true

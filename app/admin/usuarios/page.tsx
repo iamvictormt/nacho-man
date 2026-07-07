@@ -50,6 +50,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
               email: true,
               active: true,
               createdAt: true,
+              businessProfile: true,
               _count: { select: { orders: true } },
             },
             orderBy: [{ active: "desc" }, { createdAt: "desc" }],
@@ -269,6 +270,15 @@ function CommonUsersList({
     email: string
     active: boolean
     createdAt: Date
+    businessProfile: {
+      legalName: string
+      tradeName: string
+      document: string
+      email: string
+      phone: string | null
+      city: string
+      state: string
+    } | null
     _count: { orders: number }
   }[]
 }) {
@@ -284,7 +294,7 @@ function CommonUsersList({
         <AdminDataRow
           key={user.id}
           template="minmax(200px,1.35fr) minmax(220px,1.25fr) 90px 120px 100px 72px"
-          search={`${user.name} ${user.email}`}
+          search={`${user.name} ${user.email} ${user.businessProfile?.tradeName ?? ""} ${user.businessProfile?.legalName ?? ""} ${user.businessProfile?.document ?? ""}`}
           inactive={!user.active}
         >
           <div className="flex min-w-0 items-center gap-3">
@@ -293,14 +303,19 @@ function CommonUsersList({
             </span>
             <div className="min-w-0">
               <h2 className="truncate text-sm font-black uppercase">{user.name}</h2>
-              <p className="mt-1 text-[9px] text-muted-foreground">Cliente comum</p>
+              <p className="mt-1 text-[9px] text-muted-foreground">
+                {user.businessProfile?.tradeName ?? "Cliente comum"}
+              </p>
             </div>
           </div>
           <div className="min-w-0">
             <AdminDataLabel>E-mail</AdminDataLabel>
             <p className="mt-1 flex items-center gap-2 truncate text-xs font-bold xl:mt-0">
               <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              {user.email}
+              {user.businessProfile?.email ?? user.email}
+            </p>
+            <p className="mt-1 truncate text-[9px] text-muted-foreground">
+              {user.businessProfile?.document ? formatDocument(user.businessProfile.document) : user.email}
             </p>
           </div>
           <div>
@@ -393,10 +408,20 @@ function CommonUserEditForm({
     email: string
     active: boolean
     createdAt: Date
+    businessProfile: {
+      legalName: string
+      tradeName: string
+      document: string
+      email: string
+      phone: string | null
+      city: string
+      state: string
+    } | null
     _count: { orders: number }
   }
   modalId: string
 }) {
+  const businessProfile = user.businessProfile
   return (
     <AdminActionForm
       action={updateCommonUserAction}
@@ -410,6 +435,27 @@ function CommonUserEditForm({
         <AdminInput name="name" label="Nome" defaultValue={user.name} required />
         <AdminInput name="email" label="E-mail" mask="email" defaultValue={user.email} required />
       </AdminFieldGrid>
+      <div>
+        <p className="mb-3 text-[10px] font-black uppercase tracking-[0.14em] text-lime">Dados comerciais</p>
+        <AdminFieldGrid columns="equal">
+          <AdminInput name="legalName" label="Razão social" defaultValue={businessProfile?.legalName ?? ""} required />
+          <AdminInput name="tradeName" label="Nome fantasia" defaultValue={businessProfile?.tradeName ?? ""} required />
+        </AdminFieldGrid>
+        <AdminFieldGrid className="mt-5" columns="equal">
+          <AdminInput name="document" label="CNPJ" mask="cnpj" defaultValue={businessProfile?.document ?? ""} required />
+          <AdminInput
+            name="businessEmail"
+            label="E-mail comercial"
+            mask="email"
+            defaultValue={businessProfile?.email ?? ""}
+            required
+          />
+        </AdminFieldGrid>
+        <AdminFieldGrid className="mt-5" columns="equal">
+          <AdminInput name="phone" label="WhatsApp comercial" mask="phone" defaultValue={businessProfile?.phone ?? ""} />
+        </AdminFieldGrid>
+        <AdminLocationFields defaultState={businessProfile?.state ?? ""} defaultCity={businessProfile?.city ?? ""} />
+      </div>
       <div className="grid gap-3 rounded-xl border border-border bg-graphite p-4 sm:grid-cols-2">
         <DetailRow label="Pedidos" value={String(user._count.orders)} />
         <DetailRow label="Cadastro" value={formatLongDate(user.createdAt)} />
@@ -533,6 +579,11 @@ function getInitials(name: string) {
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" }).format(date)
+}
+
+function formatDocument(value: string) {
+  const d = value.replace(/\D/g, "")
+  return d.length === 14 ? `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}` : value
 }
 
 function formatLongDate(date: Date) {

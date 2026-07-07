@@ -60,6 +60,7 @@ model User {
   active       Boolean    @default(true)
   franchiseId  String?
   franchise    Franchise? @relation(fields: [franchiseId], references: [id])
+  businessProfile BusinessProfile?
   orders       Order[]
   passwordResetCodes PasswordResetCode[]
   createdAt    DateTime   @default(now())
@@ -102,6 +103,23 @@ model Franchise {
   addresses     Address[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model BusinessProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  legalName String
+  tradeName String
+  document  String   @unique
+  email     String
+  phone     String?
+  city      String
+  state     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([document])
 }
 
 model Address {

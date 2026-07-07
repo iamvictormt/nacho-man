@@ -22,24 +22,52 @@ export async function updateMyAccountAction(formData: FormData) {
   })
   if (existingUser) throw new Error("E-mail já cadastrado.")
 
+  const legalName = String(formData.get("legalName") ?? "").trim()
+  const tradeName = String(formData.get("tradeName") ?? "").trim()
+  const document = String(formData.get("document") ?? "").replace(/\D/g, "") || null
+  const businessEmail = String(formData.get("businessEmail") ?? "")
+    .trim()
+    .toLowerCase()
+  const whatsapp = String(formData.get("whatsapp") ?? "").replace(/\D/g, "") || null
+  const state = String(formData.get("state") ?? "")
+    .trim()
+    .toUpperCase()
+  const city = String(formData.get("city") ?? "").trim()
+
+  if (!legalName) throw new Error("Informe a razão social.")
+  if (!tradeName) throw new Error("Informe o nome fantasia.")
+  if (!document) throw new Error("Informe o CNPJ.")
+  if (!businessEmail) throw new Error("Informe o e-mail comercial.")
+  if (!state || !city) throw new Error("Informe UF e cidade.")
+
   if (user.role !== "FRANCHISEE") {
+    const [existingFranchise, existingBusinessProfile] = await Promise.all([
+      prisma.franchise.findUnique({ where: { document }, select: { id: true } }),
+      prisma.businessProfile.findFirst({
+        where: { document, userId: { not: user.id } },
+        select: { id: true },
+      }),
+    ])
+    if (existingFranchise || existingBusinessProfile) throw new Error("CNPJ já cadastrado.")
+
     await prisma.user.update({
       where: { id: user.id },
-      data: { name, email },
+      data: {
+        name,
+        email,
+        businessProfile: {
+          upsert: {
+            create: { legalName, tradeName, document, email: businessEmail, phone: whatsapp, state, city },
+            update: { legalName, tradeName, document, email: businessEmail, phone: whatsapp, state, city },
+          },
+        },
+      },
     })
     revalidateMarketplaceAccount()
     return
   }
 
   if (!user.franchiseId) throw new Error("Sua conta não está vinculada a uma unidade.")
-
-  const tradeName = String(formData.get("tradeName") ?? "").trim()
-  const document = String(formData.get("document") ?? "").replace(/\D/g, "") || null
-  const whatsapp = String(formData.get("whatsapp") ?? "").replace(/\D/g, "") || null
-  const state = String(formData.get("state") ?? "")
-    .trim()
-    .toUpperCase()
-  const city = String(formData.get("city") ?? "").trim()
 
   if (!tradeName) throw new Error("Informe o nome da unidade.")
 
@@ -51,6 +79,12 @@ export async function updateMyAccountAction(formData: FormData) {
     : null
   if (existingFranchise) throw new Error("CNPJ já cadastrado.")
 
+  const existingBusinessProfileForFranchise = await prisma.businessProfile.findUnique({
+    where: { document },
+    select: { id: true },
+  })
+  if (existingBusinessProfileForFranchise) throw new Error("CNPJ já cadastrado.")
+
   const franchiseId = user.franchiseId
   await prisma.$transaction(async (tx) => {
     await tx.user.update({
@@ -59,7 +93,7 @@ export async function updateMyAccountAction(formData: FormData) {
     })
     await tx.franchise.update({
       where: { id: franchiseId },
-      data: { tradeName, document, whatsapp },
+      data: { legalName, tradeName, document, whatsapp },
     })
 
     if (state && city) {

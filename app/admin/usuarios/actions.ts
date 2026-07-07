@@ -29,10 +29,27 @@ export async function updateCommonUserAction(formData: FormData) {
   const email = String(formData.get("email") ?? "")
     .trim()
     .toLowerCase()
+  const legalName = String(formData.get("legalName") ?? "").trim()
+  const tradeName = String(formData.get("tradeName") ?? "").trim()
+  const document = String(formData.get("document") ?? "").replace(/\D/g, "") || null
+  const businessEmail = String(formData.get("businessEmail") ?? "")
+    .trim()
+    .toLowerCase()
+  const phone = String(formData.get("phone") ?? "").replace(/\D/g, "") || null
+  const state = String(formData.get("state") ?? "")
+    .trim()
+    .toUpperCase()
+  const city = String(formData.get("city") ?? "").trim()
 
   if (!id) throw new Error("Usuário não encontrado.")
   if (!name) throw new Error("Informe o nome do usuário.")
   if (!email) throw new Error("Informe o e-mail do usuário.")
+
+  if (!legalName) throw new Error("Informe a razão social.")
+  if (!tradeName) throw new Error("Informe o nome fantasia.")
+  if (!document) throw new Error("Informe o CNPJ.")
+  if (!businessEmail) throw new Error("Informe o e-mail comercial.")
+  if (!state || !city) throw new Error("Informe UF e cidade.")
 
   const existingUser = await prisma.user.findFirst({
     where: { email, id: { not: id } },
@@ -40,9 +57,27 @@ export async function updateCommonUserAction(formData: FormData) {
   })
   if (existingUser) throw new Error("E-mail já cadastrado.")
 
-  await prisma.user.updateMany({
-    where: { id, role: "USER" },
-    data: { name, email },
+  const [existingFranchise, existingBusinessProfile] = await Promise.all([
+    prisma.franchise.findUnique({ where: { document }, select: { id: true } }),
+    prisma.businessProfile.findFirst({
+      where: { document, userId: { not: id } },
+      select: { id: true },
+    }),
+  ])
+  if (existingFranchise || existingBusinessProfile) throw new Error("CNPJ já cadastrado.")
+
+  await prisma.user.update({
+    where: { id },
+    data: {
+      name,
+      email,
+      businessProfile: {
+        upsert: {
+          create: { legalName, tradeName, document, email: businessEmail, phone, state, city },
+          update: { legalName, tradeName, document, email: businessEmail, phone, state, city },
+        },
+      },
+    },
   })
 
   revalidatePath("/admin")

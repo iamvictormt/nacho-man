@@ -111,29 +111,22 @@ export function LoginForm({
   const [isFranchisee, setIsFranchisee] = useState(false)
   const [franchiseModalOpen, setFranchiseModalOpen] = useState(false)
   const [cities, setCities] = useState<IbgeCity[]>([])
+  const [legalName, setLegalName] = useState("")
   const [tradeName, setTradeName] = useState("")
   const [document, setDocument] = useState("")
+  const [businessEmail, setBusinessEmail] = useState("")
   const [selectedState, setSelectedState] = useState("")
   const [selectedCity, setSelectedCity] = useState("")
   const [loadingCities, setLoadingCities] = useState(false)
-  const hasFranchiseData = Boolean(tradeName && document && selectedState && selectedCity)
+  const hasBusinessData = Boolean(legalName && tradeName && document && businessEmail && selectedState && selectedCity)
+  const hasFranchiseData = hasBusinessData
+  const showLegacyFranchiseCard = false
   const resetEmail = forgotState.email || resetState.email || ""
 
   function changeMode(nextMode: LoginMode) {
     setInternalMode(nextMode)
     onModeChange?.(nextMode)
   }
-
-  useEffect(() => {
-    if (isFranchisee) return
-
-    setFranchiseModalOpen(false)
-    setTradeName("")
-    setDocument("")
-    setSelectedState("")
-    setSelectedCity("")
-    setCities([])
-  }, [isFranchisee])
 
   useEffect(() => {
     if (!franchiseModalOpen) return
@@ -360,7 +353,37 @@ export function LoginForm({
             </span>
           </label>
 
-          {isFranchisee && (
+          <input type="hidden" name="legalName" value={legalName} />
+          <input type="hidden" name="tradeName" value={tradeName} />
+          <input type="hidden" name="document" value={document} />
+          <input type="hidden" name="businessEmail" value={businessEmail} />
+          <input type="hidden" name="state" value={selectedState} />
+          <input type="hidden" name="city" value={selectedCity} />
+
+          <div className="rounded-xl border border-lime/20 bg-lime/5 p-4">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-lime/20 bg-background text-lime">
+                <Store className="h-4 w-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-black uppercase text-foreground">Dados comerciais</p>
+                <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
+                  {hasBusinessData
+                    ? `${tradeName} - ${selectedCity}/${selectedState}`
+                    : "Informe CNPJ, razão social, nome fantasia, endereço e e-mail."}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFranchiseModalOpen(true)}
+              className="mt-4 flex h-11 w-full items-center justify-center rounded-full border border-lime/30 px-4 text-[10px] font-black uppercase tracking-wider text-lime transition hover:border-lime hover:bg-lime hover:text-background"
+            >
+              {hasBusinessData ? "EDITAR DADOS" : "PREENCHER DADOS"}
+            </button>
+          </div>
+
+          {showLegacyFranchiseCard && isFranchisee && (
             <>
               <input type="hidden" name="tradeName" value={tradeName} />
               <input type="hidden" name="document" value={document} />
@@ -408,9 +431,9 @@ export function LoginForm({
               >
                 <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-lime">Cadastro franqueado</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-lime">Cadastro comercial</p>
                     <h3 id="franchise-modal-title" className="mt-2 text-xl font-black uppercase">
-                      Dados da unidade
+                      Dados da empresa
                     </h3>
                   </div>
                   <button
@@ -426,8 +449,16 @@ export function LoginForm({
 
                 <div className="mt-5 space-y-4">
                   <TextField
+                    id="legalName"
+                    label="Razão social"
+                    value={legalName}
+                    onChange={(event) => setLegalName(event.currentTarget.value)}
+                    placeholder="Empresa LTDA"
+                    required
+                  />
+                  <TextField
                     id="tradeName"
-                    label="Nome da unidade"
+                    label="Nome fantasia"
                     value={tradeName}
                     onChange={(event) => setTradeName(event.currentTarget.value)}
                     placeholder="Nacho Man Centro"
@@ -440,6 +471,16 @@ export function LoginForm({
                     value={document}
                     onChange={(event) => setDocument(formatMaskedValue(event.currentTarget.value, "cnpj"))}
                     placeholder="00.000.000/0000-00"
+                    required
+                  />
+                  <TextField
+                    id="businessEmail"
+                    label="E-mail comercial"
+                    type="email"
+                    mask="email"
+                    value={businessEmail}
+                    onChange={(event) => setBusinessEmail(event.currentTarget.value)}
+                    placeholder="empresa@email.com"
                     required
                   />
                   <div className="grid gap-4 sm:grid-cols-[110px_1fr]">

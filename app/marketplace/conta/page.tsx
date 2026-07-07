@@ -37,10 +37,22 @@ export default async function MarketplaceAccountPage() {
         updatedAt: true,
         franchise: {
           select: {
+            legalName: true,
             tradeName: true,
             document: true,
             whatsapp: true,
             addresses: { select: { city: true, state: true }, take: 1 },
+          },
+        },
+        businessProfile: {
+          select: {
+            legalName: true,
+            tradeName: true,
+            document: true,
+            email: true,
+            phone: true,
+            state: true,
+            city: true,
           },
         },
         _count: { select: { orders: true } },
@@ -61,9 +73,29 @@ export default async function MarketplaceAccountPage() {
 
   if (!user) return null
 
-  const franchise = user.franchise
+  const franchise = user.franchise as
+    | {
+        legalName?: string | null
+        tradeName?: string | null
+        document?: string | null
+        whatsapp?: string | null
+        addresses: Array<{ city?: string | null; state?: string | null }>
+      }
+    | null
+  const businessProfile = user.businessProfile as
+    | {
+        legalName?: string | null
+        tradeName?: string | null
+        document?: string | null
+        email?: string | null
+        phone?: string | null
+        state?: string | null
+        city?: string | null
+      }
+    | null
   const address = franchise?.addresses[0]
   const isFranchisee = user.role === "FRANCHISEE"
+  const showLegacyFranchiseFields = false
   const location = address ? `${address.city} - ${address.state}` : "Não informada"
 
   return (
@@ -96,7 +128,55 @@ export default async function MarketplaceAccountPage() {
                 </AdminFieldGrid>
               </div>
 
-              {isFranchisee && (
+              <div className="border-t border-border pt-7">
+                <p className="mb-4 text-[10px] font-black uppercase tracking-[0.16em] text-lime">
+                  {isFranchisee ? "Dados da unidade" : "Dados comerciais"}
+                </p>
+                <AdminFieldGrid columns="equal">
+                  <AdminInput
+                    name="legalName"
+                    label="Razão social"
+                    defaultValue={isFranchisee ? franchise?.legalName ?? "" : businessProfile?.legalName ?? ""}
+                    required
+                  />
+                  <AdminInput
+                    name="tradeName"
+                    label={isFranchisee ? "Nome da unidade" : "Nome fantasia"}
+                    defaultValue={isFranchisee ? franchise?.tradeName ?? "" : businessProfile?.tradeName ?? ""}
+                    required
+                  />
+                </AdminFieldGrid>
+                <AdminFieldGrid className="mt-5" columns="equal">
+                  <AdminInput
+                    name="document"
+                    label="CNPJ"
+                    mask="cnpj"
+                    defaultValue={isFranchisee ? franchise?.document ?? "" : businessProfile?.document ?? ""}
+                    required
+                  />
+                  <AdminInput
+                    name="businessEmail"
+                    label="E-mail comercial"
+                    mask="email"
+                    defaultValue={isFranchisee ? user.email : businessProfile?.email ?? ""}
+                    required
+                  />
+                </AdminFieldGrid>
+                <AdminFieldGrid className="mt-5" columns="equal">
+                  <AdminInput
+                    name="whatsapp"
+                    label={isFranchisee ? "WhatsApp" : "WhatsApp comercial"}
+                    mask="phone"
+                    defaultValue={isFranchisee ? franchise?.whatsapp ?? "" : businessProfile?.phone ?? ""}
+                  />
+                </AdminFieldGrid>
+                <AdminLocationFields
+                  defaultState={isFranchisee ? address?.state ?? "" : businessProfile?.state ?? ""}
+                  defaultCity={isFranchisee ? address?.city ?? "" : businessProfile?.city ?? ""}
+                />
+              </div>
+
+              {showLegacyFranchiseFields && isFranchisee && (
                 <div className="border-t border-border pt-7">
                   <p className="mb-4 text-[10px] font-black uppercase tracking-[0.16em] text-lime">Dados da unidade</p>
                   <AdminInput

@@ -103,6 +103,16 @@ export async function registerAction(_state: RegisterState, formData: FormData):
   const password = String(formData.get("registerPassword") ?? "")
   const isFranchisee = formData.get("isFranchisee") === "on"
   const phone = String(formData.get("phone") ?? "").replace(/\D/g, "") || null
+  const legalName = String(formData.get("legalName") ?? "").trim()
+  const tradeName = String(formData.get("tradeName") ?? "").trim()
+  const document = String(formData.get("document") ?? "").replace(/\D/g, "") || null
+  const businessEmail = String(formData.get("businessEmail") ?? "")
+    .trim()
+    .toLowerCase()
+  const city = String(formData.get("city") ?? "").trim()
+  const state = String(formData.get("state") ?? "")
+    .trim()
+    .toUpperCase()
 
   if (!name || !email || password.length < 8) {
     return { error: "Informe nome, e-mail e uma senha com pelo menos 8 caracteres." }
@@ -119,6 +129,18 @@ export async function registerAction(_state: RegisterState, formData: FormData):
       return { error: "Já existe um cadastro com este e-mail." }
     }
 
+    if (!legalName || !tradeName || !document || !businessEmail || !city || !state) {
+      return { error: "Preencha CNPJ, razão social, nome fantasia, endereço e e-mail comercial." }
+    }
+
+    const [existingFranchise, existingBusinessProfile] = await Promise.all([
+      prisma.franchise.findUnique({ where: { document }, select: { id: true } }),
+      prisma.businessProfile.findUnique({ where: { document }, select: { id: true } }),
+    ])
+    if (existingFranchise || existingBusinessProfile) {
+      return { error: "Já existe um cadastro com este CNPJ." }
+    }
+
     if (!isFranchisee) {
       const user = await prisma.user.create({
         data: {
@@ -126,18 +148,22 @@ export async function registerAction(_state: RegisterState, formData: FormData):
           email,
           passwordHash,
           role: "USER",
+          businessProfile: {
+            create: {
+              legalName,
+              tradeName,
+              document,
+              email: businessEmail,
+              phone,
+              city,
+              state,
+            },
+          },
         },
       })
 
       await createSession({ userId: user.id, role: "USER" })
     } else {
-      const tradeName = String(formData.get("tradeName") ?? "").trim()
-      const document = String(formData.get("document") ?? "").replace(/\D/g, "") || null
-      const city = String(formData.get("city") ?? "").trim()
-      const state = String(formData.get("state") ?? "")
-        .trim()
-        .toUpperCase()
-
       if (!tradeName || !document || !phone || !city || !state) {
         return { error: "Preencha os dados da unidade para solicitar aprovação como franqueado." }
       }
@@ -153,6 +179,7 @@ export async function registerAction(_state: RegisterState, formData: FormData):
       await prisma.franchise.create({
         data: {
           tradeName,
+          legalName,
           document,
           whatsapp: phone,
           active: false,
