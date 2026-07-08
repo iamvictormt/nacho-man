@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { CheckCircle2, LoaderCircle, Minus, Plus, ShoppingCart, Trash2, X } from "lucide-react"
 import { useMarketplaceCart } from "@/lib/marketplace-cart-store"
 import { formatMoneyFromCents } from "@/lib/money"
+import { getPaymentMethodLabel, type MarketplacePaymentMethod } from "@/lib/payment-method"
 import { useLockBodyScroll } from "@/hooks/use-lock-body-scroll"
 
 type CheckoutResponse = {
@@ -19,7 +20,8 @@ type CouponPreview = {
   totalInCents: number
 }
 
-function paymentDiscountLabel(method: "PIX" | "CARD", discountPercent: number) {
+function paymentDiscountLabel(method: MarketplacePaymentMethod, discountPercent: number) {
+  if (method === "BOLETO" && discountPercent <= 0) return "Para franqueados"
   if (discountPercent <= 0) return method === "PIX" ? "Sem desconto" : "Link pelo WhatsApp"
   return `${discountPercent}% de desconto`
 }
@@ -27,12 +29,16 @@ function paymentDiscountLabel(method: "PIX" | "CARD", discountPercent: number) {
 export function MarketplaceCartDrawer({
   pixDiscountPercent,
   cardDiscountPercent,
+  boletoDiscountPercent,
+  allowBoleto = false,
 }: {
   pixDiscountPercent: number
   cardDiscountPercent: number
+  boletoDiscountPercent: number
+  allowBoleto?: boolean
 }) {
   const { items, open, closeCart, remove, setQuantity, clear } = useMarketplaceCart()
-  const [paymentMethod, setPaymentMethod] = useState<"PIX" | "CARD">("PIX")
+  const [paymentMethod, setPaymentMethod] = useState<MarketplacePaymentMethod>("PIX")
   const [coupon, setCoupon] = useState("")
   const [notes, setNotes] = useState("")
   const [loading, setLoading] = useState(false)
@@ -56,7 +62,12 @@ export function MarketplaceCartDrawer({
   if (!open) return null
 
   const subtotal = items.reduce((total, item) => total + item.unitPriceInCents * item.quantity, 0)
-  const activePaymentDiscountPercent = paymentMethod === "PIX" ? pixDiscountPercent : cardDiscountPercent
+  const activePaymentDiscountPercent =
+    paymentMethod === "PIX"
+      ? pixDiscountPercent
+      : paymentMethod === "CARD"
+        ? cardDiscountPercent
+        : boletoDiscountPercent
   const estimatedPixDiscount = couponPreview
     ? couponPreview.pixDiscountInCents
     : Math.round(subtotal * (activePaymentDiscountPercent / 100))
@@ -95,7 +106,7 @@ export function MarketplaceCartDrawer({
     }
   }
 
-  function changePaymentMethod(method: "PIX" | "CARD") {
+  function changePaymentMethod(method: MarketplacePaymentMethod) {
     setPaymentMethod(method)
     setCouponPreview(null)
     setCouponError("")
@@ -195,105 +206,120 @@ export function MarketplaceCartDrawer({
             )}
           </div>
         ) : (
-        <div className="flex-1 space-y-4 overflow-y-auto p-5">
-          {items.map((item) => (
-            <article
-              key={`${item.type}-${item.id}-${item.selectionKey ?? "default"}`}
-              className="rounded-xl border border-border bg-graphite p-4"
-            >
-              <div className="flex justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-black uppercase">{item.name}</h3>
-                  <p className="mt-1 text-xs text-muted-foreground">{item.packageLabel}</p>
-                  {item.selectedOptions && item.selectedOptions.length > 0 && (
-                    <ul className="mt-2 space-y-1 text-[10px] font-bold uppercase text-foreground/70">
-                      {item.selectedOptions.map((option) => (
-                        <li key={option.productId}>
-                          {option.quantity}x {option.name}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+          <div className="flex-1 space-y-4 overflow-y-auto p-5">
+            {items.map((item) => (
+              <article
+                key={`${item.type}-${item.id}-${item.selectionKey ?? "default"}`}
+                className="rounded-xl border border-border bg-graphite p-4"
+              >
+                <div className="flex justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-black uppercase">{item.name}</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">{item.packageLabel}</p>
+                    {item.selectedOptions && item.selectedOptions.length > 0 && (
+                      <ul className="mt-2 space-y-1 text-[10px] font-bold uppercase text-foreground/70">
+                        {item.selectedOptions.map((option) => (
+                          <li key={option.productId}>
+                            {option.quantity}x {option.name}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      remove(item.id, item.type, item.selectionKey)
+                      invalidateCouponPreview()
+                    }}
+                    className="text-muted-foreground hover:text-red-300"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => {
+                        setQuantity(item.id, item.type, item.quantity - 1, item.selectionKey)
+                        invalidateCouponPreview()
+                      }}
+                      className="flex size-9 items-center justify-center rounded-full border border-border"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </button>
+                    <span className="w-8 text-center text-sm font-black">{item.quantity}</span>
+                    <button
+                      onClick={() => {
+                        setQuantity(item.id, item.type, item.quantity + 1, item.selectionKey)
+                        invalidateCouponPreview()
+                      }}
+                      className="flex size-9 items-center justify-center rounded-full border border-border"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <p className="font-black text-lime">{formatMoneyFromCents(item.unitPriceInCents * item.quantity)}</p>
+                </div>
+              </article>
+            ))}
+            {items.length === 0 && (
+              <div className="flex h-full flex-col items-center justify-center space-y-4 text-center">
+                <div className="relative flex h-32 w-32 items-center justify-center rounded-full border border-lime/20 bg-lime/10">
+                  <img
+                    src="/burrito-pegando-fogo-fundo-amarelo.svg"
+                    alt=""
+                    width={76}
+                    height={76}
+                    loading="eager"
+                    decoding="sync"
+                    className="h-24 w-24 object-contain p-2 opacity-50"
+                    aria-hidden="true"
+                  />
+                </div>
+                <p className="text-sm font-semibold text-muted-foreground">Seu carrinho está vazio</p>
                 <button
-                  onClick={() => {
-                    remove(item.id, item.type, item.selectionKey)
-                    invalidateCouponPreview()
-                  }}
-                  className="text-muted-foreground hover:text-red-300"
+                  onClick={closeCart}
+                  className="min-h-11 px-4 text-xs font-black tracking-wider text-lime hover:underline"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  VER PRODUTOS
                 </button>
               </div>
-              <div className="mt-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => {
-                      setQuantity(item.id, item.type, item.quantity - 1, item.selectionKey)
-                      invalidateCouponPreview()
-                    }}
-                    className="flex size-9 items-center justify-center rounded-full border border-border"
-                  >
-                    <Minus className="h-3 w-3" />
-                  </button>
-                  <span className="w-8 text-center text-sm font-black">{item.quantity}</span>
-                  <button
-                    onClick={() => {
-                      setQuantity(item.id, item.type, item.quantity + 1, item.selectionKey)
-                      invalidateCouponPreview()
-                    }}
-                    className="flex size-9 items-center justify-center rounded-full border border-border"
-                  >
-                    <Plus className="h-3 w-3" />
-                  </button>
-                </div>
-                <p className="font-black text-lime">{formatMoneyFromCents(item.unitPriceInCents * item.quantity)}</p>
-              </div>
-            </article>
-          ))}
-          {items.length === 0 && (
-            <div className="flex h-full flex-col items-center justify-center space-y-4 text-center">
-              <div className="relative flex h-32 w-32 items-center justify-center rounded-full border border-lime/20 bg-lime/10">
-                <img
-                  src="/burrito-pegando-fogo-fundo-amarelo.svg"
-                  alt=""
-                  width={76}
-                  height={76}
-                  loading="eager"
-                  decoding="sync"
-                  className="h-24 w-24 object-contain p-2 opacity-50"
-                  aria-hidden="true"
-                />
-              </div>
-              <p className="text-sm font-semibold text-muted-foreground">Seu carrinho está vazio</p>
-              <button
-                onClick={closeCart}
-                className="min-h-11 px-4 text-xs font-black tracking-wider text-lime hover:underline"
-              >
-                VER PRODUTOS
-              </button>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
         )}
 
         {items.length > 0 && !confirmed && (
           <footer className="space-y-4 border-t border-border bg-graphite p-5">
-            <div className="grid grid-cols-2 gap-3">
+            <div className={`grid gap-3 ${allowBoleto ? "grid-cols-3" : "grid-cols-2"}`}>
               <button
                 onClick={() => changePaymentMethod("PIX")}
                 className={`rounded-xl border p-4 text-left ${paymentMethod === "PIX" ? "border-lime bg-lime/10" : "border-border"}`}
               >
                 <span className="block text-xs font-black">PIX</span>
-                <span className="mt-1 block text-[10px] text-lime">{paymentDiscountLabel("PIX", pixDiscountPercent)}</span>
+                <span className="mt-1 block text-[10px] text-lime">
+                  {paymentDiscountLabel("PIX", pixDiscountPercent)}
+                </span>
               </button>
               <button
                 onClick={() => changePaymentMethod("CARD")}
                 className={`rounded-xl border p-4 text-left ${paymentMethod === "CARD" ? "border-lime bg-lime/10" : "border-border"}`}
               >
                 <span className="block text-xs font-black">CARTÃO</span>
-                <span className="mt-1 block text-[10px] text-muted-foreground">{paymentDiscountLabel("CARD", cardDiscountPercent)}</span>
+                <span className="mt-1 block text-[10px] text-muted-foreground">
+                  {paymentDiscountLabel("CARD", cardDiscountPercent)}
+                </span>
               </button>
+              {allowBoleto && (
+                <button
+                  onClick={() => changePaymentMethod("BOLETO")}
+                  className={`rounded-xl border p-4 text-left ${paymentMethod === "BOLETO" ? "border-lime bg-lime/10" : "border-border"}`}
+                >
+                  <span className="block text-xs font-black">BOLETO</span>
+                  <span className="mt-1 block text-[10px] text-muted-foreground">
+                    {paymentDiscountLabel("BOLETO", boletoDiscountPercent)}
+                  </span>
+                </button>
+              )}
             </div>
             <div>
               <div className="flex gap-2">
@@ -357,7 +383,7 @@ export function MarketplaceCartDrawer({
               )}
               {estimatedPixDiscount > 0 && (
                 <div className="flex justify-between text-lime">
-                  <span>Desconto {paymentMethod === "PIX" ? "PIX" : "cart�o"} estimado</span>
+                  <span>Desconto {getPaymentMethodLabel(paymentMethod)} estimado</span>
                   <span>-{formatMoneyFromCents(estimatedPixDiscount)}</span>
                 </div>
               )}
@@ -376,7 +402,7 @@ export function MarketplaceCartDrawer({
               {loading ? "CRIANDO PEDIDO..." : "FINALIZAR PELO WHATSAPP"}
             </button>
             <p className="text-center text-[10px] leading-4 text-muted-foreground">
-              A Factory enviará o código PIX ou o link de cartao na conversa.
+              A Factory enviará o código PIX, o link de cartão ou as instruções do boleto na conversa.
             </p>
           </footer>
         )}
@@ -384,4 +410,3 @@ export function MarketplaceCartDrawer({
     </>
   )
 }
-

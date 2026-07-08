@@ -3,7 +3,8 @@
 
 @custom-variant dark (&:is(.dark *));
 
-:root {
+:root,
+.dark {
   --background: #0a0a0a;
   --foreground: #ffffff;
   --card: #141414;
@@ -30,6 +31,34 @@
   --purple-dark: #1a0f2e;
   --purple-medium: #5b2d82;
   --neon-green: #efff0d;
+}
+
+.light {
+  --background: #E4E4E4;
+  --foreground: #19120d;
+  --card: #ffffff;
+  --card-foreground: #19120d;
+  --popover: #ffffff;
+  --popover-foreground: #19120d;
+  --primary: #5b2d82;
+  --primary-foreground: #ffffff;
+  --secondary: #f0e4d0;
+  --secondary-foreground: #19120d;
+  --muted: #D2D4D6;
+  --muted-foreground: #74685b;
+  --accent: #efff0d;
+  --accent-foreground: #19120d;
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: #ffffff;
+  --border: #D2D4D6;
+  --input: #D2D4D6;
+  --ring: #5b2d82;
+  --lime: #5b2d82;
+  --lime-dark: #421d64;
+  --graphite: #ffffff;
+  --purple-dark: #f0e4d0;
+  --purple-medium: #5b2d82;
+  --neon-green: #5b2d82;
 }
 
 @theme inline {
@@ -91,6 +120,25 @@
 }
 
 @layer components {
+  .private-logo-plate {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    transition:
+      background-color 0.2s ease,
+      box-shadow 0.2s ease,
+      padding 0.2s ease;
+  }
+
+  .light .private-logo-plate {
+    background: transparent;
+    filter:
+      drop-shadow(0 2px 2px rgba(25, 18, 13, 0.72))
+      drop-shadow(0 7px 12px rgba(25, 18, 13, 0.42))
+      drop-shadow(0 14px 28px rgba(91, 45, 130, 0.32));
+  }
+
   .admin-action-form {
     display: grid;
     gap: 1.5rem;
@@ -116,10 +164,10 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0a0a0a;
+  background: var(--background);
 }
 ::-webkit-scrollbar-thumb {
-  background: #333;
+  background: var(--muted);
   border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {

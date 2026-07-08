@@ -6,6 +6,7 @@ import { AdminFieldGrid, AdminInput } from "@/components/admin-form-fields"
 import { AdminLocationFields } from "@/components/admin-location-fields"
 import { PrivatePageHeader } from "@/components/private-page-header"
 import { updateMyAccountAction, updateMyPasswordAction } from "./actions"
+import { formatOrderCode } from "@/lib/order-number"
 
 const activeOrderStatuses = ["AWAITING_SERVICE", "AWAITING_PAYMENT", "PAYMENT_CONFIRMED", "PICKING", "SHIPPED"] as const
 
@@ -73,26 +74,22 @@ export default async function MarketplaceAccountPage() {
 
   if (!user) return null
 
-  const franchise = user.franchise as
-    | {
-        legalName?: string | null
-        tradeName?: string | null
-        document?: string | null
-        whatsapp?: string | null
-        addresses: Array<{ city?: string | null; state?: string | null }>
-      }
-    | null
-  const businessProfile = user.businessProfile as
-    | {
-        legalName?: string | null
-        tradeName?: string | null
-        document?: string | null
-        email?: string | null
-        phone?: string | null
-        state?: string | null
-        city?: string | null
-      }
-    | null
+  const franchise = user.franchise as {
+    legalName?: string | null
+    tradeName?: string | null
+    document?: string | null
+    whatsapp?: string | null
+    addresses: Array<{ city?: string | null; state?: string | null }>
+  } | null
+  const businessProfile = user.businessProfile as {
+    legalName?: string | null
+    tradeName?: string | null
+    document?: string | null
+    email?: string | null
+    phone?: string | null
+    state?: string | null
+    city?: string | null
+  } | null
   const address = franchise?.addresses[0]
   const isFranchisee = user.role === "FRANCHISEE"
   const showLegacyFranchiseFields = false
@@ -136,13 +133,13 @@ export default async function MarketplaceAccountPage() {
                   <AdminInput
                     name="legalName"
                     label="Razão social"
-                    defaultValue={isFranchisee ? franchise?.legalName ?? "" : businessProfile?.legalName ?? ""}
+                    defaultValue={isFranchisee ? (franchise?.legalName ?? "") : (businessProfile?.legalName ?? "")}
                     required
                   />
                   <AdminInput
                     name="tradeName"
                     label={isFranchisee ? "Nome da unidade" : "Nome fantasia"}
-                    defaultValue={isFranchisee ? franchise?.tradeName ?? "" : businessProfile?.tradeName ?? ""}
+                    defaultValue={isFranchisee ? (franchise?.tradeName ?? "") : (businessProfile?.tradeName ?? "")}
                     required
                   />
                 </AdminFieldGrid>
@@ -151,14 +148,14 @@ export default async function MarketplaceAccountPage() {
                     name="document"
                     label="CNPJ"
                     mask="cnpj"
-                    defaultValue={isFranchisee ? franchise?.document ?? "" : businessProfile?.document ?? ""}
+                    defaultValue={isFranchisee ? (franchise?.document ?? "") : (businessProfile?.document ?? "")}
                     required
                   />
                   <AdminInput
                     name="businessEmail"
                     label="E-mail comercial"
                     mask="email"
-                    defaultValue={isFranchisee ? user.email : businessProfile?.email ?? ""}
+                    defaultValue={isFranchisee ? user.email : (businessProfile?.email ?? "")}
                     required
                   />
                 </AdminFieldGrid>
@@ -167,12 +164,12 @@ export default async function MarketplaceAccountPage() {
                     name="whatsapp"
                     label={isFranchisee ? "WhatsApp" : "WhatsApp comercial"}
                     mask="phone"
-                    defaultValue={isFranchisee ? franchise?.whatsapp ?? "" : businessProfile?.phone ?? ""}
+                    defaultValue={isFranchisee ? (franchise?.whatsapp ?? "") : (businessProfile?.phone ?? "")}
                   />
                 </AdminFieldGrid>
                 <AdminLocationFields
-                  defaultState={isFranchisee ? address?.state ?? "" : businessProfile?.state ?? ""}
-                  defaultCity={isFranchisee ? address?.city ?? "" : businessProfile?.city ?? ""}
+                  defaultState={isFranchisee ? (address?.state ?? "") : (businessProfile?.state ?? "")}
+                  defaultCity={isFranchisee ? (address?.city ?? "") : (businessProfile?.city ?? "")}
                 />
               </div>
 
@@ -248,7 +245,7 @@ export default async function MarketplaceAccountPage() {
             {lastOrder && (
               <AccountDetail
                 label="Último pedido"
-                value={`NF-${String(lastOrder.number).padStart(5, "0")} · ${statusLabels[lastOrder.status] ?? lastOrder.status}`}
+                value={`${formatOrderCode(lastOrder.number)} · ${statusLabels[lastOrder.status] ?? lastOrder.status}`}
               />
             )}
             {isFranchisee && (

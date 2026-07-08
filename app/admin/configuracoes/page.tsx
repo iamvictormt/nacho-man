@@ -4,7 +4,12 @@ import { AdminInput, AdminTextarea } from "@/components/admin-form-fields"
 import { AdminProductImageUpload } from "@/components/admin-product-image-upload"
 import { PrivatePageHeader } from "@/components/private-page-header"
 import { prisma } from "@/lib/prisma"
-import { loginImageSettings, orderMessageSettings, paymentDiscountSettings, storeWhatsAppSetting } from "@/lib/site-settings"
+import {
+  loginImageSettings,
+  orderMessageSettings,
+  paymentDiscountSettings,
+  storeWhatsAppSetting,
+} from "@/lib/site-settings"
 import { updateLoginImagesAction } from "./actions"
 
 export default async function AdminSettingsPage() {
@@ -19,6 +24,7 @@ export default async function AdminSettingsPage() {
           orderMessageSettings.emailMessage.key,
           paymentDiscountSettings.pix.key,
           paymentDiscountSettings.card.key,
+          paymentDiscountSettings.boleto.key,
         ],
       },
     },
@@ -55,7 +61,7 @@ export default async function AdminSettingsPage() {
             </div>
           </div>
 
-          <div className="mt-7 grid gap-5 lg:grid-cols-3">
+          <div className="mt-7 grid gap-5 lg:grid-cols-4">
             <AdminInput
               name={storeWhatsAppSetting.key}
               label={storeWhatsAppSetting.label}
@@ -82,6 +88,16 @@ export default async function AdminSettingsPage() {
               max={100}
               defaultValue={values.get(paymentDiscountSettings.card.key) ?? paymentDiscountSettings.card.fallback}
               hint="Use 0 para cartão sem desconto."
+              required
+            />
+            <AdminInput
+              name={paymentDiscountSettings.boleto.key}
+              label={paymentDiscountSettings.boleto.label}
+              mask="decimal"
+              min={0}
+              max={100}
+              defaultValue={values.get(paymentDiscountSettings.boleto.key) ?? paymentDiscountSettings.boleto.fallback}
+              hint="Use 0 para boleto sem desconto."
               required
             />
           </div>

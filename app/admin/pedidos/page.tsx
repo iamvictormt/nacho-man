@@ -9,6 +9,8 @@ import { AdminManageModal } from "@/components/admin-manage-modal"
 import { PaginationControls } from "@/components/pagination-controls"
 import { getCurrentPage, getPagination, type SearchParams } from "@/lib/pagination"
 import { cancelOrderAction, deleteOrderAction, updateOrderStatusAction } from "./actions"
+import { getPaymentDiscountLabel, getPaymentMethodLabel } from "@/lib/payment-method"
+import { formatOrderCode } from "@/lib/order-number"
 
 const statusLabels: Record<string, string> = {
   AWAITING_SERVICE: "Aguardando atendimento",
@@ -81,7 +83,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
 
           <div id="orders-list" className="divide-y divide-border">
             {orders.map((order) => {
-              const number = `NF-${String(order.number).padStart(5, "0")}`
+              const number = formatOrderCode(order.number)
               const preview = order.items.slice(0, 2)
               const buyerName = order.franchise?.tradeName ?? order.user?.name ?? "Cliente Nacho Man"
               return (
@@ -122,12 +124,10 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
                   <div>
                     <p className="text-[9px] font-black uppercase text-muted-foreground xl:hidden">Pagamento</p>
                     <p className="mt-1 flex items-center gap-2 text-xs font-bold xl:mt-0">
-                      {order.paymentMethod === "PIX" ? (
-                        <WalletCards className="h-4 w-4 text-lime" />
-                      ) : (
-                        <CreditCard className="h-4 w-4 text-purple-medium" />
-                      )}
-                      {order.paymentMethod === "PIX" ? "PIX" : "Cartao"}
+                      {order.paymentMethod === "PIX" && <WalletCards className="h-4 w-4 text-lime" />}
+                      {order.paymentMethod === "CARD" && <CreditCard className="h-4 w-4 text-purple-medium" />}
+                      {order.paymentMethod === "BOLETO" && <ReceiptText className="h-4 w-4 text-purple-medium" />}
+                      {getPaymentMethodLabel(order.paymentMethod)}
                     </p>
                   </div>
                   <div>
@@ -195,8 +195,8 @@ function OrderManagement({
   }
   modalId: string
 }) {
-  const number = `NF-${String(order.number).padStart(5, "0")}`
-  const paymentDiscountLabel = order.paymentMethod === "PIX" ? "Desconto PIX" : "Desconto cartao"
+  const number = formatOrderCode(order.number)
+  const paymentDiscountLabel = getPaymentDiscountLabel(order.paymentMethod)
   const defaultEditableStatus = order.status === "CANCELLED" ? undefined : order.status
   return (
     <div className="space-y-7 pt-1">
@@ -276,12 +276,10 @@ function OrderManagement({
             </div>
           </div>
           <p className="mt-4 flex items-center gap-2 text-[10px] font-bold text-muted-foreground">
-            {order.paymentMethod === "PIX" ? (
-              <WalletCards className="h-4 w-4 text-lime" />
-            ) : (
-              <CreditCard className="h-4 w-4 text-purple-medium" />
-            )}
-            {order.paymentMethod === "PIX" ? "Pagamento via PIX" : "Pagamento via cartao"}
+            {order.paymentMethod === "PIX" && <WalletCards className="h-4 w-4 text-lime" />}
+            {order.paymentMethod === "CARD" && <CreditCard className="h-4 w-4 text-purple-medium" />}
+            {order.paymentMethod === "BOLETO" && <ReceiptText className="h-4 w-4 text-purple-medium" />}
+            Pagamento via {getPaymentMethodLabel(order.paymentMethod)}
           </p>
         </div>
       </section>

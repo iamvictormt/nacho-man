@@ -49,22 +49,23 @@ enum OrderStatus {
 enum PaymentMethod {
   PIX
   CARD
+  BOLETO
 }
 
 model User {
-  id           String     @id @default(cuid())
-  name         String
-  email        String     @unique
-  passwordHash String
-  role         UserRole
-  active       Boolean    @default(true)
-  franchiseId  String?
-  franchise    Franchise? @relation(fields: [franchiseId], references: [id])
-  businessProfile BusinessProfile?
-  orders       Order[]
+  id                 String              @id @default(cuid())
+  name               String
+  email              String              @unique
+  passwordHash       String
+  role               UserRole
+  active             Boolean             @default(true)
+  franchiseId        String?
+  franchise          Franchise?          @relation(fields: [franchiseId], references: [id])
+  businessProfile    BusinessProfile?
+  orders             Order[]
   passwordResetCodes PasswordResetCode[]
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 
   @@index([franchiseId])
 }
@@ -91,18 +92,18 @@ model SiteSetting {
 }
 
 model Franchise {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   tradeName     String
   legalName     String?
-  document      String?  @unique
+  document      String?   @unique
   whatsapp      String?
-  active        Boolean  @default(true)
-  priceDiscount Int      @default(0)
+  active        Boolean   @default(true)
+  priceDiscount Int       @default(0)
   users         User[]
   orders        Order[]
   addresses     Address[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model BusinessProfile {
@@ -123,19 +124,19 @@ model BusinessProfile {
 }
 
 model Address {
-  id           String    @id @default(cuid())
-  label        String
-  street       String
-  number       String
-  complement   String?
-  district     String
-  city         String
-  state        String
-  postalCode   String
-  franchiseId  String
-  franchise    Franchise @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  label       String
+  street      String
+  number      String
+  complement  String?
+  district    String
+  city        String
+  state       String
+  postalCode  String
+  franchiseId String
+  franchise   Franchise @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([franchiseId])
 }
@@ -153,27 +154,27 @@ model Category {
 }
 
 model Product {
-  id             String      @id @default(cuid())
-  name           String
-  slug           String      @unique
-  description    String?
-  image          String?
-  sku            String?     @unique
-  priceInCents   Int
-  unit           ProductUnit
-  audience       ProductAudience @default(FRANCHISEE)
-  packageLabel   String
-  minimumQuantity Int        @default(1)
-  stockQuantity  Int?
-  active         Boolean     @default(true)
-  featured       Boolean     @default(false)
-  categoryId     String
-  category       Category    @relation(fields: [categoryId], references: [id])
-  comboItems     ComboOption[]
-  orderItems     OrderItem[]
-  promotions     Promotion[]
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id              String          @id @default(cuid())
+  name            String
+  slug            String          @unique
+  description     String?
+  image           String?
+  sku             String?         @unique
+  priceInCents    Int
+  unit            ProductUnit
+  audience        ProductAudience @default(FRANCHISEE)
+  packageLabel    String
+  minimumQuantity Int             @default(1)
+  stockQuantity   Int?
+  active          Boolean         @default(true)
+  featured        Boolean         @default(false)
+  categoryId      String
+  category        Category        @relation(fields: [categoryId], references: [id])
+  comboItems      ComboOption[]
+  orderItems      OrderItem[]
+  promotions      Promotion[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   @@index([categoryId])
   @@index([active, featured])
@@ -181,20 +182,20 @@ model Product {
 }
 
 model Combo {
-  id             String      @id @default(cuid())
-  name           String
-  slug           String      @unique
-  description    String?
-  image           String?
-  priceInCents   Int
-  totalUnits      Int         @default(1)
-  active         Boolean     @default(true)
-  startsAt       DateTime?
-  endsAt         DateTime?
-  options        ComboOption[]
-  orderItems     OrderItem[]
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id           String        @id @default(cuid())
+  name         String
+  slug         String        @unique
+  description  String?
+  image        String?
+  priceInCents Int
+  totalUnits   Int           @default(1)
+  active       Boolean       @default(true)
+  startsAt     DateTime?
+  endsAt       DateTime?
+  options      ComboOption[]
+  orderItems   OrderItem[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
 model ComboOption {
@@ -235,47 +236,47 @@ model Promotion {
 }
 
 model Coupon {
-  id              String       @id @default(cuid())
-  code            String       @unique
-  description     String?
-  type            DiscountType
-  value           Int
-  minimumInCents  Int?
-  maximumUses     Int?
-  uses            Int          @default(0)
-  startsAt        DateTime
-  endsAt          DateTime
-  active          Boolean      @default(true)
-  orders          Order[]
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  id             String       @id @default(cuid())
+  code           String       @unique
+  description    String?
+  type           DiscountType
+  value          Int
+  minimumInCents Int?
+  maximumUses    Int?
+  uses           Int          @default(0)
+  startsAt       DateTime
+  endsAt         DateTime
+  active         Boolean      @default(true)
+  orders         Order[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@index([active, startsAt, endsAt])
 }
 
 model Order {
-  id                       String        @id @default(cuid())
-  number                   Int           @unique @default(autoincrement())
+  id                       String               @id @default(cuid())
+  number                   Int                  @unique @default(autoincrement())
   franchiseId              String?
-  franchise                Franchise?    @relation(fields: [franchiseId], references: [id])
+  franchise                Franchise?           @relation(fields: [franchiseId], references: [id])
   userId                   String?
-  user                     User?         @relation(fields: [userId], references: [id])
-  status                   OrderStatus   @default(AWAITING_SERVICE)
+  user                     User?                @relation(fields: [userId], references: [id])
+  status                   OrderStatus          @default(AWAITING_SERVICE)
   paymentMethod            PaymentMethod
   couponId                 String?
-  coupon                   Coupon?       @relation(fields: [couponId], references: [id])
-  subtotalInCents           Int
-  promotionDiscountInCents Int           @default(0)
-  couponDiscountInCents    Int           @default(0)
-  pixDiscountInCents       Int           @default(0)
-  shippingInCents          Int           @default(0)
-  totalInCents              Int
+  coupon                   Coupon?              @relation(fields: [couponId], references: [id])
+  subtotalInCents          Int
+  promotionDiscountInCents Int                  @default(0)
+  couponDiscountInCents    Int                  @default(0)
+  pixDiscountInCents       Int                  @default(0)
+  shippingInCents          Int                  @default(0)
+  totalInCents             Int
   notes                    String?
   deliveryAddress          Json?
   items                    OrderItem[]
   statusHistory            OrderStatusHistory[]
-  createdAt                DateTime      @default(now())
-  updatedAt                DateTime      @updatedAt
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
 
   @@index([franchiseId, createdAt])
   @@index([userId, createdAt])
@@ -296,7 +297,7 @@ model OrderItem {
   quantity         Int
   unitPriceInCents Int
   totalInCents     Int
-  selectedOptions   Json?
+  selectedOptions  Json?
 
   @@index([orderId])
   @@index([productId])

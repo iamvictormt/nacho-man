@@ -18,6 +18,7 @@ import { adaptMarketplaceProduct } from "@/lib/marketplace-product-adapter"
 import { MarketplaceComboCard } from "@/components/marketplace-combo-card"
 import { PrivatePageHeader } from "@/components/private-page-header"
 import { ProductDetailCard } from "@/components/product-detail-card"
+import { formatOrderCode } from "@/lib/order-number"
 
 const statusLabels: Record<string, string> = {
   AWAITING_SERVICE: "Aguardando atendimento",
@@ -36,7 +37,12 @@ export default async function MarketplacePage() {
   const [whatsappNumber, paymentDiscounts] = await Promise.all([getStoreWhatsAppNumber(), getPaymentDiscountSettings()])
   const paymentDiscountSummary = [
     paymentDiscounts.pixDiscountPercent > 0 ? `PIX com ${paymentDiscounts.pixDiscountPercent}% OFF` : null,
-    paymentDiscounts.cardDiscountPercent > 0 ? `cartao com ${paymentDiscounts.cardDiscountPercent}% OFF` : null,
+    paymentDiscounts.cardDiscountPercent > 0 ? `cartão com ${paymentDiscounts.cardDiscountPercent}% OFF` : null,
+    user.role === "FRANCHISEE" && paymentDiscounts.boletoDiscountPercent > 0
+      ? `boleto com ${paymentDiscounts.boletoDiscountPercent}% OFF`
+      : user.role === "FRANCHISEE"
+        ? "boleto disponível"
+        : null,
   ]
     .filter(Boolean)
     .join(" - ")
@@ -129,7 +135,7 @@ export default async function MarketplacePage() {
           <DashboardStat
             icon={ReceiptText}
             label="Último pedido"
-            value={lastOrder ? `NF-${String(lastOrder.number).padStart(5, "0")}` : "Nenhum"}
+            value={lastOrder ? formatOrderCode(lastOrder.number) : "Nenhum"}
             href="/marketplace/pedidos"
           />
         </section>
@@ -188,7 +194,7 @@ export default async function MarketplacePage() {
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-wider text-lime">
-                        NF-{String(order.number).padStart(5, "0")}
+                        {formatOrderCode(order.number)}
                       </p>
                       <p className="mt-1 text-xs font-bold text-muted-foreground">
                         {statusLabels[order.status] ?? order.status}

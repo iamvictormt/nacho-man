@@ -18,6 +18,11 @@ export const paymentDiscountSettings = {
     label: "Desconto cartão (%)",
     fallback: "0",
   },
+  boleto: {
+    key: "payment.discount.boleto",
+    label: "Desconto boleto (%)",
+    fallback: "0",
+  },
 } as const
 
 export const orderMessageSettings = {
@@ -117,7 +122,7 @@ export async function getPaymentDiscountSettings() {
   const settings = await prisma.siteSetting.findMany({
     where: {
       key: {
-        in: [paymentDiscountSettings.pix.key, paymentDiscountSettings.card.key],
+        in: [paymentDiscountSettings.pix.key, paymentDiscountSettings.card.key, paymentDiscountSettings.boleto.key],
       },
     },
   })
@@ -131,6 +136,10 @@ export async function getPaymentDiscountSettings() {
     cardDiscountPercent: parsePercentage(
       values.get(paymentDiscountSettings.card.key),
       paymentDiscountSettings.card.fallback
+    ),
+    boletoDiscountPercent: parsePercentage(
+      values.get(paymentDiscountSettings.boleto.key),
+      paymentDiscountSettings.boleto.fallback
     ),
   }
 }

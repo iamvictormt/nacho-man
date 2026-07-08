@@ -7,6 +7,12 @@ import { formatMoneyFromCents } from "@/lib/money"
 import { getOrderMessageSettings, getPaymentDiscountSettings, getStoreWhatsAppNumber } from "@/lib/site-settings"
 import { buildWhatsAppUrl } from "@/lib/whatsapp"
 import { sendOrderConfirmationEmail } from "@/lib/order-email"
+import {
+  getPaymentDiscountLabel,
+  getPaymentMethodInstruction,
+  type MarketplacePaymentMethod,
+} from "@/lib/payment-method"
+import { formatOrderCode } from "@/lib/order-number"
 
 export const runtime = "nodejs"
 
@@ -29,7 +35,7 @@ const orderSchema = z.object({
       })
     )
     .min(1),
-  paymentMethod: z.enum(["PIX", "CARD"]),
+  paymentMethod: z.enum(["PIX", "CARD", "BOLETO"]),
   coupon: z.string().max(50).optional(),
   notes: z.string().max(1000).optional(),
 })
@@ -37,7 +43,7 @@ const orderSchema = z.object({
 const couponPreviewSchema = z.object({
   coupon: z.string().trim().min(1).max(50),
   subtotalInCents: z.number().int().positive(),
-  paymentMethod: z.enum(["PIX", "CARD"]),
+  paymentMethod: z.enum(["PIX", "CARD", "BOLETO"]),
 })
 
 function calculateDiscount(type: "PERCENTAGE" | "FIXED", value: number, base: number) {
@@ -45,9 +51,10 @@ function calculateDiscount(type: "PERCENTAGE" | "FIXED", value: number, base: nu
 }
 
 function getPaymentDiscountPercent(
-  method: "PIX" | "CARD",
+  method: MarketplacePaymentMethod,
   settings: Awaited<ReturnType<typeof getPaymentDiscountSettings>>
 ) {
+  if (method === "BOLETO") return settings.boletoDiscountPercent
   return method === "PIX" ? settings.pixDiscountPercent : settings.cardDiscountPercent
 }
 
@@ -83,6 +90,9 @@ export async function PUT(request: Request) {
   const parsed = couponPreviewSchema.safeParse(await request.json())
   if (!parsed.success) {
     return NextResponse.json({ error: "Informe um cupom válido." }, { status: 400 })
+  }
+  if (parsed.data.paymentMethod === "BOLETO" && user?.role !== "FRANCHISEE") {
+    return NextResponse.json({ error: "Boleto está disponível apenas para franqueados." }, { status: 403 })
   }
 
   const now = new Date()
@@ -127,6 +137,9 @@ export async function POST(request: Request) {
   const parsed = orderSchema.safeParse(await request.json())
   if (!parsed.success) {
     return NextResponse.json({ error: "Itens do pedido inválidos." }, { status: 400 })
+  }
+  if (parsed.data.paymentMethod === "BOLETO" && user!.role !== "FRANCHISEE") {
+    return NextResponse.json({ error: "Boleto está disponível apenas para franqueados." }, { status: 403 })
   }
 
   const productRequests = parsed.data.items.filter((item) => item.type === "PRODUCT")
@@ -317,7 +330,7 @@ export async function POST(request: Request) {
     })
   })
 
-  const orderNumber = `NF-${String(order.number).padStart(5, "0")}`
+  const orderNumber = formatOrderCode(order.number)
   const itemLines = order.items.map((item, index) => {
     const selectedOptions = formatSelectedOptions(item.selectedOptions)
 
@@ -328,10 +341,7 @@ export async function POST(request: Request) {
       .filter(Boolean)
       .join("\n")
   })
-  const paymentText =
-    order.paymentMethod === "PIX"
-      ? "PIX - aguardo o código PIX para pagamento."
-      : "Cartão - aguardo o link de pagamento."
+  const paymentText = getPaymentMethodInstruction(order.paymentMethod)
   const buyerLine =
     user!.role === "FRANCHISEE" && user!.franchise
       ? `Unidade: *${user!.franchise.tradeName}*`
@@ -342,7 +352,7 @@ export async function POST(request: Request) {
       ? `Cupom ${coupon?.code}: -${formatMoneyFromCents(order.couponDiscountInCents)}`
       : null,
     order.pixDiscountInCents > 0
-      ? `Desconto ${order.paymentMethod === "PIX" ? "PIX" : "Cartão"} (${paymentDiscountPercent}%): -${formatMoneyFromCents(order.pixDiscountInCents)}`
+      ? `${getPaymentDiscountLabel(order.paymentMethod)} (${paymentDiscountPercent}%): -${formatMoneyFromCents(order.pixDiscountInCents)}`
       : null,
   ]
     .filter(Boolean)

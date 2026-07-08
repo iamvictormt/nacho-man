@@ -26,6 +26,8 @@ export default async function MarketplaceLayout({ children }: { children: React.
       <MarketplaceCartDrawer
         pixDiscountPercent={paymentDiscounts.pixDiscountPercent}
         cardDiscountPercent={paymentDiscounts.cardDiscountPercent}
+        boletoDiscountPercent={paymentDiscounts.boletoDiscountPercent}
+        allowBoleto={user.role === "FRANCHISEE"}
       />
     </PrivateShell>
   )

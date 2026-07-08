@@ -3,6 +3,7 @@ import "server-only"
 import { formatMoneyFromCents } from "@/lib/money"
 import { sendMail } from "@/lib/email"
 import { getOrderMessageSettings } from "@/lib/site-settings"
+import { getPaymentDiscountLabel, getPaymentMethodLabel } from "@/lib/payment-method"
 
 const statusLabels: Record<string, string> = {
   DRAFT: "Rascunho",
@@ -29,7 +30,7 @@ type OrderConfirmationEmailInput = {
   franchiseName: string
   orderNumber: string
   status: string
-  paymentMethod: "PIX" | "CARD" | string
+  paymentMethod: "PIX" | "CARD" | "BOLETO" | string
   items: OrderEmailItem[]
   subtotalInCents: number
   promotionDiscountInCents: number
@@ -69,8 +70,8 @@ function formatSelectedOptions(value: unknown) {
 
 function buildOrderConfirmationHtml(input: OrderConfirmationEmailInput, introMessage: string) {
   const statusLabel = statusLabels[input.status] ?? input.status
-  const paymentLabel = input.paymentMethod === "PIX" ? "PIX" : "Cartão"
-  const paymentDiscountLabel = input.paymentMethod === "PIX" ? "Desconto PIX" : "Desconto Cartão"
+  const paymentLabel = getPaymentMethodLabel(input.paymentMethod)
+  const paymentDiscountLabel = getPaymentDiscountLabel(input.paymentMethod)
   const discountRows = [
     input.promotionDiscountInCents > 0
       ? `<tr><td style="padding:6px 0;color:#9ca3af;">Descontos</td><td align="right" style="padding:6px 0;color:#fca5a5;font-weight:800;">-${formatMoneyFromCents(input.promotionDiscountInCents)}</td></tr>`
@@ -171,14 +172,14 @@ function buildOrderConfirmationHtml(input: OrderConfirmationEmailInput, introMes
 }
 
 function buildOrderConfirmationText(input: OrderConfirmationEmailInput, introMessage: string) {
-  const paymentDiscountLabel = input.paymentMethod === "PIX" ? "Desconto PIX" : "Desconto Cartão"
+  const paymentDiscountLabel = getPaymentDiscountLabel(input.paymentMethod)
   const lines = [
     introMessage,
     "",
     `Pedido: ${input.orderNumber}`,
     `Empresa: ${input.franchiseName}`,
     `Status atual: ${statusLabels[input.status] ?? input.status}`,
-    `Pagamento: ${input.paymentMethod === "PIX" ? "PIX" : "Cartão"}`,
+    `Pagamento: ${getPaymentMethodLabel(input.paymentMethod)}`,
     "",
     ...input.items.map((item) => {
       const selectedOptions = formatSelectedOptions(item.selectedOptions)
@@ -204,7 +205,7 @@ function buildOrderConfirmationText(input: OrderConfirmationEmailInput, introMes
 export async function sendOrderConfirmationEmail(input: OrderConfirmationEmailInput) {
   const settings = await getOrderMessageSettings()
   const statusLabel = statusLabels[input.status] ?? input.status
-  const paymentLabel = input.paymentMethod === "PIX" ? "PIX" : "Cartão"
+  const paymentLabel = getPaymentMethodLabel(input.paymentMethod)
   const templateValues = {
     pedido: input.orderNumber,
     cliente: input.customerName,

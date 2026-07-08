@@ -17,6 +17,7 @@ import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
 import { PrivatePageHeader } from "@/components/private-page-header"
 import { OrdersEvolutionChart, TopProductsChart } from "@/components/admin-dashboard-charts"
+import { formatOrderCode } from "@/lib/order-number"
 
 const statusLabels: Record<string, string> = {
   DRAFT: "Rascunho",
@@ -73,9 +74,7 @@ function getTimeZoneOffsetMs(date: Date) {
 
 function zonedMonthStartUtc(year: number, month: number) {
   const normalized = new Date(Date.UTC(year, month - 1, 1))
-  const localMidnightAsUtc = new Date(
-    Date.UTC(normalized.getUTCFullYear(), normalized.getUTCMonth(), 1, 0, 0, 0)
-  )
+  const localMidnightAsUtc = new Date(Date.UTC(normalized.getUTCFullYear(), normalized.getUTCMonth(), 1, 0, 0, 0))
   let utcDate = new Date(localMidnightAsUtc.getTime() - getTimeZoneOffsetMs(localMidnightAsUtc))
   utcDate = new Date(localMidnightAsUtc.getTime() - getTimeZoneOffsetMs(utcDate))
 
@@ -424,7 +423,7 @@ export default async function AdminPage() {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-2">
-                        <strong className="text-xs">#{String(order.number).padStart(5, "0")}</strong>
+                        <strong className="text-xs">{formatOrderCode(order.number)}</strong>
                         <span className="truncate text-[10px] text-muted-foreground">
                           {order.franchise?.tradeName ?? order.user?.name ?? "Cliente Nacho Man"}
                         </span>

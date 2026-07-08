@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache"
 import { requireAdmin } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { loginImageSettings, orderMessageSettings, paymentDiscountSettings, storeWhatsAppSetting } from "@/lib/site-settings"
+import {
+  loginImageSettings,
+  orderMessageSettings,
+  paymentDiscountSettings,
+  storeWhatsAppSetting,
+} from "@/lib/site-settings"
 import { sanitizeWhatsAppNumber } from "@/lib/whatsapp"
 
 function sanitizePercentage(value: FormDataEntryValue | null, fallback: string) {
@@ -50,7 +55,17 @@ export async function updateLoginImagesAction(formData: FormData) {
       },
       {
         key: paymentDiscountSettings.card.key,
-        value: sanitizePercentage(formData.get(paymentDiscountSettings.card.key), paymentDiscountSettings.card.fallback),
+        value: sanitizePercentage(
+          formData.get(paymentDiscountSettings.card.key),
+          paymentDiscountSettings.card.fallback
+        ),
+      },
+      {
+        key: paymentDiscountSettings.boleto.key,
+        value: sanitizePercentage(
+          formData.get(paymentDiscountSettings.boleto.key),
+          paymentDiscountSettings.boleto.fallback
+        ),
       },
     ].map((setting) =>
       prisma.siteSetting.upsert({

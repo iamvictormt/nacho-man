@@ -119,7 +119,7 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="pt-BR" className="bg-background">
+    <html lang="pt-BR" className="bg-background" suppressHydrationWarning>
       <head>
         <meta name="apple-mobile-web-app-title" content="Nacho Factory" />
       </head>

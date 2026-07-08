@@ -5,6 +5,8 @@ import { formatMoneyFromCents } from "@/lib/money"
 import { PaginationControls } from "@/components/pagination-controls"
 import { getCurrentPage, getPagination, type SearchParams } from "@/lib/pagination"
 import { PrivatePageHeader } from "@/components/private-page-header"
+import { getPaymentDiscountLabel, getPaymentMethodLabel } from "@/lib/payment-method"
+import { formatOrderCode } from "@/lib/order-number"
 
 const statusLabels: Record<string, string> = {
   AWAITING_SERVICE: "Aguardando atendimento",
@@ -131,10 +133,10 @@ function OrderCard({
     }[]
   }
 }) {
-  const number = `NF-${String(order.number).padStart(5, "0")}`
+  const number = formatOrderCode(order.number)
   const discountTotal = order.promotionDiscountInCents + order.couponDiscountInCents + order.pixDiscountInCents
   const progress = progressByStatus[order.status] ?? 12
-  const paymentDiscountLabel = order.paymentMethod === "PIX" ? "PIX" : "Cartao"
+  const paymentDiscountLabel = getPaymentDiscountLabel(order.paymentMethod)
 
   return (
     <article className="overflow-hidden rounded-2xl border border-border bg-graphite">
@@ -168,12 +170,14 @@ function OrderCard({
           <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Total estimado</p>
           <p className="mt-2 text-2xl font-black text-lime">{formatMoneyFromCents(order.totalInCents)}</p>
           <p className="mt-2 flex items-center gap-2 text-xs font-bold text-muted-foreground md:justify-end">
-            {order.paymentMethod === "PIX" ? (
-              <WalletCards className="h-4 w-4 text-lime" />
-            ) : (
-              <CreditCard className="h-4 w-4 text-purple-medium" />
-            )}
-            {order.paymentMethod === "PIX" ? "PIX" : "Cart�o pelo WhatsApp"}
+            {order.paymentMethod === "PIX" && <WalletCards className="h-4 w-4 text-lime" />}
+            {order.paymentMethod === "CARD" && <CreditCard className="h-4 w-4 text-purple-medium" />}
+            {order.paymentMethod === "BOLETO" && <ReceiptText className="h-4 w-4 text-purple-medium" />}
+            {order.paymentMethod === "CARD"
+              ? "Cartão pelo WhatsApp"
+              : order.paymentMethod === "BOLETO"
+                ? "Boleto para franqueado"
+                : getPaymentMethodLabel(order.paymentMethod)}
           </p>
         </div>
       </div>
@@ -299,5 +303,3 @@ function formatDateTime(date: Date) {
     minute: "2-digit",
   }).format(date)
 }
-
-

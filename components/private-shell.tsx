@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import { logoutAction } from "@/app/login/actions"
 import { LogoutSubmitButton } from "@/components/logout-submit-button"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { buildWhatsAppUrl } from "@/lib/whatsapp"
 import {
   AlertDialog,
@@ -96,13 +97,13 @@ export function PrivateShell({
             >
               <Menu className="h-5 w-5" />
             </button>
-            <Link href={homeHref} className="hidden shrink-0 xl:block">
+            <Link href={homeHref} className="private-logo-plate hidden shrink-0 xl:flex">
               <img src="/nacho-man-logo.png" alt="Nacho Man" className="h-12 w-auto sm:h-14 md:h-18" />
             </Link>
           </div>
 
           <div className="pointer-events-none absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 xl:hidden">
-            <Link href={homeHref} className="pointer-events-auto">
+            <Link href={homeHref} className="private-logo-plate pointer-events-auto">
               <img src="/nacho-man-logo.png" alt="Nacho Man" className="h-12 w-auto sm:h-14" />
             </Link>
           </div>
@@ -137,6 +138,7 @@ export function PrivateShell({
                 </p>
               </div>
             </div>
+            <ThemeToggle />
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <button
@@ -182,7 +184,7 @@ export function PrivateShell({
           }`}
         >
           <div className="flex h-18 items-center justify-between border-b border-border px-4">
-            <Link href={homeHref} className="shrink-0">
+            <Link href={homeHref} className="private-logo-plate shrink-0">
               <img src="/nacho-man-logo.png" alt="Nacho Man" className="h-11 w-auto" />
             </Link>
             <button
@@ -208,6 +210,7 @@ export function PrivateShell({
             </div>
           </div>
           <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
+            <ThemeToggle compact />
             {links.map(({ href, label, icon: Icon, exact, activePrefix }) => {
               const active = exact ? pathname === href : pathname.startsWith(activePrefix ?? href)
               return (
@@ -240,7 +243,9 @@ export function PrivateShell({
       <footer className="border-t border-border bg-graphite">
         <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-8 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <img src="/nacho-man-logo.png" alt="" className="h-10 w-auto opacity-80" />
+            <span className="private-logo-plate shrink-0">
+              <img src="/nacho-man-logo.png" alt="" className="h-10 w-auto opacity-80" />
+            </span>
             <div className="border-l border-border pl-4">
               <p className="text-[10px] font-black uppercase tracking-wider text-foreground">Nacho Factory</p>
               <p className="mt-1 text-[10px] text-muted-foreground">{footerDescription}</p>
