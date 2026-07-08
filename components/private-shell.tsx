@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 import {
+  BarChart3,
   Factory,
   Gift,
   LogOut,
@@ -65,6 +66,7 @@ export function PrivateShell({
   const links = admin
     ? [
         { href: "/admin", label: "Visão geral", icon: Factory, exact: true },
+        { href: "/admin/saipos", label: "Indicadores", icon: BarChart3 },
         { href: "/admin/produtos", label: "Produtos", icon: PackageSearch },
         { href: "/admin/combos", label: "Combos", icon: Gift },
         { href: "/admin/campanhas", label: "Promoções", icon: Tags },
