@@ -3,6 +3,14 @@
     {
       "path": "/api/admin/saipos/sync",
       "schedule": "30 8 * * *"
+    },
+    {
+      "path": "/api/admin/saipos/sync",
+      "schedule": "30 9 * * *"
+    },
+    {
+      "path": "/api/admin/saipos/sync",
+      "schedule": "30 10 * * *"
     }
   ]
 }
