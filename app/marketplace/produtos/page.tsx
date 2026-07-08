@@ -1,5 +1,5 @@
 import { PackageSearch } from "lucide-react"
-import { ProductAudience } from "@prisma/client"
+import { ProductAudience, type Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { requireMarketplaceUser } from "@/lib/auth"
 import { adaptMarketplaceProduct } from "@/lib/marketplace-product-adapter"
@@ -7,14 +7,29 @@ import { AdminSearch } from "@/components/admin-search"
 import { PrivatePageHeader } from "@/components/private-page-header"
 import { ProductDetailCard } from "@/components/product-detail-card"
 import { PaginationControls } from "@/components/pagination-controls"
-import { getCurrentPage, getPagination, type SearchParams } from "@/lib/pagination"
+import { getCurrentPage, getPagination, getSearchQuery, type SearchParams } from "@/lib/pagination"
 
 export default async function MarketplaceProductsPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const resolvedSearchParams = await searchParams
   const user = await requireMarketplaceUser()
   const page = getCurrentPage(resolvedSearchParams)
+  const query = getSearchQuery(resolvedSearchParams)
   const audience = user.role === "FRANCHISEE" ? ProductAudience.FRANCHISEE : ProductAudience.PUBLIC
-  const where = { audience, active: true, category: { active: true } }
+  const where: Prisma.ProductWhereInput = {
+    audience,
+    active: true,
+    category: { active: true },
+    ...(query
+      ? {
+          OR: [
+            { name: { contains: query, mode: "insensitive" } },
+            { description: { contains: query, mode: "insensitive" } },
+            { packageLabel: { contains: query, mode: "insensitive" } },
+            { category: { name: { contains: query, mode: "insensitive" } } },
+          ],
+        }
+      : {}),
+  }
   const totalProducts = await prisma.product.count({ where })
   const pagination = getPagination(page, totalProducts)
   const products = await prisma.product.findMany({
@@ -52,6 +67,7 @@ export default async function MarketplaceProductsPage({ searchParams }: { search
           <AdminSearch
             containerId="marketplace-products-list"
             placeholder="Buscar produto, categoria ou embalagem..."
+            queryParam="q"
           />
         </div>
 

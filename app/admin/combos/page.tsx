@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
 import { ComboProductSelector } from "@/components/combo-product-selector"
@@ -11,12 +12,22 @@ import { createComboAction, deleteComboAction, toggleComboAction, updateComboAct
 import { AdminDataLabel, AdminDataList, AdminDataRow } from "@/components/admin-data-list"
 import { AdminManageModal } from "@/components/admin-manage-modal"
 import { PaginationControls } from "@/components/pagination-controls"
-import { getCurrentPage, getPagination, type SearchParams } from "@/lib/pagination"
+import { getCurrentPage, getPagination, getSearchQuery, type SearchParams } from "@/lib/pagination"
 
 export default async function CombosPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const resolvedSearchParams = await searchParams
   const page = getCurrentPage(resolvedSearchParams)
-  const totalCombos = await prisma.combo.count()
+  const query = getSearchQuery(resolvedSearchParams)
+  const comboWhere: Prisma.ComboWhereInput = query
+    ? {
+        OR: [
+          { name: { contains: query, mode: "insensitive" } },
+          { description: { contains: query, mode: "insensitive" } },
+          { options: { some: { product: { name: { contains: query, mode: "insensitive" } } } } },
+        ],
+      }
+    : {}
+  const totalCombos = await prisma.combo.count({ where: comboWhere })
   const pagination = getPagination(page, totalCombos)
   const [products, combos] = await Promise.all([
     prisma.product.findMany({
@@ -25,6 +36,7 @@ export default async function CombosPage({ searchParams }: { searchParams?: Prom
       orderBy: { name: "asc" },
     }),
     prisma.combo.findMany({
+      where: comboWhere,
       include: { options: { include: { product: true } }, _count: { select: { orderItems: true } } },
       orderBy: [{ active: "desc" }, { createdAt: "desc" }],
       skip: pagination.skip,
@@ -56,7 +68,7 @@ export default async function CombosPage({ searchParams }: { searchParams?: Prom
         </AdminModal>
       </div>
       <div className="mt-8 flex justify-end">
-        <AdminSearch containerId="combos-grid" placeholder="Buscar combo ou produto..." />
+        <AdminSearch containerId="combos-grid" placeholder="Buscar combo ou produto..." queryParam="q" />
       </div>
       <div id="combos-grid" className="mt-6">
         <AdminDataList

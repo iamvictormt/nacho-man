@@ -1,12 +1,13 @@
 import { Gift } from "lucide-react"
 import { redirect } from "next/navigation"
+import type { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { requireMarketplaceUser } from "@/lib/auth"
 import { AdminSearch } from "@/components/admin-search"
 import { MarketplaceComboCard } from "@/components/marketplace-combo-card"
 import { PrivatePageHeader } from "@/components/private-page-header"
 import { PaginationControls } from "@/components/pagination-controls"
-import { getCurrentPage, getPagination, type SearchParams } from "@/lib/pagination"
+import { getCurrentPage, getPagination, getSearchQuery, type SearchParams } from "@/lib/pagination"
 
 export default async function MarketplaceCombosPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const resolvedSearchParams = await searchParams
@@ -14,13 +15,23 @@ export default async function MarketplaceCombosPage({ searchParams }: { searchPa
   if (user.role !== "FRANCHISEE") redirect("/marketplace/produtos")
 
   const page = getCurrentPage(resolvedSearchParams)
+  const query = getSearchQuery(resolvedSearchParams)
   const now = new Date()
-  const where = {
+  const where: Prisma.ComboWhereInput = {
     active: true,
     AND: [
       { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
       { OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
     ],
+    ...(query
+      ? {
+          OR: [
+            { name: { contains: query, mode: "insensitive" } },
+            { description: { contains: query, mode: "insensitive" } },
+            { options: { some: { product: { name: { contains: query, mode: "insensitive" } } } } },
+          ],
+        }
+      : {}),
   }
   const totalCombos = await prisma.combo.count({ where })
   const pagination = getPagination(page, totalCombos)
@@ -56,7 +67,7 @@ export default async function MarketplaceCombosPage({ searchParams }: { searchPa
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-lime">Ofertas montadas</p>
             <h2 className="mt-2 text-2xl font-black uppercase tracking-tight">Combos disponíveis</h2>
           </div>
-          <AdminSearch containerId="marketplace-combos-list" placeholder="Buscar combo ou produto..." />
+          <AdminSearch containerId="marketplace-combos-list" placeholder="Buscar combo ou produto..." queryParam="q" />
         </div>
 
         {combos.length === 0 ? (

@@ -1,5 +1,6 @@
 import { Package, PackagePlus } from "lucide-react"
 import Link from "next/link"
+import type { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
 import { AdminActionForm } from "@/components/admin-action-form"
@@ -14,7 +15,7 @@ import { createProductAction, deleteProductAction, toggleProductAction, updatePr
 import { AdminDataLabel, AdminDataList, AdminDataRow } from "@/components/admin-data-list"
 import { AdminManageModal } from "@/components/admin-manage-modal"
 import { PaginationControls } from "@/components/pagination-controls"
-import { getCurrentPage, getPagination, type SearchParams } from "@/lib/pagination"
+import { getCurrentPage, getPagination, getSearchQuery, type SearchParams } from "@/lib/pagination"
 
 const PRODUCT_AUDIENCES = {
   FRANCHISEE: {
@@ -39,13 +40,29 @@ function getProductAudience(searchParams?: SearchParams): ProductAudienceValue {
 export default async function AdminProductsPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const resolvedSearchParams = await searchParams
   const audience = getProductAudience(resolvedSearchParams)
+  const query = getSearchQuery(resolvedSearchParams)
   const page = getCurrentPage(resolvedSearchParams)
-  const productWhere = { audience }
+  const productWhere: Prisma.ProductWhereInput = {
+    audience,
+    ...(query
+      ? {
+          OR: [
+            { name: { contains: query, mode: "insensitive" } },
+            { sku: { contains: query, mode: "insensitive" } },
+            { packageLabel: { contains: query, mode: "insensitive" } },
+            { category: { name: { contains: query, mode: "insensitive" } } },
+          ],
+        }
+      : {}),
+  }
   const [totalProducts, franchiseeCount, publicCount, categories] = await Promise.all([
     prisma.product.count({ where: productWhere }),
     prisma.product.count({ where: { audience: "FRANCHISEE" } }),
     prisma.product.count({ where: { audience: "PUBLIC" } }),
-    prisma.category.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.category.findMany({
+      select: { id: true, name: true, _count: { select: { products: true } } },
+      orderBy: { name: "asc" },
+    }),
   ])
   const pagination = getPagination(page, totalProducts)
   const products = await prisma.product.findMany({
@@ -82,7 +99,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       <ProductAudienceTabs currentAudience={audience} franchiseeCount={franchiseeCount} publicCount={publicCount} />
 
       <div className="mt-8 flex justify-end">
-        <AdminSearch containerId="products-grid" placeholder="Buscar produto ou categoria..." />
+        <AdminSearch containerId="products-grid" placeholder="Buscar produto ou categoria..." queryParam="q" />
       </div>
       <div id="products-grid" className="mt-6">
         <AdminDataList
@@ -209,7 +226,7 @@ function ProductForm({
   defaultAudience,
 }: {
   action: (formData: FormData) => Promise<void>
-  categories: { id: string; name: string }[]
+  categories: { id: string; name: string; _count: { products: number } }[]
   submitLabel: string
   modalId: string
   successMessage: string

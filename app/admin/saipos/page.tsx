@@ -13,7 +13,7 @@ import {
   Store,
   TrendingUp,
 } from "lucide-react"
-import { AdminInput, AdminSelect } from "@/components/admin-form-fields"
+import { AdminDatePicker, AdminSelect } from "@/components/admin-form-fields"
 import { PrivatePageHeader } from "@/components/private-page-header"
 import { SaiposDistributionChart, SaiposRevenueChart } from "@/components/saipos-dashboard-charts"
 import { prisma } from "@/lib/prisma"
@@ -266,8 +266,8 @@ export default async function SaiposDashboardPage({
 
       <div className="mx-auto max-w-7xl px-4 py-10 md:py-14">
         <form className="grid gap-4 rounded-2xl border border-border bg-graphite p-4 md:grid-cols-[1fr_1fr_1fr_auto] md:items-start md:p-5">
-          <AdminInput type="date" name="start" label="Inicio" defaultValue={period.start} />
-          <AdminInput type="date" name="end" label="Fim" defaultValue={period.end} />
+          <AdminDatePicker name="start" label="Início" defaultValue={period.start} valueFormat="iso" />
+          <AdminDatePicker name="end" label="Fim" defaultValue={period.end} valueFormat="iso" />
           <AdminSelect name="store" label="Loja" defaultValue={selectedStore}>
             <option value="all">Todas as lojas</option>
               {storeOptions.map((store) => (

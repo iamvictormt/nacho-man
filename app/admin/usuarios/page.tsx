@@ -1,7 +1,8 @@
 import Link from "next/link"
 import { ArrowRight, CheckCircle2, Clock3, Mail, MapPinned, Store, UsersRound } from "lucide-react"
+import type { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
-import { getCurrentPage, getPagination, type SearchParams } from "@/lib/pagination"
+import { getCurrentPage, getPagination, getSearchQuery, type SearchParams } from "@/lib/pagination"
 import { AdminActionForm } from "@/components/admin-action-form"
 import { AdminDataLabel, AdminDataList, AdminDataRow } from "@/components/admin-data-list"
 import { AdminFieldGrid, AdminInput } from "@/components/admin-form-fields"
@@ -27,6 +28,42 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
   const resolvedSearchParams = await searchParams
   const view = getView(resolvedSearchParams)
   const page = getCurrentPage(resolvedSearchParams)
+  const query = getSearchQuery(resolvedSearchParams)
+  const userWhere: Prisma.UserWhereInput =
+    view === "clientes"
+      ? {
+          role: "USER",
+          ...(query
+            ? {
+                OR: [
+                  { name: { contains: query, mode: "insensitive" } },
+                  { email: { contains: query, mode: "insensitive" } },
+                  { businessProfile: { tradeName: { contains: query, mode: "insensitive" } } },
+                  { businessProfile: { legalName: { contains: query, mode: "insensitive" } } },
+                  { businessProfile: { document: { contains: query, mode: "insensitive" } } },
+                  { businessProfile: { email: { contains: query, mode: "insensitive" } } },
+                  { businessProfile: { city: { contains: query, mode: "insensitive" } } },
+                  { businessProfile: { state: { contains: query, mode: "insensitive" } } },
+                ],
+              }
+            : {}),
+        }
+      : {
+          role: "FRANCHISEE",
+          ...(query
+            ? {
+                OR: [
+                  { name: { contains: query, mode: "insensitive" } },
+                  { email: { contains: query, mode: "insensitive" } },
+                  { franchise: { tradeName: { contains: query, mode: "insensitive" } } },
+                  { franchise: { document: { contains: query, mode: "insensitive" } } },
+                  { franchise: { whatsapp: { contains: query, mode: "insensitive" } } },
+                  { franchise: { addresses: { some: { city: { contains: query, mode: "insensitive" } } } } },
+                  { franchise: { addresses: { some: { state: { contains: query, mode: "insensitive" } } } } },
+                ],
+              }
+            : {}),
+        }
 
   const [franchiseeTotal, pendingFranchisees, activeFranchisees, commonTotal, activeCommonUsers, inactiveCommonUsers] =
     await Promise.all([
@@ -38,12 +75,13 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
       prisma.user.count({ where: { role: "USER", active: false } }),
     ])
 
-  const pagination = getPagination(page, view === "clientes" ? commonTotal : franchiseeTotal)
+  const filteredUsers = await prisma.user.count({ where: userWhere })
+  const pagination = getPagination(page, filteredUsers)
   const [commonUsers, franchiseeUsers] =
     view === "clientes"
       ? [
           await prisma.user.findMany({
-            where: { role: "USER" },
+            where: userWhere,
             select: {
               id: true,
               name: true,
@@ -62,7 +100,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
       : [
           [],
           await prisma.user.findMany({
-            where: { role: "FRANCHISEE" },
+            where: userWhere,
             select: {
               id: true,
               name: true,
@@ -139,6 +177,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
         <AdminSearch
           containerId="users-grid"
           placeholder={view === "franqueados" ? "Buscar franqueado, e-mail, unidade ou CNPJ..." : "Buscar cliente ou e-mail..."}
+          queryParam="q"
         />
       </div>
 

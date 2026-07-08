@@ -131,6 +131,42 @@ export async function deleteProductAction(formData: FormData) {
   revalidateProductPaths()
 }
 
+export async function updateCategoryAction(formData: FormData) {
+  await requireAdmin()
+
+  const id = String(formData.get("id") ?? "").trim()
+  const name = String(formData.get("name") ?? "").trim()
+  if (!id || !name) throw new Error("Informe o nome da categoria.")
+
+  const slug = createSlug(name)
+  const existing = await prisma.category.findUnique({ where: { slug } })
+  if (existing && existing.id !== id) throw new Error("Já existe uma categoria com esse nome.")
+
+  await prisma.category.update({
+    where: { id },
+    data: { name, slug, active: true },
+  })
+
+  revalidateProductPaths()
+}
+
+export async function deleteCategoryAction(formData: FormData) {
+  await requireAdmin()
+
+  const id = String(formData.get("id") ?? "").trim()
+  if (!id) throw new Error("Categoria inválida.")
+
+  const category = await prisma.category.findUnique({
+    where: { id },
+    select: { _count: { select: { products: true } } },
+  })
+  if (!category) throw new Error("Categoria não encontrada.")
+  if (category._count.products > 0) throw new Error("Não é possível excluir uma categoria com produtos cadastrados.")
+
+  await prisma.category.delete({ where: { id } })
+  revalidateProductPaths()
+}
+
 function revalidateProductPaths() {
   revalidatePath("/admin")
   revalidatePath("/admin/produtos")

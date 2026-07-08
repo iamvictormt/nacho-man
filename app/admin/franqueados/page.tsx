@@ -1,4 +1,5 @@
 import { MapPinned } from "lucide-react"
+import type { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { AdminActionForm } from "@/components/admin-action-form"
 import { AdminModal } from "@/components/admin-modal"
@@ -11,17 +12,34 @@ import { createFranchiseAction, deleteFranchiseAction, toggleFranchiseAction, up
 import { AdminDataLabel, AdminDataList, AdminDataRow } from "@/components/admin-data-list"
 import { AdminManageModal } from "@/components/admin-manage-modal"
 import { PaginationControls } from "@/components/pagination-controls"
-import { getCurrentPage, getPagination, type SearchParams } from "@/lib/pagination"
+import { getCurrentPage, getPagination, getSearchQuery, type SearchParams } from "@/lib/pagination"
 
 export default async function FranchisesPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const resolvedSearchParams = await searchParams
   const page = getCurrentPage(resolvedSearchParams)
-  const [totalFranchises, activeCount] = await Promise.all([
+  const query = getSearchQuery(resolvedSearchParams)
+  const franchiseWhere: Prisma.FranchiseWhereInput = query
+    ? {
+        OR: [
+          { tradeName: { contains: query, mode: "insensitive" } },
+          { legalName: { contains: query, mode: "insensitive" } },
+          { document: { contains: query, mode: "insensitive" } },
+          { whatsapp: { contains: query, mode: "insensitive" } },
+          { users: { some: { name: { contains: query, mode: "insensitive" } } } },
+          { users: { some: { email: { contains: query, mode: "insensitive" } } } },
+          { addresses: { some: { city: { contains: query, mode: "insensitive" } } } },
+          { addresses: { some: { state: { contains: query, mode: "insensitive" } } } },
+        ],
+      }
+    : {}
+  const [totalFranchises, activeCount, filteredFranchises] = await Promise.all([
     prisma.franchise.count(),
     prisma.franchise.count({ where: { active: true } }),
+    prisma.franchise.count({ where: franchiseWhere }),
   ])
-  const pagination = getPagination(page, totalFranchises)
+  const pagination = getPagination(page, filteredFranchises)
   const franchises = await prisma.franchise.findMany({
+    where: franchiseWhere,
     include: {
       users: { select: { id: true, name: true, email: true }, orderBy: { createdAt: "asc" } },
       addresses: { select: { id: true, city: true, state: true }, take: 1 },
@@ -58,7 +76,7 @@ export default async function FranchisesPage({ searchParams }: { searchParams?: 
         </AdminModal>
       </div>
       <div className="mt-8 flex justify-end">
-        <AdminSearch containerId="franchises-grid" placeholder="Buscar unidade, responsável ou CNPJ..." />
+        <AdminSearch containerId="franchises-grid" placeholder="Buscar unidade, responsável ou CNPJ..." queryParam="q" />
       </div>
       <div id="franchises-grid" className="mt-6">
         <AdminDataList

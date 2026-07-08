@@ -1,11 +1,12 @@
 import { Percent, Ticket } from "lucide-react"
+import type { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
 import { AdminActionForm } from "@/components/admin-action-form"
 import { AdminModal } from "@/components/admin-modal"
 import { AdminSearch } from "@/components/admin-search"
 import { DeleteActionDialog } from "@/components/delete-action-dialog"
-import { AdminCheckbox, AdminFieldGrid, AdminInput, AdminSelect } from "@/components/admin-form-fields"
+import { AdminCheckbox, AdminDatePicker, AdminFieldGrid, AdminInput, AdminSelect } from "@/components/admin-form-fields"
 import {
   createCouponAction,
   createPromotionAction,
@@ -17,14 +18,35 @@ import {
 import { AdminDataLabel, AdminDataList, AdminDataRow } from "@/components/admin-data-list"
 import { AdminManageModal } from "@/components/admin-manage-modal"
 import { PaginationControls } from "@/components/pagination-controls"
-import { getCurrentPage, type SearchParams } from "@/lib/pagination"
+import { getCurrentPage, getSearchQuery, type SearchParams } from "@/lib/pagination"
 
 const CAMPAIGN_PAGE_SIZE = 6
 
 export default async function CampaignsPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const resolvedSearchParams = await searchParams
   const page = getCurrentPage(resolvedSearchParams)
-  const [promotionCount, couponCount] = await Promise.all([prisma.promotion.count(), prisma.coupon.count()])
+  const query = getSearchQuery(resolvedSearchParams)
+  const promotionWhere: Prisma.PromotionWhereInput = query
+    ? {
+        OR: [
+          { name: { contains: query, mode: "insensitive" } },
+          { description: { contains: query, mode: "insensitive" } },
+          { product: { name: { contains: query, mode: "insensitive" } } },
+        ],
+      }
+    : {}
+  const couponWhere: Prisma.CouponWhereInput = query
+    ? {
+        OR: [
+          { code: { contains: query, mode: "insensitive" } },
+          { description: { contains: query, mode: "insensitive" } },
+        ],
+      }
+    : {}
+  const [promotionCount, couponCount] = await Promise.all([
+    prisma.promotion.count({ where: promotionWhere }),
+    prisma.coupon.count({ where: couponWhere }),
+  ])
   const totalPages = Math.max(1, Math.ceil(Math.max(promotionCount, couponCount) / CAMPAIGN_PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
   const currentSkip = (currentPage - 1) * CAMPAIGN_PAGE_SIZE
@@ -35,12 +57,14 @@ export default async function CampaignsPage({ searchParams }: { searchParams?: P
       orderBy: { name: "asc" },
     }),
     prisma.coupon.findMany({
+      where: couponWhere,
       include: { _count: { select: { orders: true } } },
       orderBy: { createdAt: "desc" },
       skip: currentSkip,
       take: CAMPAIGN_PAGE_SIZE,
     }),
     prisma.promotion.findMany({
+      where: promotionWhere,
       include: { product: true },
       orderBy: { createdAt: "desc" },
       skip: currentSkip,
@@ -88,7 +112,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams?: P
         </div>
       </div>
       <div className="mt-8 flex justify-end">
-        <AdminSearch containerId="campaign-grid" placeholder="Buscar promoção, cupom ou produto..." />
+        <AdminSearch containerId="campaign-grid" placeholder="Buscar promoção, cupom ou produto..." queryParam="q" />
       </div>
       <div id="campaign-grid" className="mt-6">
         <AdminDataList
@@ -397,14 +421,8 @@ function DiscountFields({
 function DateFields({ startsAt, endsAt }: { startsAt?: Date; endsAt?: Date }) {
   return (
     <AdminFieldGrid>
-      <AdminInput
-        name="startsAt"
-        label="Início"
-        mask="date"
-        defaultValue={startsAt ? dateInput(startsAt) : ""}
-        required
-      />
-      <AdminInput name="endsAt" label="Fim" mask="date" defaultValue={endsAt ? dateInput(endsAt) : ""} required />
+      <AdminDatePicker name="startsAt" label="Início" defaultValue={startsAt ? dateInput(startsAt) : ""} required />
+      <AdminDatePicker name="endsAt" label="Fim" defaultValue={endsAt ? dateInput(endsAt) : ""} required />
     </AdminFieldGrid>
   )
 }

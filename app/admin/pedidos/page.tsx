@@ -1,4 +1,5 @@
 import { CalendarDays, CreditCard, PackageCheck, ReceiptText, WalletCards } from "lucide-react"
+import type { OrderStatus, PaymentMethod, Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
 import { AdminActionForm } from "@/components/admin-action-form"
@@ -7,7 +8,7 @@ import { AdminSelect } from "@/components/admin-form-fields"
 import { DeleteActionDialog } from "@/components/delete-action-dialog"
 import { AdminManageModal } from "@/components/admin-manage-modal"
 import { PaginationControls } from "@/components/pagination-controls"
-import { getCurrentPage, getPagination, type SearchParams } from "@/lib/pagination"
+import { getCurrentPage, getPagination, getSearchQuery, type SearchParams } from "@/lib/pagination"
 import { cancelOrderAction, deleteOrderAction, updateOrderStatusAction } from "./actions"
 import { getPaymentDiscountLabel, getPaymentMethodLabel } from "@/lib/payment-method"
 import { formatOrderCode } from "@/lib/order-number"
@@ -33,14 +34,18 @@ const statusClasses: Record<string, string> = {
 }
 
 const editableStatusLabels = Object.entries(statusLabels).filter(([status]) => status !== "CANCELLED")
+const paymentMethods = ["PIX", "CARD", "BOLETO"] as const
 
 export default async function AdminOrdersPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const resolvedSearchParams = await searchParams
   const page = getCurrentPage(resolvedSearchParams)
-  const totalOrders = await prisma.order.count()
+  const query = getSearchQuery(resolvedSearchParams)
+  const orderWhere = getOrderWhere(query)
+  const totalOrders = await prisma.order.count({ where: orderWhere })
   const pagination = getPagination(page, totalOrders, 10)
   const [orders, awaiting, inProgress] = await Promise.all([
     prisma.order.findMany({
+      where: orderWhere,
       include: { franchise: true, user: true, items: true },
       orderBy: { createdAt: "desc" },
       skip: pagination.skip,
@@ -68,7 +73,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
       </div>
 
       <div className="mt-8 flex justify-end">
-        <AdminSearch containerId="orders-list" placeholder="Buscar número, unidade ou status..." />
+        <AdminSearch containerId="orders-list" placeholder="Buscar número, unidade ou status..." queryParam="q" />
       </div>
 
       {orders.length > 0 ? (
@@ -351,6 +356,40 @@ function SummaryLine({ label, value }: { label: string; value: number }) {
     </div>
   )
 }
+
+function getOrderWhere(query: string): Prisma.OrderWhereInput {
+  if (!query) return {}
+
+  const normalizedQuery = query
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+  const statusMatches = Object.entries(statusLabels)
+    .filter(([status, label]) => `${status} ${label}`.toLowerCase().includes(normalizedQuery))
+    .map(([status]) => status as OrderStatus)
+  const paymentMatches = paymentMethods.filter((method) =>
+    `${method} ${getPaymentMethodLabel(method)}`
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .includes(normalizedQuery)
+  ) as PaymentMethod[]
+  const number = Number(query.replace(/\D/g, ""))
+
+  const filters: Prisma.OrderWhereInput[] = [
+    { franchise: { tradeName: { contains: query, mode: "insensitive" } } },
+    { user: { name: { contains: query, mode: "insensitive" } } },
+    { user: { email: { contains: query, mode: "insensitive" } } },
+    { items: { some: { name: { contains: query, mode: "insensitive" } } } },
+  ]
+
+  if (Number.isInteger(number) && number > 0) filters.push({ number })
+  if (statusMatches.length > 0) filters.push({ status: { in: statusMatches } })
+  if (paymentMatches.length > 0) filters.push({ paymentMethod: { in: paymentMatches } })
+
+  return { OR: filters }
+}
+
 function formatDateTime(date: Date) {
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",

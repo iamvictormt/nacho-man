@@ -1,11 +1,15 @@
 "use client"
 
 import * as React from "react"
+import { CalendarDays } from "lucide-react"
+import { ptBR } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 const controlClassName =
   "min-h-12 w-full rounded-xl border border-border bg-background px-3.5 text-sm font-medium text-foreground outline-offset-0 transition placeholder:text-muted-foreground/70 hover:border-foreground/20 focus-visible:border-lime focus-visible:outline-2 focus-visible:outline-lime disabled:cursor-not-allowed disabled:opacity-60"
@@ -90,6 +94,38 @@ function formatMaskedValue(value: string, mask?: AdminInputMask) {
   return value
 }
 
+function parseDateInput(value?: string | number | readonly string[]) {
+  if (typeof value !== "string" || !value) return undefined
+
+  const brazilian = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+  if (brazilian) {
+    const [, day, month, year] = brazilian
+    return new Date(Number(year), Number(month) - 1, Number(day))
+  }
+
+  const iso = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (iso) {
+    const [, year, month, day] = iso
+    return new Date(Number(year), Number(month) - 1, Number(day))
+  }
+
+  return undefined
+}
+
+function formatDateInput(date?: Date) {
+  if (!date) return ""
+  const day = String(date.getDate()).padStart(2, "0")
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  return `${day}/${month}/${date.getFullYear()}`
+}
+
+function formatIsoDateInput(date?: Date) {
+  if (!date) return ""
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  return `${date.getFullYear()}-${month}-${day}`
+}
+
 export function AdminField({ label, htmlFor, hint, error, required, className, children }: FieldShellProps) {
   return (
     <div data-admin-field className={cn("min-w-0 space-y-2.5", className)}>
@@ -168,6 +204,76 @@ export function AdminInput({
         onChange={handleChange}
         {...props}
       />
+    </AdminField>
+  )
+}
+
+export function AdminDatePicker({
+  label,
+  hint,
+  error,
+  className,
+  required,
+  id,
+  name,
+  defaultValue,
+  valueFormat = "br",
+}: {
+  label: string
+  name: string
+  hint?: string
+  error?: string
+  className?: string
+  required?: boolean
+  id?: string
+  defaultValue?: string | number | readonly string[]
+  valueFormat?: "br" | "iso"
+}) {
+  const fieldId = id ?? name
+  const [open, setOpen] = React.useState(false)
+  const [value, setValue] = React.useState(() => formatDateInput(parseDateInput(defaultValue)))
+
+  React.useEffect(() => {
+    setValue(formatDateInput(parseDateInput(defaultValue)))
+  }, [defaultValue])
+
+  const selected = parseDateInput(value)
+  const formValue = valueFormat === "iso" ? formatIsoDateInput(selected) : value
+
+  return (
+    <AdminField label={label} htmlFor={fieldId} hint={hint} error={error} required={required} className={className}>
+      <input name={name} type="hidden" value={formValue} />
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            id={fieldId}
+            aria-invalid={Boolean(error)}
+            className={cn(
+              controlClassName,
+              "flex h-12 items-center justify-between gap-3 text-left shadow-none focus-visible:ring-0",
+              !value && "text-muted-foreground"
+            )}
+          >
+            <span>{value || "Selecione a data"}</span>
+            <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" sideOffset={8} className="z-[90] w-auto rounded-xl border-border bg-popover p-0">
+          <Calendar
+            mode="single"
+            locale={ptBR}
+            captionLayout="label"
+            selected={selected}
+            defaultMonth={selected}
+            onSelect={(date) => {
+              if (!date) return
+              setValue(formatDateInput(date))
+              setOpen(false)
+            }}
+          />
+        </PopoverContent>
+      </Popover>
     </AdminField>
   )
 }
