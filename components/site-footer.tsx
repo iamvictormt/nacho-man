@@ -4,8 +4,8 @@ import { buildWhatsAppUrl, formatWhatsAppDisplay } from "@/lib/whatsapp"
 const structureLinks = [
   { label: "Produção terceirizada", href: "/#estrutura" },
   { label: "Armazenagem", href: "/#armazenagem" },
-  { label: "Locação de Câmara Fria", href: "/#armazenagem" },
-  { label: "Desenvolvimento de Receitas", href: "/#estrutura" },
+  { label: "Locação de câmara fria", href: "/#armazenagem" },
+  { label: "Desenvolvimento de receitas", href: "/#estrutura" },
 ]
 
 export function SiteFooter({ whatsappNumber }: { whatsappNumber: string }) {
@@ -25,9 +25,9 @@ export function SiteFooter({ whatsappNumber }: { whatsappNumber: string }) {
             className="md:col-span-2"
             links={[
               { label: `WhatsApp ${whatsappDisplay}`, href: whatsappUrl, external: true },
-              { label: "Horário SEG A SEX das 7h às 12h - 13h às 17h30", href: null },
+              { label: "Horário: seg. a sex., das 7h às 12h e das 13h às 17h30", href: null },
               {
-                label: "E-mail factory.administrativo@nachomanbrasil.com.br",
+                label: "E-mail: factory.administrativo@nachomanbrasil.com.br",
                 href: "mailto:factory.administrativo@nachomanbrasil.com.br",
               },
             ]}

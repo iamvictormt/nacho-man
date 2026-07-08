@@ -45,7 +45,7 @@ export function PublicProductsCatalog({ products }: { products: CatalogProduct[]
       <PageHeader
         label="Catálogo completo"
         title="NOSSOS PRODUTOS"
-        description="Produtos prontos para food service com preço por KG/UND, embalagem e aplicações para sua operação decidir rápido."
+        description="Produtos prontos para food service, com preço por kg/und, embalagem e aplicações para sua operação decidir com agilidade."
         icon={ShoppingBag}
       />
 
@@ -76,7 +76,7 @@ export function PublicProductsCatalog({ products }: { products: CatalogProduct[]
                 />
               </div>
               <h3 className="mb-2 mt-1 text-lg font-black text-foreground">Nenhum produto encontrado</h3>
-              <p className="mb-6 max-w-sm text-sm text-muted-foreground">Tente buscar por outro nome.</p>
+              <p className="mb-6 max-w-sm text-sm text-muted-foreground">Tente buscar por outro termo ou nome.</p>
               <button
                 onClick={() => setSearch("")}
                 className="rounded-full bg-lime px-6 py-3 text-sm font-black tracking-wider text-background transition-all duration-300 hover:shadow-[0_0_20px_rgba(239,255,13,0.3)]"

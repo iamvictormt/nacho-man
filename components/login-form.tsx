@@ -348,7 +348,7 @@ export function LoginForm({
             <span className="flex flex-col">
               <span>Você é franqueado?</span>
               <span className="mt-0.5 text-[11px] font-medium text-muted-foreground">
-                Marque esta opção caso você seja franqueado da Rede Nacho Man Mexican Food.
+                Marque esta opção se você for franqueado da Rede Nacho Man Mexican Food.
               </span>
             </span>
           </label>

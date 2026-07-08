@@ -28,7 +28,7 @@ export function AdminInlineActionForm({
       await action(formData)
       toast.success(successMessage)
     } catch {
-      toast.error("Não foi possível concluir a ação.")
+      toast.error("Não foi possível concluir esta ação.")
     } finally {
       pendingRef.current = false
       setPending(false)

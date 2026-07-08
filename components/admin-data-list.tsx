@@ -8,7 +8,7 @@ export function AdminDataList({
   className,
   isEmpty = false,
   emptyTitle = "Nenhum registro encontrado",
-  emptyDescription = "Quando houver itens cadastrados, eles aparecerão nesta tabela.",
+  emptyDescription = "Quando houver itens cadastrados, eles aparecerão nesta lista.",
 }: {
   headers: string[]
   template: string

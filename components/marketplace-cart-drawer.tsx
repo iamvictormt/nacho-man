@@ -276,7 +276,7 @@ export function MarketplaceCartDrawer({
                     aria-hidden="true"
                   />
                 </div>
-                <p className="text-sm font-semibold text-muted-foreground">Seu carrinho está vazio</p>
+                <p className="text-sm font-semibold text-muted-foreground">Seu carrinho está vazio no momento.</p>
                 <button
                   onClick={closeCart}
                   className="min-h-11 px-4 text-xs font-black tracking-wider text-lime hover:underline"
@@ -402,7 +402,7 @@ export function MarketplaceCartDrawer({
               {loading ? "CRIANDO PEDIDO..." : "FINALIZAR PELO WHATSAPP"}
             </button>
             <p className="text-center text-[10px] leading-4 text-muted-foreground">
-              A Factory enviará o código PIX, o link de cartão ou as instruções do boleto na conversa.
+              A Factory enviará o código PIX, o link para cartão ou as instruções do boleto na conversa.
             </p>
           </footer>
         )}

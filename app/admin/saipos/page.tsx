@@ -26,14 +26,14 @@ type SaiposDashboardSale = Awaited<ReturnType<typeof getSaiposDashboardSales>>[n
 const saleTypeLabels: Record<number, string> = {
   1: "Entrega",
   2: "Retirada",
-  3: "Salao",
+  3: "Salão",
   4: "Ficha",
 }
 
 const cardOptions = [
   { key: "revenue", label: "Faturamento" },
   { key: "orders", label: "Pedidos" },
-  { key: "ticket", label: "Ticket medio" },
+  { key: "ticket", label: "Ticket médio" },
   { key: "stores", label: "Lojas ativas" },
   { key: "canceled", label: "Cancelamentos" },
 ] as const
@@ -111,7 +111,7 @@ function isCanceled(sale: SaiposDashboardSale) {
 }
 
 function getPaymentLabel(sale: SaiposDashboardSale) {
-  return sale.paymentMethod?.trim() || "Nao informado"
+  return sale.paymentMethod?.trim() || "Não informado"
 }
 
 function buildDailyRevenue(sales: SaiposDashboardSale[]) {
@@ -205,7 +205,7 @@ export default async function SaiposDashboardPage({
       key: "revenue",
       label: "Faturamento",
       value: formatMoneyFromAmount(revenue),
-      detail: "Vendas nao canceladas",
+      detail: "Vendas não canceladas",
       icon: CircleDollarSign,
       tone: "lime",
     },
@@ -213,15 +213,15 @@ export default async function SaiposDashboardPage({
       key: "orders",
       label: "Pedidos",
       value: String(validSales.length),
-      detail: `${filteredSales.length} registros no periodo`,
+      detail: `${filteredSales.length} registros no período`,
       icon: ReceiptText,
       tone: "purple",
     },
     {
       key: "ticket",
-      label: "Ticket medio",
+      label: "Ticket médio",
       value: formatMoneyFromAmount(averageTicket),
-      detail: "Media por pedido valido",
+      detail: "Média por pedido válido",
       icon: TrendingUp,
       tone: "lime",
     },
@@ -229,7 +229,7 @@ export default async function SaiposDashboardPage({
       key: "stores",
       label: "Lojas ativas",
       value: String(new Set(validSales.map((sale) => sale.idStore)).size),
-      detail: selectedStore === "all" ? "Com venda no periodo" : `Filtro Loja #${selectedStore}`,
+      detail: selectedStore === "all" ? "Com vendas no período" : `Filtro Loja #${selectedStore}`,
       icon: Store,
       tone: "purple",
     },
@@ -252,7 +252,7 @@ export default async function SaiposDashboardPage({
             Todas as lojas em <span className="text-lime neon-glow">um painel.</span>
           </>
         }
-        description="Dashboard lido do banco local para acompanhar faturamento, pedidos, canais, formas de pagamento e desempenho por loja sem esperar a Saipos em tempo real."
+        description="Painel lido do banco local para acompanhar faturamento, pedidos, canais, formas de pagamento e desempenho por loja sem depender da Saipos em tempo real."
         icon={BarChart3}
       >
         <Link
@@ -287,9 +287,9 @@ export default async function SaiposDashboardPage({
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-medium">
-                Personalizar dashboard
+                Personalizar painel
               </p>
-              <h2 className="mt-2 text-lg font-black uppercase tracking-[-0.03em]">Cards visiveis</h2>
+              <h2 className="mt-2 text-lg font-black uppercase tracking-[-0.03em]">Cards visíveis</h2>
             </div>
             <div className="flex flex-wrap gap-2">
               {cardOptions.map((card) => {
@@ -355,15 +355,15 @@ export default async function SaiposDashboardPage({
 
         <section className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(310px,.75fr)]">
           <article className="rounded-2xl border border-border bg-graphite p-5 md:p-7">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-lime">Periodo selecionado</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-lime">Período selecionado</p>
             <h2 className="mt-3 text-xl font-black uppercase tracking-[-0.03em]">Faturamento por dia</h2>
-            {dailyRevenue.length > 0 ? <SaiposRevenueChart data={dailyRevenue} /> : <EmptyState text="Sem vendas no periodo selecionado." />}
+            {dailyRevenue.length > 0 ? <SaiposRevenueChart data={dailyRevenue} /> : <EmptyState text="Sem vendas no período selecionado." />}
           </article>
 
           <article className="rounded-2xl border border-border bg-graphite p-5 md:p-7">
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-medium">Canais</p>
             <h2 className="mt-3 text-xl font-black uppercase tracking-[-0.03em]">Tipos de venda</h2>
-            {saleTypes.length > 0 ? <SaiposDistributionChart data={saleTypes} /> : <EmptyState text="Sem tipos de venda para exibir." />}
+            {saleTypes.length > 0 ? <SaiposDistributionChart data={saleTypes} /> : <EmptyState text="Não há tipos de venda para exibir." />}
             <Legend data={saleTypes} />
           </article>
         </section>
@@ -376,7 +376,7 @@ export default async function SaiposDashboardPage({
           }))} />
           <RankingCard
             title="Formas de pagamento"
-            subtitle="Pedidos validos"
+            subtitle="Pedidos válidos"
             icon={CreditCard}
             data={paymentTypes.map((payment) => ({
               name: payment.name,
@@ -404,12 +404,12 @@ function SyncStatusCard({ lastSync }: { lastSync: SaiposSyncRun | null }) {
     lastSync?.status === "SUCCESS"
       ? "Atualizado"
       : lastSync?.status === "PARTIAL"
-        ? "Atualizacao parcial"
+        ? "Atualização parcial"
         : lastSync?.status === "FAILED"
-          ? "Ultima sincronizacao falhou"
+          ? "A última sincronização falhou"
           : lastSync?.status === "RUNNING"
             ? "Sincronizando"
-            : "Aguardando primeira sincronizacao"
+            : "Aguardando a primeira sincronização"
   const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
     timeStyle: "short",
@@ -425,12 +425,12 @@ function SyncStatusCard({ lastSync }: { lastSync: SaiposSyncRun | null }) {
         </div>
         <div className="shrink-0 rounded-xl border border-border bg-background px-4 py-3 text-xs">
           <strong className="block text-foreground">
-            {finishedAt ? dateFormatter.format(finishedAt) : "Sem sincronizacao concluida"}
+            {finishedAt ? dateFormatter.format(finishedAt) : "Sem sincronização concluída"}
           </strong>
           <span className="mt-1 block text-muted-foreground">
             {lastSync
               ? `${lastSync.recordsUpserted} registros gravados`
-              : "O dashboard sera preenchido apos o primeiro job"}
+              : "O painel será preenchido após o primeiro job"}
           </span>
         </div>
       </div>

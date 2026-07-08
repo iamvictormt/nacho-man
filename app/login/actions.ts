@@ -115,7 +115,7 @@ export async function registerAction(_state: RegisterState, formData: FormData):
     .toUpperCase()
 
   if (!name || !email || password.length < 8) {
-    return { error: "Informe nome, e-mail e uma senha com pelo menos 8 caracteres." }
+    return { error: "Informe seu nome, e-mail e uma senha com pelo menos 8 caracteres." }
   }
 
   const passwordHash = await hash(password, 12)
@@ -130,7 +130,7 @@ export async function registerAction(_state: RegisterState, formData: FormData):
     }
 
     if (!legalName || !tradeName || !document || !businessEmail || !city || !state) {
-      return { error: "Preencha CNPJ, razão social, nome fantasia, endereço e e-mail comercial." }
+      return { error: "Preencha o CNPJ, a razão social, o nome fantasia, o endereço e o e-mail comercial." }
     }
 
     const [existingFranchise, existingBusinessProfile] = await Promise.all([
@@ -214,7 +214,7 @@ export async function registerAction(_state: RegisterState, formData: FormData):
       return { error: "Já existe um cadastro com este e-mail ou CNPJ." }
     }
 
-    return { error: "Não foi possível concluir o cadastro agora." }
+    return { error: "Não foi possível concluir o cadastro no momento." }
   }
 
   if (!isFranchisee) redirect("/marketplace")
@@ -326,7 +326,7 @@ export async function resetPasswordAction(
     }),
   ])
 
-  return { email, success: "Senha alterada com sucesso. Você já pode entrar com a nova senha." }
+  return { email, success: "Senha alterada com sucesso. Agora você já pode entrar com a nova senha." }
 }
 
 export async function logoutAction() {

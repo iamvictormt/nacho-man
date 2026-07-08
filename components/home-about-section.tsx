@@ -81,7 +81,7 @@ export function HomeAboutSection() {
                   Produzir, congelar e armazenar em um só lugar
                 </h3>
                 <p className="mt-5 text-sm leading-7 text-muted-foreground md:text-base">
-                  Capacidade para pequenos e grandes volumes, com controle em cada etapa da operação.
+                  Capacidade para atender pequenos e grandes volumes, com controle rigoroso em cada etapa da operação.
                 </p>
               </div>
               <ul className="mt-9 space-y-4">

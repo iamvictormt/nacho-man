@@ -49,7 +49,7 @@ export function PublicProductDetail({
     { label: "Linha", value: product.category === "CONGELADO" ? "Congelado food service" : "Seco food service" },
     { label: "Indicado para", value: product.applications.slice(0, 3).join(", ") || product.subcategory },
     { label: "Unidade", value: unitLabel },
-    { label: "Fechamento", value: "Condições confirmadas pelo comercial" },
+    { label: "Fechamento", value: "Condições confirmadas pela equipe comercial" },
   ]
 
   function handleAdd() {
@@ -156,7 +156,7 @@ export function PublicProductDetail({
                       </span>
                     ))}
                     {product.applications.length === 0 && (
-                      <span className="text-sm text-muted-foreground">Consulte o comercial para recomendações.</span>
+                      <span className="text-sm text-muted-foreground">Consulte a equipe comercial para recomendações.</span>
                     )}
                   </div>
                 </div>

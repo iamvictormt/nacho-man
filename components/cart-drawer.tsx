@@ -172,7 +172,7 @@ export function CartDrawer({ whatsappNumber }: { whatsappNumber: string }) {
                   aria-hidden="true"
                 />
               </div>
-              <p className="text-sm font-semibold text-muted-foreground">Seu carrinho está vazio</p>
+              <p className="text-sm font-semibold text-muted-foreground">Seu carrinho está vazio no momento.</p>
               <button
                 onClick={closeCart}
                 className="min-h-11 px-4 text-xs font-black text-lime tracking-wider hover:underline"
@@ -216,12 +216,12 @@ export function CartDrawer({ whatsappNumber }: { whatsappNumber: string }) {
             <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border/50 bg-graphite/70 p-3">
               <div className="flex items-center gap-2 text-[11px] font-semibold leading-none text-muted-foreground">
                 <ShieldCheck className="h-4 w-4 shrink-0 text-lime" />
-                <span>Sem pagamento online: o comercial confirma disponibilidade e condições no WhatsApp.</span>
+                <span>Sem pagamento online: a equipe comercial confirma disponibilidade e condições pelo WhatsApp.</span>
               </div>
 
               <div className="flex items-center gap-2 text-[11px] font-semibold leading-none text-muted-foreground">
                 <CheckCircle2 className="h-4 w-4 shrink-0 text-lime" />
-                <span>Itens, quantidades e total estimado já vão organizados na mensagem.</span>
+                <span>Os itens, as quantidades e o valor estimado já vêm organizados na mensagem.</span>
               </div>
             </div>
 
@@ -253,7 +253,7 @@ export function CartDrawer({ whatsappNumber }: { whatsappNumber: string }) {
             </button>
 
             <p className="text-[10px] text-center text-muted-foreground">
-              Você será redirecionado para o WhatsApp para validar valores, pedido mínimo e entrega.
+              Você será redirecionado para o WhatsApp para confirmar valores, pedido mínimo e prazo de entrega.
             </p>
           </div>
         )}

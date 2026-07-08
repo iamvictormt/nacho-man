@@ -184,7 +184,7 @@ function FranchiseUsersList({ users }: { users: FranchiseeUser[] }) {
       template="minmax(210px,1.35fr) minmax(220px,1.25fr) 90px 120px 100px 72px"
       isEmpty={users.length === 0}
       emptyTitle="Nenhum usuário franqueado cadastrado"
-      emptyDescription="Quando alguém solicitar cadastro como franqueado, aparecerá nesta lista."
+      emptyDescription="Quando alguém solicitar cadastro como franqueado, ele aparecerá nesta lista."
     >
       {users.map((user) => {
         const franchise = user.franchise

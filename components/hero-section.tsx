@@ -166,17 +166,17 @@ export function HeroSection() {
           <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black uppercase leading-[0.92] tracking-tight">
             <span className="text-foreground">Produção de</span>
             <br />
-            <span className="text-foreground">Alimentos</span>
+            <span className="text-foreground">alimentos</span>
             <br />
-            <span className="text-foreground">Congelados</span>
+            <span className="text-foreground">congelados</span>
             <br />
-            <span className="text-lime neon-glow italic">Para Food Service.</span>
+            <span className="text-lime neon-glow italic">para food service.</span>
           </h1>
 
           {/* Subtitle — max 200 characters, descriptive */}
           <p className="text-muted-foreground text-base md:text-lg max-w-lg leading-relaxed">
-            Molhos, empanados e proteínas prontas. Armazenagem refrigerada com controle total de temperatura e
-            rastreabilidade.
+            Molhos, empanados e proteínas prontas. Armazenagem refrigerada e congelada, com controle total de
+            temperatura e rastreabilidade.
           </p>
 
           {/* CTAs */}

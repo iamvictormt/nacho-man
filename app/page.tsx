@@ -65,9 +65,9 @@ const audiences = [
 
 const processSteps = [
   { title: "Escolha os produtos", description: "Monte seu carrinho com os itens desejados." },
-  { title: "Receba o orçamento", description: "Nosso time valida estoque e frete." },
-  { title: "Confirme as condições", description: "Alinhe pedido mínimo, pagamento e prazo com o comercial." },
-  { title: "Receba no seu negócio", description: "Produtos entregues prontos para uso." },
+  { title: "Receba um orçamento", description: "Nossa equipe valida estoque, prazo e logística." },
+  { title: "Confirme as condições", description: "Alinhe pedido mínimo, pagamento e prazo com o time comercial." },
+  { title: "Receba no seu negócio", description: "Produtos entregues prontos para o uso." },
 ]
 
 export default async function Home() {

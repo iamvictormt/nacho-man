@@ -34,7 +34,7 @@ async function runSyncRequest(request: NextRequest, body: Record<string, unknown
   const authorized = user?.role === "ADMIN" || hasValidSyncSecret(request)
 
   if (!authorized) {
-    return NextResponse.json({ error: "Nao autorizado." }, { status: 401 })
+    return NextResponse.json({ error: "Não autorizado." }, { status: 401 })
   }
 
   const requestedPeriod =

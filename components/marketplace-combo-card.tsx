@@ -109,7 +109,7 @@ export function MarketplaceComboCard({ combo }: ComboCardProps) {
           <div className="min-w-0">
             <p className="text-[9px] font-black uppercase tracking-[0.16em] text-muted-foreground">Composição</p>
             <p className="mt-0.5 truncate text-xs font-bold text-foreground">
-              {combo.totalUnits} unidades para escolher
+              {combo.totalUnits} unidades para combinar
             </p>
           </div>
         </div>

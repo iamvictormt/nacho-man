@@ -36,9 +36,9 @@ const topics = [
 ]
 
 const serviceBenefits = [
-  "Resposta rápida em horário comercial",
+  "Resposta rápida no horário comercial",
   "Orçamento alinhado à sua operação",
-  "Atendimento direto com nosso time",
+  "Atendimento direto com a nossa equipe",
 ]
 
 export function HomeContactSection({ whatsappNumber }: { whatsappNumber: string }) {
@@ -82,7 +82,7 @@ export function HomeContactSection({ whatsappNumber }: { whatsappNumber: string 
                 Vamos abastecer sua próxima <span className="text-lime">operação?</span>
               </h2>
               <p className="mt-5 max-w-xl text-sm leading-7 text-muted-foreground md:text-base">
-                Nosso time está pronto para ajudar com pedidos, dúvidas sobre produtos e oportunidades de parceria.
+                Nossa equipe está pronta para ajudar com pedidos, dúvidas sobre produtos e oportunidades de parceria.
               </p>
             </div>
 
@@ -108,7 +108,7 @@ export function HomeContactSection({ whatsappNumber }: { whatsappNumber: string 
 
             <div className="grid grid-cols-1 gap-3 pt-3 sm:grid-cols-3">
               <ContactInfo icon={Phone} label="WhatsApp" value={formatWhatsAppDisplay(whatsappNumber)} />
-              <ContactInfo icon={Clock} label="Horário" value="Seg a sex, 7h–17h30" />
+              <ContactInfo icon={Clock} label="Horário" value="Seg. a sex., 7h–17h30" />
               <ContactInfo icon={MapPin} label="Localização" value="Blumenau, SC" />
             </div>
           </div>

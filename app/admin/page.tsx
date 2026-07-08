@@ -221,7 +221,7 @@ export default async function AdminPage() {
 
   const stats = [
     {
-      label: "Valor em pedidos no mês",
+      label: "Valor dos pedidos no mês",
       value: formatMoneyFromCents(currentMonthValue),
       detail: `${currentMonthOrders.length} pedidos não cancelados`,
       icon: CircleDollarSign,
@@ -237,7 +237,7 @@ export default async function AdminPage() {
     {
       label: "Aguardando ação",
       value: awaitingOrders,
-      detail: "atendimento ou pagamento",
+      detail: "atendimento ou pagamento pendente",
       icon: Clock3,
       color: "amber",
     },
@@ -321,7 +321,7 @@ export default async function AdminPage() {
                   Evolução dos pedidos
                 </h2>
               </div>
-              <p className="text-xs text-muted-foreground">Pedidos cancelados não entram no valor</p>
+              <p className="text-xs text-muted-foreground">Pedidos cancelados não entram no cálculo do valor</p>
             </div>
             <div className="mt-5">
               <OrdersEvolutionChart data={monthlyData} />
