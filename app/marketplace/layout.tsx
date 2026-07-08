@@ -6,6 +6,10 @@ import { getPaymentDiscountSettings, getStoreWhatsAppNumber } from "@/lib/site-s
 
 export const dynamic = "force-dynamic"
 
+function discountForRole(percent: number, franchiseeOnly: boolean, role: string) {
+  return franchiseeOnly && role !== "FRANCHISEE" ? 0 : percent
+}
+
 export default async function MarketplaceLayout({ children }: { children: React.ReactNode }) {
   const [user, whatsappNumber, paymentDiscounts] = await Promise.all([
     requireMarketplaceUser(),
@@ -24,9 +28,21 @@ export default async function MarketplaceLayout({ children }: { children: React.
       {children}
       <MarketplaceCartButton />
       <MarketplaceCartDrawer
-        pixDiscountPercent={paymentDiscounts.pixDiscountPercent}
-        cardDiscountPercent={paymentDiscounts.cardDiscountPercent}
-        boletoDiscountPercent={paymentDiscounts.boletoDiscountPercent}
+        pixDiscountPercent={discountForRole(
+          paymentDiscounts.pixDiscountPercent,
+          paymentDiscounts.pixFranchiseeOnly,
+          user.role
+        )}
+        cardDiscountPercent={discountForRole(
+          paymentDiscounts.cardDiscountPercent,
+          paymentDiscounts.cardFranchiseeOnly,
+          user.role
+        )}
+        boletoDiscountPercent={discountForRole(
+          paymentDiscounts.boletoDiscountPercent,
+          paymentDiscounts.boletoFranchiseeOnly,
+          user.role
+        )}
         allowBoleto={user.role === "FRANCHISEE"}
       />
     </PrivateShell>

@@ -32,14 +32,33 @@ const statusLabels: Record<string, string> = {
 
 const activeOrderStatuses = ["AWAITING_SERVICE", "AWAITING_PAYMENT", "PAYMENT_CONFIRMED", "PICKING", "SHIPPED"] as const
 
+function discountForRole(percent: number, franchiseeOnly: boolean, role: string) {
+  return franchiseeOnly && role !== "FRANCHISEE" ? 0 : percent
+}
+
 export default async function MarketplacePage() {
   const user = await requireMarketplaceUser()
   const [whatsappNumber, paymentDiscounts] = await Promise.all([getStoreWhatsAppNumber(), getPaymentDiscountSettings()])
+  const pixDiscountPercent = discountForRole(
+    paymentDiscounts.pixDiscountPercent,
+    paymentDiscounts.pixFranchiseeOnly,
+    user.role
+  )
+  const cardDiscountPercent = discountForRole(
+    paymentDiscounts.cardDiscountPercent,
+    paymentDiscounts.cardFranchiseeOnly,
+    user.role
+  )
+  const boletoDiscountPercent = discountForRole(
+    paymentDiscounts.boletoDiscountPercent,
+    paymentDiscounts.boletoFranchiseeOnly,
+    user.role
+  )
   const paymentDiscountSummary = [
-    paymentDiscounts.pixDiscountPercent > 0 ? `PIX com ${paymentDiscounts.pixDiscountPercent}% OFF` : null,
-    paymentDiscounts.cardDiscountPercent > 0 ? `cartão com ${paymentDiscounts.cardDiscountPercent}% OFF` : null,
-    user.role === "FRANCHISEE" && paymentDiscounts.boletoDiscountPercent > 0
-      ? `boleto com ${paymentDiscounts.boletoDiscountPercent}% OFF`
+    pixDiscountPercent > 0 ? `PIX com ${pixDiscountPercent}% OFF` : null,
+    cardDiscountPercent > 0 ? `cartão com ${cardDiscountPercent}% OFF` : null,
+    user.role === "FRANCHISEE" && boletoDiscountPercent > 0
+      ? `boleto com ${boletoDiscountPercent}% OFF`
       : user.role === "FRANCHISEE"
         ? "boleto disponível"
         : null,

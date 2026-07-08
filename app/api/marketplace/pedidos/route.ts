@@ -52,10 +52,13 @@ function calculateDiscount(type: "PERCENTAGE" | "FIXED", value: number, base: nu
 
 function getPaymentDiscountPercent(
   method: MarketplacePaymentMethod,
-  settings: Awaited<ReturnType<typeof getPaymentDiscountSettings>>
+  settings: Awaited<ReturnType<typeof getPaymentDiscountSettings>>,
+  userRole: string
 ) {
-  if (method === "BOLETO") return settings.boletoDiscountPercent
-  return method === "PIX" ? settings.pixDiscountPercent : settings.cardDiscountPercent
+  const franchisee = userRole === "FRANCHISEE"
+  if (method === "BOLETO") return settings.boletoFranchiseeOnly && !franchisee ? 0 : settings.boletoDiscountPercent
+  if (method === "PIX") return settings.pixFranchiseeOnly && !franchisee ? 0 : settings.pixDiscountPercent
+  return settings.cardFranchiseeOnly && !franchisee ? 0 : settings.cardDiscountPercent
 }
 
 function canUseMarketplace(user: Awaited<ReturnType<typeof getCurrentUser>>) {
@@ -116,7 +119,7 @@ export async function PUT(request: Request) {
   const franchiseDiscountInCents =
     user?.role === "FRANCHISEE" && user.franchise ? Math.round(afterCoupon * (user.franchise.priceDiscount / 100)) : 0
   const pixBase = Math.max(0, afterCoupon - franchiseDiscountInCents)
-  const paymentDiscountPercent = getPaymentDiscountPercent(parsed.data.paymentMethod, paymentSettings)
+  const paymentDiscountPercent = getPaymentDiscountPercent(parsed.data.paymentMethod, paymentSettings, user!.role)
   const pixDiscountInCents = Math.round(pixBase * (paymentDiscountPercent / 100))
 
   return NextResponse.json({
@@ -299,7 +302,7 @@ export async function POST(request: Request) {
   const franchiseDiscountInCents =
     user!.role === "FRANCHISEE" && user!.franchise ? Math.round(afterCoupon * (user!.franchise.priceDiscount / 100)) : 0
   const pixBase = Math.max(0, afterCoupon - franchiseDiscountInCents)
-  const paymentDiscountPercent = getPaymentDiscountPercent(parsed.data.paymentMethod, paymentSettings)
+  const paymentDiscountPercent = getPaymentDiscountPercent(parsed.data.paymentMethod, paymentSettings, user!.role)
   const pixDiscountInCents = Math.round(pixBase * (paymentDiscountPercent / 100))
   const totalInCents = Math.max(0, pixBase - pixDiscountInCents)
 

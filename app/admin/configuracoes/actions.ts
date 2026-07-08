@@ -18,6 +18,10 @@ function sanitizePercentage(value: FormDataEntryValue | null, fallback: string) 
   return String(Math.min(100, Math.max(0, parsed)))
 }
 
+function checkboxValue(formData: FormData, key: string) {
+  return formData.has(key) ? "true" : "false"
+}
+
 export async function updateLoginImagesAction(formData: FormData) {
   await requireAdmin()
 
@@ -54,6 +58,10 @@ export async function updateLoginImagesAction(formData: FormData) {
         value: sanitizePercentage(formData.get(paymentDiscountSettings.pix.key), paymentDiscountSettings.pix.fallback),
       },
       {
+        key: paymentDiscountSettings.pix.franchiseeOnlyKey,
+        value: checkboxValue(formData, paymentDiscountSettings.pix.franchiseeOnlyKey),
+      },
+      {
         key: paymentDiscountSettings.card.key,
         value: sanitizePercentage(
           formData.get(paymentDiscountSettings.card.key),
@@ -61,11 +69,19 @@ export async function updateLoginImagesAction(formData: FormData) {
         ),
       },
       {
+        key: paymentDiscountSettings.card.franchiseeOnlyKey,
+        value: checkboxValue(formData, paymentDiscountSettings.card.franchiseeOnlyKey),
+      },
+      {
         key: paymentDiscountSettings.boleto.key,
         value: sanitizePercentage(
           formData.get(paymentDiscountSettings.boleto.key),
           paymentDiscountSettings.boleto.fallback
         ),
+      },
+      {
+        key: paymentDiscountSettings.boleto.franchiseeOnlyKey,
+        value: checkboxValue(formData, paymentDiscountSettings.boleto.franchiseeOnlyKey),
       },
     ].map((setting) =>
       prisma.siteSetting.upsert({

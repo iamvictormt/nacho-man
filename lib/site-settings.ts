@@ -10,16 +10,19 @@ export const storeWhatsAppSetting = {
 export const paymentDiscountSettings = {
   pix: {
     key: "payment.discount.pix",
+    franchiseeOnlyKey: "payment.discount.pix.franchiseeOnly",
     label: "Desconto PIX (%)",
     fallback: "4",
   },
   card: {
     key: "payment.discount.card",
+    franchiseeOnlyKey: "payment.discount.card.franchiseeOnly",
     label: "Desconto cartão (%)",
     fallback: "0",
   },
   boleto: {
     key: "payment.discount.boleto",
+    franchiseeOnlyKey: "payment.discount.boleto.franchiseeOnly",
     label: "Desconto boleto (%)",
     fallback: "0",
   },
@@ -49,6 +52,10 @@ function parsePercentage(value: string | undefined, fallback: string) {
   const parsed = Number(String(value ?? fallback).replace(",", "."))
   if (!Number.isFinite(parsed)) return Number(fallback)
   return Math.min(100, Math.max(0, parsed))
+}
+
+function parseBoolean(value: string | undefined) {
+  return value === "true"
 }
 
 export const loginImageSettings = [
@@ -119,10 +126,14 @@ export async function getStoreWhatsAppNumber() {
 }
 
 export async function getPaymentDiscountSettings() {
+  const discountKeys = Object.values(paymentDiscountSettings).flatMap((setting) => [
+    setting.key,
+    setting.franchiseeOnlyKey,
+  ])
   const settings = await prisma.siteSetting.findMany({
     where: {
       key: {
-        in: [paymentDiscountSettings.pix.key, paymentDiscountSettings.card.key, paymentDiscountSettings.boleto.key],
+        in: discountKeys,
       },
     },
   })
@@ -141,6 +152,9 @@ export async function getPaymentDiscountSettings() {
       values.get(paymentDiscountSettings.boleto.key),
       paymentDiscountSettings.boleto.fallback
     ),
+    pixFranchiseeOnly: parseBoolean(values.get(paymentDiscountSettings.pix.franchiseeOnlyKey)),
+    cardFranchiseeOnly: parseBoolean(values.get(paymentDiscountSettings.card.franchiseeOnlyKey)),
+    boletoFranchiseeOnly: parseBoolean(values.get(paymentDiscountSettings.boleto.franchiseeOnlyKey)),
   }
 }
 

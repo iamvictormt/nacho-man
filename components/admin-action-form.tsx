@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react"
 import { useFormStatus } from "react-dom"
+import { useRouter } from "next/navigation"
 import { LoaderCircle } from "lucide-react"
 import { toast } from "sonner"
 
@@ -13,6 +14,7 @@ export function AdminActionForm({
   successMessage,
   modalId,
   className,
+  reloadOnSuccess = false,
 }: {
   action: (formData: FormData) => Promise<void>
   children: React.ReactNode
@@ -21,9 +23,11 @@ export function AdminActionForm({
   successMessage: string
   modalId?: string
   className?: string
+  reloadOnSuccess?: boolean
 }) {
   const [pending, setPending] = useState(false)
   const pendingRef = useRef(false)
+  const router = useRouter()
 
   async function handleAction(formData: FormData) {
     if (pendingRef.current) return
@@ -33,6 +37,11 @@ export function AdminActionForm({
       await action(formData)
       toast.success(successMessage)
       if (modalId) window.dispatchEvent(new CustomEvent("admin-modal-success", { detail: modalId }))
+      if (reloadOnSuccess) {
+        window.setTimeout(() => window.location.reload(), 250)
+        return
+      }
+      router.refresh()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível concluir esta ação.")
     } finally {

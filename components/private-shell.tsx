@@ -33,6 +33,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Toaster } from "sonner"
 
 type PrivateShellProps = {
@@ -57,6 +63,10 @@ export function PrivateShell({
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const admin = area === "admin"
+  const profileOrganization = organizationName ?? (admin ? "Nacho Factory" : "Cliente Nacho Man")
+  const profileTitle = admin ? profileOrganization : userName
+  const profileSubtitle = admin ? "Painel administrativo" : profileOrganization
+  const profileAccessLabel = admin ? null : userRole === "FRANCHISEE" ? "Franqueado" : "Não franqueado"
   const footerDescription = admin
     ? "Painel administrativo Nacho Man"
     : userRole === "FRANCHISEE"
@@ -129,28 +139,43 @@ export function PrivateShell({
           </nav>
 
           <div className="col-start-3 flex items-center justify-self-end gap-2">
-            <div className="hidden items-center gap-2 rounded-full border border-border/80 bg-background px-3 py-2 lg:flex">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full border border-purple-medium/30 bg-purple-medium/10">
-                <UserRound className="h-3.5 w-3.5 text-purple-medium" />
-              </span>
-              <div className="max-w-28 2xl:max-w-36">
-                <p className="truncate text-[9px] font-black uppercase text-foreground">{userName}</p>
-                <p className="truncate text-[8px] font-bold uppercase tracking-wider text-muted-foreground">
-                  {organizationName ?? (admin ? "Administrador" : "Franqueado")}
-                </p>
-              </div>
-            </div>
-            <ThemeToggle />
             <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <button
-                  className="flex h-11 w-11 items-center justify-center rounded-full border border-border text-foreground/70 transition hover:border-lime/40 hover:text-lime"
-                  aria-label="Sair"
-                  title="Sair"
-                >
-                  <LogOut className="h-4 w-4" />
-                </button>
-              </AlertDialogTrigger>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-graphite/50 text-foreground/70 transition hover:border-lime/40 hover:text-lime"
+                    aria-label="Abrir menu do perfil"
+                    title="Perfil"
+                  >
+                    <UserRound className="h-4 w-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" sideOffset={10} className="w-64 border-border bg-background p-2">
+                  <div className="px-3 py-2.5">
+                    <p className="truncate text-[10px] font-black uppercase tracking-[0.12em] text-lime">
+                      {profileSubtitle}
+                    </p>
+                    <p className="mt-1 truncate text-sm font-black uppercase text-foreground">{userName}</p>
+                    {profileAccessLabel && (
+                      <p className="mt-1 truncate text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        {profileAccessLabel}
+                      </p>
+                    )}
+                  </div>
+                  <DropdownMenuSeparator className="bg-border" />
+                  <ThemeToggle menu />
+                  <DropdownMenuSeparator className="bg-border" />
+                  <AlertDialogTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[10px] font-black uppercase tracking-wider text-foreground/75 outline-none transition hover:bg-graphite hover:text-lime focus:bg-graphite focus:text-lime"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Sair
+                    </button>
+                  </AlertDialogTrigger>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <AlertDialogContent className="w-[calc(100%-1rem)] border-border bg-background p-5 sm:max-w-md sm:p-6">
                 <AlertDialogHeader>
                   <AlertDialogTitle className="font-black uppercase">Sair da conta?</AlertDialogTitle>
@@ -204,15 +229,14 @@ export function PrivateShell({
                 <UserRound className="h-4 w-4 text-purple-medium" />
               </span>
               <div className="min-w-0">
-                <p className="truncate text-[10px] font-black uppercase text-foreground">{userName}</p>
+                <p className="truncate text-[10px] font-black uppercase text-foreground">{profileTitle}</p>
                 <p className="truncate text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-                  {organizationName ?? (admin ? "Administrador" : "Franqueado")}
+                  {profileSubtitle}
                 </p>
               </div>
             </div>
           </div>
           <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
-            <ThemeToggle compact />
             {links.map(({ href, label, icon: Icon, exact, activePrefix }) => {
               const active = exact ? pathname === href : pathname.startsWith(activePrefix ?? href)
               return (

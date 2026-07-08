@@ -1,6 +1,6 @@
 import { ImageIcon, MessageCircle, Settings } from "lucide-react"
 import { AdminActionForm } from "@/components/admin-action-form"
-import { AdminInput, AdminTextarea } from "@/components/admin-form-fields"
+import { AdminCheckbox, AdminInput, AdminTextarea } from "@/components/admin-form-fields"
 import { AdminProductImageUpload } from "@/components/admin-product-image-upload"
 import { PrivatePageHeader } from "@/components/private-page-header"
 import { prisma } from "@/lib/prisma"
@@ -23,8 +23,11 @@ export default async function AdminSettingsPage() {
           orderMessageSettings.emailSubject.key,
           orderMessageSettings.emailMessage.key,
           paymentDiscountSettings.pix.key,
+          paymentDiscountSettings.pix.franchiseeOnlyKey,
           paymentDiscountSettings.card.key,
+          paymentDiscountSettings.card.franchiseeOnlyKey,
           paymentDiscountSettings.boleto.key,
+          paymentDiscountSettings.boleto.franchiseeOnlyKey,
         ],
       },
     },
@@ -50,6 +53,7 @@ export default async function AdminSettingsPage() {
           submitLabel="SALVAR CONFIGURAÇÕES"
           successMessage="Configurações salvas."
           className="rounded-2xl border border-border bg-graphite p-5 md:p-7"
+          reloadOnSuccess
         >
           <div className="flex flex-col gap-3 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
             <div>
@@ -70,35 +74,29 @@ export default async function AdminSettingsPage() {
               hint="Use DDD. O sistema adiciona o código do Brasil quando necessário."
               required
             />
-            <AdminInput
+            <PaymentDiscountField
               name={paymentDiscountSettings.pix.key}
+              franchiseeOnlyName={paymentDiscountSettings.pix.franchiseeOnlyKey}
               label={paymentDiscountSettings.pix.label}
-              mask="decimal"
-              min={0}
-              max={100}
               defaultValue={values.get(paymentDiscountSettings.pix.key) ?? paymentDiscountSettings.pix.fallback}
+              defaultFranchiseeOnly={values.get(paymentDiscountSettings.pix.franchiseeOnlyKey) === "true"}
               hint="Aplicado automaticamente ao escolher PIX."
-              required
             />
-            <AdminInput
+            <PaymentDiscountField
               name={paymentDiscountSettings.card.key}
+              franchiseeOnlyName={paymentDiscountSettings.card.franchiseeOnlyKey}
               label={paymentDiscountSettings.card.label}
-              mask="decimal"
-              min={0}
-              max={100}
               defaultValue={values.get(paymentDiscountSettings.card.key) ?? paymentDiscountSettings.card.fallback}
+              defaultFranchiseeOnly={values.get(paymentDiscountSettings.card.franchiseeOnlyKey) === "true"}
               hint="Use 0 para cartão sem desconto."
-              required
             />
-            <AdminInput
+            <PaymentDiscountField
               name={paymentDiscountSettings.boleto.key}
+              franchiseeOnlyName={paymentDiscountSettings.boleto.franchiseeOnlyKey}
               label={paymentDiscountSettings.boleto.label}
-              mask="decimal"
-              min={0}
-              max={100}
               defaultValue={values.get(paymentDiscountSettings.boleto.key) ?? paymentDiscountSettings.boleto.fallback}
+              defaultFranchiseeOnly={values.get(paymentDiscountSettings.boleto.franchiseeOnlyKey) === "true"}
               hint="Use 0 para boleto sem desconto."
-              required
             />
           </div>
 
@@ -158,5 +156,42 @@ export default async function AdminSettingsPage() {
         </AdminActionForm>
       </section>
     </main>
+  )
+}
+
+function PaymentDiscountField({
+  name,
+  franchiseeOnlyName,
+  label,
+  defaultValue,
+  defaultFranchiseeOnly,
+  hint,
+}: {
+  name: string
+  franchiseeOnlyName: string
+  label: string
+  defaultValue: string
+  defaultFranchiseeOnly: boolean
+  hint: string
+}) {
+  return (
+    <div className="space-y-3">
+      <AdminInput
+        name={name}
+        label={label}
+        mask="decimal"
+        min={0}
+        max={100}
+        defaultValue={defaultValue}
+        hint={hint}
+        required
+      />
+      <AdminCheckbox
+        name={franchiseeOnlyName}
+        label="Apenas franqueados"
+        description="Quando marcado, clientes não franqueados não recebem este desconto."
+        defaultChecked={defaultFranchiseeOnly}
+      />
+    </div>
   )
 }
