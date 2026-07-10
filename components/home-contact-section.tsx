@@ -1,17 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import {
-  ArrowRight,
-  Check,
-  Clock,
-  Handshake,
-  HelpCircle,
-  MapPin,
-  MessageCircle,
-  Phone,
-  ShoppingCart,
-} from "lucide-react"
+import { ArrowRight, Clock, Handshake, HelpCircle, Mail, MapPin, Phone, ShoppingCart } from "lucide-react"
 import { buildWhatsAppUrl, formatWhatsAppDisplay } from "@/lib/whatsapp"
 
 const topics = [
@@ -35,10 +25,22 @@ const topics = [
   },
 ]
 
-const serviceBenefits = [
-  "Resposta rápida no horário comercial",
-  "Orçamento alinhado à sua operação",
-  "Atendimento direto com a nossa equipe",
+const emailChannels = [
+  {
+    title: "Pedidos da Factory",
+    email: "pedidos@nachofactory.com.br",
+    topics: [
+      "Pedidos pelo site",
+      "Alterações ou dúvidas sobre pedidos",
+      "Logística, entregas, lotes, validade e faltas",
+      "Problemas relacionados a produtos ou pedidos",
+    ],
+  },
+  {
+    title: "Administrativo/Financeiro",
+    email: "adm@nachofactory.com.br",
+    topics: ["Boletos e pagamentos", "Notas fiscais", "Cobranças", "Cadastros e atualizações de dados"],
+  },
 ]
 
 export function HomeContactSection({ whatsappNumber }: { whatsappNumber: string }) {
@@ -113,45 +115,32 @@ export function HomeContactSection({ whatsappNumber }: { whatsappNumber: string 
             </div>
           </div>
 
-          <div className="relative flex min-h-[500px] flex-col overflow-hidden rounded-2xl border border-border bg-background p-8 md:p-10 lg:min-h-0">
+          <div className="relative flex min-h-[500px] flex-col overflow-hidden rounded-2xl border border-border bg-background p-8 md:p-10 lg:min-h-0 justify-center">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-lime to-transparent" />
             <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-lime/10 blur-3xl" />
             <div className="absolute bottom-20 left-10 h-32 w-32 rounded-full bg-purple-medium/10 blur-3xl" />
 
-            <div className="relative">
-              <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-lime/25 bg-lime/10 text-lime">
-                <MessageCircle className="h-6 w-6" aria-hidden="true" />
-              </span>
-              <p className="mt-8 text-[11px] font-black uppercase tracking-[0.2em] text-lime">WhatsApp comercial</p>
-              <h3 className="mt-3 max-w-lg text-3xl font-black uppercase leading-tight tracking-[-0.03em] text-foreground md:text-4xl">
-                Atendimento rápido e personalizado
-              </h3>
-              <p className="mt-5 max-w-md text-sm leading-7 text-muted-foreground">
-                Faça pedidos, tire dúvidas ou converse sobre uma solução sob medida para o seu negócio.
-              </p>
-            </div>
-
-            <ul className="relative my-10 space-y-3">
-              {serviceBenefits.map((benefit) => (
-                <li
-                  key={benefit}
-                  className="flex items-center gap-3 rounded-xl border border-border bg-graphite px-4 py-3.5 text-sm font-bold text-foreground/85"
+            <div className="relative space-y-15">
+              {emailChannels.map((channel) => (
+                <a
+                  key={channel.email}
+                  href={`mailto:${channel.email}`}
+                  className="block rounded-2xl border border-border bg-graphite p-5 transition hover:border-lime/30"
                 >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-lime/10">
-                    <Check className="h-3.5 w-3.5 text-lime" aria-hidden="true" />
-                  </span>
-                  {benefit}
-                </li>
+                  <Mail className="h-5 w-5 text-lime" aria-hidden="true" />
+                  <p className="mt-4 text-[10px] font-black uppercase tracking-[0.16em] text-lime">{channel.title}</p>
+                  <p className="mt-2 break-words text-base font-black text-foreground">{channel.email}</p>
+                  <ul className="mt-5 space-y-2 text-xs font-semibold leading-5 text-muted-foreground">
+                    {channel.topics.map((topic) => (
+                      <li key={topic} className="flex gap-2">
+                        <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-lime" aria-hidden="true" />
+                        <span>{topic}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </a>
               ))}
-            </ul>
-
-            <button
-              onClick={() => openWhatsApp("Olá! Vim pelo site da Nacho Factory e gostaria de mais informações.")}
-              className="relative mt-auto inline-flex min-h-13 items-center justify-center gap-3 rounded-full bg-lime px-7 text-sm font-black tracking-wider text-background transition-all hover:-translate-y-0.5 hover:shadow-[0_0_28px_rgba(239,255,13,0.25)]"
-            >
-              INICIAR CONVERSA
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </button>
+            </div>
           </div>
         </div>
       </div>

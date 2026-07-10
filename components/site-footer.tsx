@@ -27,8 +27,12 @@ export function SiteFooter({ whatsappNumber }: { whatsappNumber: string }) {
               { label: `WhatsApp ${whatsappDisplay}`, href: whatsappUrl, external: true },
               { label: "Horário: seg. a sex., das 7h às 12h e das 13h às 17h30", href: null },
               {
-                label: "E-mail: factory.administrativo@nachomanbrasil.com.br",
-                href: "mailto:factory.administrativo@nachomanbrasil.com.br",
+                label: "Pedidos da Factory: pedidos@nachofactory.com.br",
+                href: "mailto:pedidos@nachofactory.com.br",
+              },
+              {
+                label: "Administrativo/Financeiro: adm@nachofactory.com.br",
+                href: "mailto:adm@nachofactory.com.br",
               },
             ]}
           />

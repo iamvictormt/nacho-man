@@ -8,6 +8,7 @@ import {
   Factory,
   Gift,
   LogOut,
+  Mail,
   Menu,
   MessageCircle,
   PackageSearch,
@@ -68,10 +69,10 @@ export function PrivateShell({
   const profileSubtitle = admin ? "Painel administrativo" : profileOrganization
   const profileAccessLabel = admin ? null : userRole === "FRANCHISEE" ? "Franqueado" : "Não franqueado"
   const footerDescription = admin
-    ? "Painel administrativo Nacho Man"
+    ? "Painel administrativo Nacho Factory"
     : userRole === "FRANCHISEE"
       ? "Portal exclusivo para franqueados Nacho Man"
-      : "Portal de compras Nacho Man"
+      : "Portal exclusivo para clientes"
   const homeHref = admin ? "/admin" : "/marketplace"
   const links = admin
     ? [
@@ -277,15 +278,27 @@ export function PrivateShell({
               <p className="mt-1 text-[10px] text-muted-foreground">{footerDescription}</p>
             </div>
           </div>
-          <a
-            href={buildWhatsAppUrl(whatsappNumber)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-foreground/65 hover:text-lime"
-          >
-            <MessageCircle className="h-4 w-4 text-lime" />
-            Precisa de ajuda?
-          </a>
+          <div className="flex flex-col gap-3 sm:items-end">
+            <div className="flex flex-col gap-2 text-[10px] font-black uppercase tracking-wider text-foreground/65 sm:items-end">
+              <a
+                href={buildWhatsAppUrl(whatsappNumber)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-foreground/65 hover:text-lime"
+              >
+                <MessageCircle className="h-4 w-4 text-lime" />
+                Precisa de ajuda?
+              </a>
+              <a href="mailto:pedidos@nachofactory.com.br" className="inline-flex items-center gap-2 hover:text-lime">
+                <Mail className="h-3.5 w-3.5 text-lime" />
+                Pedidos da Factory
+              </a>
+              <a href="mailto:adm@nachofactory.com.br" className="inline-flex items-center gap-2 hover:text-lime">
+                <Mail className="h-3.5 w-3.5 text-lime" />
+                Administrativo/Financeiro
+              </a>
+            </div>
+          </div>
         </div>
       </footer>
       <Toaster
