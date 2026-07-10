@@ -53,10 +53,20 @@ export function MarketplaceProductDetail({
   const duplicateFeatureValues = new Set(
     [product.weight, commerce.packageLabel, commerce.unit].map(normalizeDetailText).filter(Boolean)
   )
-  const visibleFeatures = product.features
-    .map((feature) => feature.trim())
-    .filter((feature) => feature && !duplicateFeatureValues.has(normalizeDetailText(feature)))
-  const visibleApplications = product.applications.map((application) => application.trim()).filter(Boolean)
+  const visibleFeatures = Array.from(
+    new Set(
+      product.features
+        .flatMap((feature) => String(feature).split(",").map((item) => item.trim()))
+        .filter((feature) => feature && !duplicateFeatureValues.has(normalizeDetailText(feature)))
+    )
+  )
+  const visibleApplications = Array.from(
+    new Set(
+      product.applications
+        .flatMap((application) => String(application).split(",").map((item) => item.trim()))
+        .filter(Boolean)
+    )
+  )
 
   const careInfo = [
     {
