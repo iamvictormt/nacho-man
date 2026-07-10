@@ -196,7 +196,7 @@ export function MarketplaceCartDrawer({
 
   function renderSummary() {
     return (
-      <section className="space-y-3 rounded-xl border border-border/70 bg-background/45 p-4 text-xs">
+      <section className="space-y-3 rounded-xl border border-border/70 bg-background/45 p-4 text-xs transition-all duration-300 hover:border-lime/25 hover:bg-background/60">
         <div className="flex justify-between text-muted-foreground">
           <span>Subtotal</span>
           <span>{formatMoneyFromCents(subtotal)}</span>
@@ -228,15 +228,15 @@ export function MarketplaceCartDrawer({
   }
 
   return (
-    <aside className="fixed inset-0 z-50 flex flex-col bg-background shadow-2xl">
-      <header className="flex items-center justify-between border-b border-border px-5 py-4 sm:px-8">
+    <aside className="fixed inset-0 z-50 flex flex-col bg-background shadow-2xl animate-in fade-in zoom-in-[0.985] duration-200">
+      <header className="flex items-center justify-between border-b border-border px-5 py-4 animate-in fade-in slide-in-from-top-2 duration-300 sm:px-8">
         <div className="flex items-center gap-3">
           <ShoppingCart className="h-5 w-5 text-lime" />
           <h2 className="font-black uppercase">{reviewing ? "Revisar pedido" : "Seu pedido"}</h2>
         </div>
         <button
           onClick={closeCart}
-          className="flex size-11 items-center justify-center rounded-full bg-graphite"
+          className="flex size-11 items-center justify-center rounded-full bg-graphite transition-all duration-200 hover:rotate-90 hover:bg-foreground/10 hover:text-lime active:scale-95"
           aria-label="Fechar pedido"
         >
           <X className="h-5 w-5" />
@@ -244,8 +244,8 @@ export function MarketplaceCartDrawer({
       </header>
 
       {confirmed ? (
-        <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
-          <span className="flex size-16 items-center justify-center rounded-full border border-lime/30 bg-lime/10 text-lime">
+        <div className="flex flex-1 flex-col items-center justify-center p-8 text-center animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <span className="flex size-16 items-center justify-center rounded-full border border-lime/30 bg-lime/10 text-lime animate-in zoom-in duration-300">
             <CheckCircle2 className="h-8 w-8" />
           </span>
           <h3 className="mt-5 text-xl font-black uppercase">Pedido confirmado</h3>
@@ -276,7 +276,7 @@ export function MarketplaceCartDrawer({
           {error && <p className="mt-4 max-w-xs text-xs font-bold text-red-300">{error}</p>}
         </div>
       ) : items.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center space-y-4 p-8 text-center">
+        <div className="flex flex-1 flex-col items-center justify-center space-y-4 p-8 text-center animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="relative flex h-32 w-32 items-center justify-center rounded-full border border-lime/20 bg-lime/10">
             <img
               src="/burrito-pegando-fogo-fundo-amarelo.svg"
@@ -292,7 +292,7 @@ export function MarketplaceCartDrawer({
           <p className="text-sm font-semibold text-muted-foreground">Seu carrinho está vazio no momento.</p>
           <button
             onClick={closeCart}
-            className="min-h-11 px-4 text-xs font-black tracking-wider text-lime hover:underline"
+            className="min-h-11 px-4 text-xs font-black tracking-wider text-lime transition hover:-translate-y-0.5 hover:underline active:scale-95"
           >
             VER PRODUTOS
           </button>
@@ -301,7 +301,7 @@ export function MarketplaceCartDrawer({
               href={lastCheckout.whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#25D366] px-5 text-xs font-black uppercase text-white"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#25D366] px-5 text-xs font-black uppercase text-white transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 active:scale-95"
             >
               <MessageCircle className="h-4 w-4" />
               Reenviar último pedido
@@ -310,7 +310,7 @@ export function MarketplaceCartDrawer({
         </div>
       ) : (
         <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_420px] lg:overflow-hidden">
-          <main className="px-5 py-6 sm:px-8 lg:min-h-0 lg:overflow-y-auto">
+          <main className="px-5 py-6 animate-in fade-in slide-in-from-bottom-3 duration-300 sm:px-8 lg:min-h-0 lg:overflow-y-auto">
             {reviewing ? (
               <div className="mx-auto w-full max-w-5xl">
                 <button
@@ -329,10 +329,11 @@ export function MarketplaceCartDrawer({
                 </p>
 
                 <div className="mt-6 grid gap-4 xl:grid-cols-2">
-                  {items.map((item) => (
+                  {items.map((item, index) => (
                     <article
                       key={`${item.type}-${item.id}-${item.selectionKey ?? "default"}`}
-                      className="rounded-xl border border-border bg-graphite p-5"
+                      className="group rounded-xl border border-border bg-graphite p-5 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2 hover:-translate-y-1 hover:border-lime/35 hover:bg-lime/[0.025] hover:shadow-[0_18px_45px_rgba(0,0,0,0.22),0_0_24px_rgba(239,255,13,0.06)]"
+                      style={{ animationDelay: `${index * 45}ms` }}
                     >
                       <div className="flex h-full flex-col justify-between gap-5">
                         <div>
@@ -364,10 +365,11 @@ export function MarketplaceCartDrawer({
                 <p className="text-[10px] font-black uppercase tracking-wider text-lime">Itens do carrinho</p>
                 <h3 className="mt-1 text-2xl font-black uppercase sm:text-3xl">Produtos selecionados</h3>
                 <div className="mt-6 grid gap-4 xl:grid-cols-2">
-                  {items.map((item) => (
+                  {items.map((item, index) => (
                     <article
                       key={`${item.type}-${item.id}-${item.selectionKey ?? "default"}`}
-                      className="rounded-xl border border-border bg-graphite p-5"
+                      className="group rounded-xl border border-border bg-graphite p-5 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2 hover:-translate-y-1 hover:border-lime/35 hover:bg-lime/[0.025] hover:shadow-[0_18px_45px_rgba(0,0,0,0.22),0_0_24px_rgba(239,255,13,0.06)]"
+                      style={{ animationDelay: `${index * 45}ms` }}
                     >
                       <div className="flex justify-between gap-4">
                         <div>
@@ -389,7 +391,7 @@ export function MarketplaceCartDrawer({
                             remove(item.id, item.type, item.selectionKey)
                             invalidateCouponPreview()
                           }}
-                          className="flex size-10 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-red-300"
+                          className="flex size-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-all duration-200 hover:bg-red-500/10 hover:text-red-300 active:scale-90"
                           aria-label={`Remover ${item.name}`}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -403,7 +405,7 @@ export function MarketplaceCartDrawer({
                               setQuantity(item.id, item.type, item.quantity - 1, item.selectionKey)
                               invalidateCouponPreview()
                             }}
-                            className="flex size-10 items-center justify-center rounded-full border border-border"
+                            className="flex size-10 items-center justify-center rounded-full border border-border transition-all duration-200 hover:border-lime/50 hover:text-lime active:scale-90"
                             aria-label={`Diminuir quantidade de ${item.name}`}
                           >
                             <Minus className="h-3 w-3" />
@@ -415,7 +417,7 @@ export function MarketplaceCartDrawer({
                               setQuantity(item.id, item.type, item.quantity + 1, item.selectionKey)
                               invalidateCouponPreview()
                             }}
-                            className="flex size-10 items-center justify-center rounded-full border border-border"
+                            className="flex size-10 items-center justify-center rounded-full border border-border transition-all duration-200 hover:border-lime/50 hover:text-lime active:scale-90"
                             aria-label={`Aumentar quantidade de ${item.name}`}
                           >
                             <Plus className="h-3 w-3" />
@@ -432,7 +434,7 @@ export function MarketplaceCartDrawer({
             )}
           </main>
 
-          <aside className="border-t border-border bg-graphite px-5 py-6 sm:px-8 lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-t-0 lg:px-6">
+          <aside className="border-t border-border bg-graphite px-5 py-6 animate-in fade-in slide-in-from-right-4 duration-300 sm:px-8 lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-t-0 lg:px-6">
             <div className="space-y-5">
               {!reviewing ? (
                 <>
@@ -444,7 +446,7 @@ export function MarketplaceCartDrawer({
                       <button
                         type="button"
                         onClick={() => changePaymentMethod("PIX")}
-                        className={`min-h-[72px] rounded-xl border p-4 text-left ${
+                        className={`min-h-[72px] rounded-xl border p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-lime/40 hover:shadow-[0_10px_28px_rgba(0,0,0,0.18)] active:scale-[0.98] ${
                           paymentMethod === "PIX" ? "border-lime bg-lime/10" : "border-border"
                         }`}
                       >
@@ -456,7 +458,7 @@ export function MarketplaceCartDrawer({
                       <button
                         type="button"
                         onClick={() => changePaymentMethod("CARD")}
-                        className={`min-h-[72px] rounded-xl border p-4 text-left ${
+                        className={`min-h-[72px] rounded-xl border p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-lime/40 hover:shadow-[0_10px_28px_rgba(0,0,0,0.18)] active:scale-[0.98] ${
                           paymentMethod === "CARD" ? "border-lime bg-lime/10" : "border-border"
                         }`}
                       >
@@ -469,7 +471,7 @@ export function MarketplaceCartDrawer({
                         <button
                           type="button"
                           onClick={() => changePaymentMethod("BOLETO")}
-                          className={`min-h-[72px] rounded-xl border p-4 text-left ${
+                          className={`min-h-[72px] rounded-xl border p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-lime/40 hover:shadow-[0_10px_28px_rgba(0,0,0,0.18)] active:scale-[0.98] ${
                             paymentMethod === "BOLETO" ? "border-lime bg-lime/10" : "border-border"
                           }`}
                         >
@@ -506,13 +508,13 @@ export function MarketplaceCartDrawer({
                             }
                           }}
                           placeholder="Cupom de desconto"
-                          className="h-12 min-w-0 rounded-xl border border-border bg-background px-4 text-sm uppercase"
+                          className="h-12 min-w-0 rounded-xl border border-border bg-background px-4 text-sm uppercase transition-all duration-200 hover:border-foreground/25 focus:border-lime focus:outline-none focus:ring-2 focus:ring-lime/20"
                         />
                         <button
                           type="button"
                           onClick={applyCoupon}
                           disabled={!coupon.trim() || couponLoading}
-                          className="flex h-12 min-w-24 items-center justify-center gap-2 rounded-xl border border-lime/30 px-4 text-[10px] font-black text-lime disabled:opacity-50"
+                          className="flex h-12 min-w-24 items-center justify-center gap-2 rounded-xl border border-lime/30 px-4 text-[10px] font-black text-lime transition-all duration-200 hover:bg-lime hover:text-background active:scale-[0.98] disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-lime"
                         >
                           {couponLoading && <LoaderCircle className="h-4 w-4 animate-spin" />}
                           {couponLoading ? "VALIDANDO" : "APLICAR"}
@@ -540,7 +542,7 @@ export function MarketplaceCartDrawer({
                         onChange={(event) => setNotes(event.target.value)}
                         placeholder="Observações do pedido"
                         rows={4}
-                        className="min-h-28 w-full rounded-xl border border-border bg-background p-4 text-sm"
+                        className="min-h-28 w-full rounded-xl border border-border bg-background p-4 text-sm transition-all duration-200 hover:border-foreground/25 focus:border-lime focus:outline-none focus:ring-2 focus:ring-lime/20"
                       />
                     </div>
                   </section>
@@ -574,7 +576,7 @@ export function MarketplaceCartDrawer({
                 type="button"
                 onClick={reviewing ? checkout : startReview}
                 disabled={loading}
-                className={`flex h-13 w-full items-center justify-center gap-2 rounded-full text-xs font-black disabled:opacity-60 ${
+                className={`flex h-13 w-full items-center justify-center gap-2 rounded-full text-xs font-black transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-60 ${
                   reviewing ? "bg-[#25D366] text-white" : "bg-lime text-background"
                 }`}
               >
