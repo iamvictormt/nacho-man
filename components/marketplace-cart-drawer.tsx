@@ -1,14 +1,26 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { CheckCircle2, LoaderCircle, Minus, Plus, ShoppingCart, Trash2, X } from "lucide-react"
+import {
+  ArrowLeft,
+  CheckCircle2,
+  LoaderCircle,
+  MessageCircle,
+  Minus,
+  Plus,
+  Send,
+  ShoppingCart,
+  Trash2,
+  X,
+} from "lucide-react"
+import { useLockBodyScroll } from "@/hooks/use-lock-body-scroll"
 import { useMarketplaceCart } from "@/lib/marketplace-cart-store"
 import { formatMoneyFromCents } from "@/lib/money"
 import { getPaymentMethodLabel, type MarketplacePaymentMethod } from "@/lib/payment-method"
-import { useLockBodyScroll } from "@/hooks/use-lock-body-scroll"
 
 type CheckoutResponse = {
   whatsappUrl?: string
+  orderNumber?: string
   error?: string
 }
 
@@ -37,7 +49,7 @@ export function MarketplaceCartDrawer({
   boletoDiscountPercent: number
   allowBoleto?: boolean
 }) {
-  const { items, open, closeCart, remove, setQuantity, clear } = useMarketplaceCart()
+  const { items, lastCheckout, open, closeCart, remove, setQuantity, clear, setLastCheckout } = useMarketplaceCart()
   const [paymentMethod, setPaymentMethod] = useState<MarketplacePaymentMethod>("PIX")
   const [coupon, setCoupon] = useState("")
   const [notes, setNotes] = useState("")
@@ -47,6 +59,7 @@ export function MarketplaceCartDrawer({
   const [couponError, setCouponError] = useState("")
   const [error, setError] = useState("")
   const [confirmed, setConfirmed] = useState(false)
+  const [reviewing, setReviewing] = useState(false)
   const [whatsappFallbackUrl, setWhatsappFallbackUrl] = useState("")
 
   useLockBodyScroll(open)
@@ -55,6 +68,7 @@ export function MarketplaceCartDrawer({
     if (open) return
 
     setConfirmed(false)
+    setReviewing(false)
     setWhatsappFallbackUrl("")
     setError("")
   }, [open])
@@ -72,6 +86,14 @@ export function MarketplaceCartDrawer({
     ? couponPreview.pixDiscountInCents
     : Math.round(subtotal * (activePaymentDiscountPercent / 100))
   const estimatedTotal = couponPreview ? couponPreview.totalInCents : subtotal - estimatedPixDiscount
+
+  function openWhatsApp(url: string) {
+    const opened = window.open(url, "_blank")
+    if (!opened) {
+      setWhatsappFallbackUrl(url)
+      setError("Seu navegador bloqueou a nova guia. Use o botão abaixo para abrir o WhatsApp.")
+    }
+  }
 
   async function applyCoupon() {
     const normalizedCoupon = coupon.trim().toUpperCase()
@@ -110,11 +132,19 @@ export function MarketplaceCartDrawer({
     setPaymentMethod(method)
     setCouponPreview(null)
     setCouponError("")
+    setReviewing(false)
   }
 
   function invalidateCouponPreview() {
     setCouponPreview(null)
     setCouponError("")
+    setReviewing(false)
+  }
+
+  function startReview() {
+    if (items.length === 0) return
+    setError("")
+    setReviewing(true)
   }
 
   async function checkout() {
@@ -136,7 +166,7 @@ export function MarketplaceCartDrawer({
             selectedOptions: item.selectedOptions,
           })),
           paymentMethod,
-          coupon: coupon.trim(),
+          coupon: couponPreview?.code ?? "",
           notes: notes.trim(),
         }),
       })
@@ -148,16 +178,15 @@ export function MarketplaceCartDrawer({
       }
 
       setConfirmed(true)
+      setReviewing(false)
+      setWhatsappFallbackUrl(result.whatsappUrl)
+      setLastCheckout({
+        orderNumber: result.orderNumber ?? "Pedido",
+        whatsappUrl: result.whatsappUrl,
+        createdAt: new Date().toISOString(),
+      })
       clear()
-      window.setTimeout(() => {
-        const opened = window.open(result.whatsappUrl, "_blank")
-        if (opened) {
-          closeCart()
-        } else {
-          setWhatsappFallbackUrl(result.whatsappUrl!)
-          setError("Seu navegador bloqueou a nova guia. Use o botão abaixo para abrir o WhatsApp.")
-        }
-      }, 1000)
+      openWhatsApp(result.whatsappUrl)
     } catch {
       setError("Falha de conexão. Tente novamente.")
     } finally {
@@ -165,248 +194,400 @@ export function MarketplaceCartDrawer({
     }
   }
 
-  return (
-    <>
-      <button className="fixed inset-0 z-50 bg-black/75" onClick={closeCart} aria-label="Fechar carrinho" />
-      <aside className="fixed bottom-0 right-0 top-0 z-50 flex w-full max-w-lg flex-col border-l border-border bg-background shadow-2xl">
-        <header className="flex items-center justify-between border-b border-border p-5">
-          <div className="flex items-center gap-3">
-            <ShoppingCart className="h-5 w-5 text-lime" />
-            <h2 className="font-black uppercase">Seu pedido</h2>
-          </div>
-          <button onClick={closeCart} className="flex size-11 items-center justify-center rounded-full bg-graphite">
-            <X className="h-5 w-5" />
-          </button>
-        </header>
-
-        {confirmed ? (
-          <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
-            <span className="flex size-16 items-center justify-center rounded-full border border-lime/30 bg-lime/10 text-lime">
-              <CheckCircle2 className="h-8 w-8" />
-            </span>
-            <h3 className="mt-5 text-xl font-black uppercase">Pedido confirmado</h3>
-            <p className="mt-3 max-w-xs text-sm leading-6 text-muted-foreground">
-              Recebemos seu pedido. O WhatsApp será aberto em uma nova guia com a mensagem preenchida.
-            </p>
-            {!whatsappFallbackUrl && (
-              <p className="mt-5 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-lime">
-                <LoaderCircle className="h-4 w-4 animate-spin" />
-                Abrindo WhatsApp
-              </p>
-            )}
-            {whatsappFallbackUrl && (
-              <a
-                href={whatsappFallbackUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-6 inline-flex h-12 items-center justify-center rounded-full bg-[#25D366] px-6 text-xs font-black uppercase text-white"
-              >
-                Abrir WhatsApp
-              </a>
-            )}
-          </div>
-        ) : (
-          <div className="flex-1 space-y-4 overflow-y-auto p-5">
-            {items.map((item) => (
-              <article
-                key={`${item.type}-${item.id}-${item.selectionKey ?? "default"}`}
-                className="rounded-xl border border-border bg-graphite p-4"
-              >
-                <div className="flex justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-black uppercase">{item.name}</h3>
-                    <p className="mt-1 text-xs text-muted-foreground">{item.packageLabel}</p>
-                    {item.selectedOptions && item.selectedOptions.length > 0 && (
-                      <ul className="mt-2 space-y-1 text-[10px] font-bold uppercase text-foreground/70">
-                        {item.selectedOptions.map((option) => (
-                          <li key={option.productId}>
-                            {option.quantity}x {option.name}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => {
-                      remove(item.id, item.type, item.selectionKey)
-                      invalidateCouponPreview()
-                    }}
-                    className="text-muted-foreground hover:text-red-300"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-                <div className="mt-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => {
-                        setQuantity(item.id, item.type, item.quantity - 1, item.selectionKey)
-                        invalidateCouponPreview()
-                      }}
-                      className="flex size-9 items-center justify-center rounded-full border border-border"
-                    >
-                      <Minus className="h-3 w-3" />
-                    </button>
-                    <span className="w-8 text-center text-sm font-black">{item.quantity}</span>
-                    <button
-                      onClick={() => {
-                        setQuantity(item.id, item.type, item.quantity + 1, item.selectionKey)
-                        invalidateCouponPreview()
-                      }}
-                      className="flex size-9 items-center justify-center rounded-full border border-border"
-                    >
-                      <Plus className="h-3 w-3" />
-                    </button>
-                  </div>
-                  <p className="font-black text-lime">{formatMoneyFromCents(item.unitPriceInCents * item.quantity)}</p>
-                </div>
-              </article>
-            ))}
-            {items.length === 0 && (
-              <div className="flex h-full flex-col items-center justify-center space-y-4 text-center">
-                <div className="relative flex h-32 w-32 items-center justify-center rounded-full border border-lime/20 bg-lime/10">
-                  <img
-                    src="/burrito-pegando-fogo-fundo-amarelo.svg"
-                    alt=""
-                    width={76}
-                    height={76}
-                    loading="eager"
-                    decoding="sync"
-                    className="h-24 w-24 object-contain p-2 opacity-50"
-                    aria-hidden="true"
-                  />
-                </div>
-                <p className="text-sm font-semibold text-muted-foreground">Seu carrinho está vazio no momento.</p>
-                <button
-                  onClick={closeCart}
-                  className="min-h-11 px-4 text-xs font-black tracking-wider text-lime hover:underline"
-                >
-                  VER PRODUTOS
-                </button>
-              </div>
-            )}
+  function renderSummary() {
+    return (
+      <section className="space-y-3 rounded-xl border border-border/70 bg-background/45 p-4 text-xs">
+        <div className="flex justify-between text-muted-foreground">
+          <span>Subtotal</span>
+          <span>{formatMoneyFromCents(subtotal)}</span>
+        </div>
+        {couponPreview && couponPreview.couponDiscountInCents > 0 && (
+          <div className="flex justify-between text-lime">
+            <span>Cupom {couponPreview.code}</span>
+            <span>-{formatMoneyFromCents(couponPreview.couponDiscountInCents)}</span>
           </div>
         )}
+        {couponPreview && couponPreview.franchiseDiscountInCents > 0 && (
+          <div className="flex justify-between text-lime">
+            <span>Desconto da unidade</span>
+            <span>-{formatMoneyFromCents(couponPreview.franchiseDiscountInCents)}</span>
+          </div>
+        )}
+        {estimatedPixDiscount > 0 && (
+          <div className="flex justify-between text-lime">
+            <span>Desconto {getPaymentMethodLabel(paymentMethod)} estimado</span>
+            <span>-{formatMoneyFromCents(estimatedPixDiscount)}</span>
+          </div>
+        )}
+        <div className="flex justify-between border-t border-border pt-4 text-lg font-black">
+          <span>Total estimado</span>
+          <span className="text-lime">{formatMoneyFromCents(estimatedTotal)}</span>
+        </div>
+      </section>
+    )
+  }
 
-        {items.length > 0 && !confirmed && (
-          <footer className="space-y-4 border-t border-border bg-graphite p-5">
-            <div className={`grid gap-3 ${allowBoleto ? "grid-cols-3" : "grid-cols-2"}`}>
-              <button
-                onClick={() => changePaymentMethod("PIX")}
-                className={`rounded-xl border p-4 text-left ${paymentMethod === "PIX" ? "border-lime bg-lime/10" : "border-border"}`}
-              >
-                <span className="block text-xs font-black">PIX</span>
-                <span className="mt-1 block text-[10px] text-lime">
-                  {paymentDiscountLabel("PIX", pixDiscountPercent)}
-                </span>
-              </button>
-              <button
-                onClick={() => changePaymentMethod("CARD")}
-                className={`rounded-xl border p-4 text-left ${paymentMethod === "CARD" ? "border-lime bg-lime/10" : "border-border"}`}
-              >
-                <span className="block text-xs font-black">CARTÃO</span>
-                <span className="mt-1 block text-[10px] text-muted-foreground">
-                  {paymentDiscountLabel("CARD", cardDiscountPercent)}
-                </span>
-              </button>
-              {allowBoleto && (
-                <button
-                  onClick={() => changePaymentMethod("BOLETO")}
-                  className={`rounded-xl border p-4 text-left ${paymentMethod === "BOLETO" ? "border-lime bg-lime/10" : "border-border"}`}
-                >
-                  <span className="block text-xs font-black">BOLETO</span>
-                  <span className="mt-1 block text-[10px] text-muted-foreground">
-                    {paymentDiscountLabel("BOLETO", boletoDiscountPercent)}
-                  </span>
-                </button>
-              )}
-            </div>
-            <div>
-              <div className="flex gap-2">
-                <input
-                  value={coupon}
-                  onChange={(event) => {
-                    setCoupon(event.target.value.toUpperCase())
-                    setCouponPreview(null)
-                    setCouponError("")
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault()
-                      applyCoupon()
-                    }
-                  }}
-                  placeholder="Cupom de desconto"
-                  className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-background px-4 text-sm uppercase"
-                />
+  return (
+    <aside className="fixed inset-0 z-50 flex flex-col bg-background shadow-2xl">
+      <header className="flex items-center justify-between border-b border-border px-5 py-4 sm:px-8">
+        <div className="flex items-center gap-3">
+          <ShoppingCart className="h-5 w-5 text-lime" />
+          <h2 className="font-black uppercase">{reviewing ? "Revisar pedido" : "Seu pedido"}</h2>
+        </div>
+        <button
+          onClick={closeCart}
+          className="flex size-11 items-center justify-center rounded-full bg-graphite"
+          aria-label="Fechar pedido"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </header>
+
+      {confirmed ? (
+        <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
+          <span className="flex size-16 items-center justify-center rounded-full border border-lime/30 bg-lime/10 text-lime">
+            <CheckCircle2 className="h-8 w-8" />
+          </span>
+          <h3 className="mt-5 text-xl font-black uppercase">Pedido confirmado</h3>
+          <p className="mt-3 max-w-xs text-sm leading-6 text-muted-foreground">
+            Recebemos seu pedido. A mensagem do WhatsApp está pronta e você pode abrir novamente quando precisar.
+          </p>
+          {whatsappFallbackUrl && (
+            <a
+              href={whatsappFallbackUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#25D366] px-6 text-xs font-black uppercase text-white"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Enviar pelo WhatsApp
+            </a>
+          )}
+          {whatsappFallbackUrl && (
+            <button
+              type="button"
+              onClick={() => openWhatsApp(whatsappFallbackUrl)}
+              className="mt-3 inline-flex h-11 items-center justify-center gap-2 rounded-full border border-border px-5 text-[10px] font-black uppercase text-lime"
+            >
+              <Send className="h-4 w-4" />
+              Enviar novamente
+            </button>
+          )}
+          {error && <p className="mt-4 max-w-xs text-xs font-bold text-red-300">{error}</p>}
+        </div>
+      ) : items.length === 0 ? (
+        <div className="flex flex-1 flex-col items-center justify-center space-y-4 p-8 text-center">
+          <div className="relative flex h-32 w-32 items-center justify-center rounded-full border border-lime/20 bg-lime/10">
+            <img
+              src="/burrito-pegando-fogo-fundo-amarelo.svg"
+              alt=""
+              width={76}
+              height={76}
+              loading="eager"
+              decoding="sync"
+              className="h-24 w-24 object-contain p-2 opacity-50"
+              aria-hidden="true"
+            />
+          </div>
+          <p className="text-sm font-semibold text-muted-foreground">Seu carrinho está vazio no momento.</p>
+          <button
+            onClick={closeCart}
+            className="min-h-11 px-4 text-xs font-black tracking-wider text-lime hover:underline"
+          >
+            VER PRODUTOS
+          </button>
+          {lastCheckout && (
+            <a
+              href={lastCheckout.whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#25D366] px-5 text-xs font-black uppercase text-white"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Reenviar último pedido
+            </a>
+          )}
+        </div>
+      ) : (
+        <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_420px] lg:overflow-hidden">
+          <main className="px-5 py-6 sm:px-8 lg:min-h-0 lg:overflow-y-auto">
+            {reviewing ? (
+              <div className="mx-auto w-full max-w-5xl">
                 <button
                   type="button"
-                  onClick={applyCoupon}
-                  disabled={!coupon.trim() || couponLoading}
-                  className="flex h-11 min-w-24 items-center justify-center gap-2 rounded-xl border border-lime/30 px-4 text-[10px] font-black text-lime disabled:opacity-50"
+                  onClick={() => setReviewing(false)}
+                  className="mb-6 inline-flex h-11 items-center gap-2 rounded-full border border-border px-5 text-[10px] font-black uppercase text-muted-foreground hover:text-lime"
                 >
-                  {couponLoading && <LoaderCircle className="h-4 w-4 animate-spin" />}
-                  {couponLoading ? "VALIDANDO" : "APLICAR"}
+                  <ArrowLeft className="h-4 w-4" />
+                  Voltar ao carrinho
                 </button>
-              </div>
-              {couponPreview && (
-                <p className="mt-2 flex items-center gap-2 text-[10px] font-bold text-lime">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Cupom {couponPreview.code} aplicado.
+                <p className="text-[10px] font-black uppercase tracking-wider text-lime">Revise antes de enviar</p>
+                <h3 className="mt-1 text-2xl font-black uppercase sm:text-3xl">Conferir pedido</h3>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                  Confira os produtos, as quantidades, a forma de pagamento e as observações antes de enviar pelo
+                  WhatsApp.
                 </p>
-              )}
-              {couponError && <p className="mt-2 text-[10px] font-bold text-red-300">{couponError}</p>}
-            </div>
-            <textarea
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              placeholder="Observações do pedido"
-              rows={2}
-              className="w-full rounded-xl border border-border bg-background p-3 text-sm"
-            />
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between text-muted-foreground">
-                <span>Subtotal</span>
-                <span>{formatMoneyFromCents(subtotal)}</span>
+
+                <div className="mt-6 grid gap-4 xl:grid-cols-2">
+                  {items.map((item) => (
+                    <article
+                      key={`${item.type}-${item.id}-${item.selectionKey ?? "default"}`}
+                      className="rounded-xl border border-border bg-graphite p-5"
+                    >
+                      <div className="flex h-full flex-col justify-between gap-5">
+                        <div>
+                          <h4 className="text-sm font-black uppercase leading-5">{item.name}</h4>
+                          <p className="mt-1 text-xs text-muted-foreground">{item.packageLabel}</p>
+                          {item.selectedOptions && item.selectedOptions.length > 0 && (
+                            <ul className="mt-3 space-y-1 text-[10px] font-bold uppercase text-foreground/70">
+                              {item.selectedOptions.map((option) => (
+                                <li key={option.productId}>
+                                  {option.quantity}x {option.name}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                        <div className="flex items-end justify-between gap-4 border-t border-border pt-4">
+                          <p className="text-xs font-black uppercase text-muted-foreground">Qtd. {item.quantity}</p>
+                          <p className="text-lg font-black text-lime">
+                            {formatMoneyFromCents(item.unitPriceInCents * item.quantity)}
+                          </p>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
               </div>
-              {couponPreview && couponPreview.couponDiscountInCents > 0 && (
-                <div className="flex justify-between text-lime">
-                  <span>Cupom {couponPreview.code}</span>
-                  <span>-{formatMoneyFromCents(couponPreview.couponDiscountInCents)}</span>
+            ) : (
+              <div className="mx-auto w-full max-w-5xl">
+                <p className="text-[10px] font-black uppercase tracking-wider text-lime">Itens do carrinho</p>
+                <h3 className="mt-1 text-2xl font-black uppercase sm:text-3xl">Produtos selecionados</h3>
+                <div className="mt-6 grid gap-4 xl:grid-cols-2">
+                  {items.map((item) => (
+                    <article
+                      key={`${item.type}-${item.id}-${item.selectionKey ?? "default"}`}
+                      className="rounded-xl border border-border bg-graphite p-5"
+                    >
+                      <div className="flex justify-between gap-4">
+                        <div>
+                          <h3 className="text-sm font-black uppercase leading-5">{item.name}</h3>
+                          <p className="mt-1 text-xs text-muted-foreground">{item.packageLabel}</p>
+                          {item.selectedOptions && item.selectedOptions.length > 0 && (
+                            <ul className="mt-3 space-y-1 text-[10px] font-bold uppercase text-foreground/70">
+                              {item.selectedOptions.map((option) => (
+                                <li key={option.productId}>
+                                  {option.quantity}x {option.name}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            remove(item.id, item.type, item.selectionKey)
+                            invalidateCouponPreview()
+                          }}
+                          className="flex size-10 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-red-300"
+                          aria-label={`Remover ${item.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setQuantity(item.id, item.type, item.quantity - 1, item.selectionKey)
+                              invalidateCouponPreview()
+                            }}
+                            className="flex size-10 items-center justify-center rounded-full border border-border"
+                            aria-label={`Diminuir quantidade de ${item.name}`}
+                          >
+                            <Minus className="h-3 w-3" />
+                          </button>
+                          <span className="w-10 text-center text-sm font-black">{item.quantity}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setQuantity(item.id, item.type, item.quantity + 1, item.selectionKey)
+                              invalidateCouponPreview()
+                            }}
+                            className="flex size-10 items-center justify-center rounded-full border border-border"
+                            aria-label={`Aumentar quantidade de ${item.name}`}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </button>
+                        </div>
+                        <p className="text-lg font-black text-lime">
+                          {formatMoneyFromCents(item.unitPriceInCents * item.quantity)}
+                        </p>
+                      </div>
+                    </article>
+                  ))}
                 </div>
-              )}
-              {couponPreview && couponPreview.franchiseDiscountInCents > 0 && (
-                <div className="flex justify-between text-lime">
-                  <span>Desconto da unidade</span>
-                  <span>-{formatMoneyFromCents(couponPreview.franchiseDiscountInCents)}</span>
-                </div>
-              )}
-              {estimatedPixDiscount > 0 && (
-                <div className="flex justify-between text-lime">
-                  <span>Desconto {getPaymentMethodLabel(paymentMethod)} estimado</span>
-                  <span>-{formatMoneyFromCents(estimatedPixDiscount)}</span>
-                </div>
-              )}
-              <div className="flex justify-between border-t border-border pt-3 text-lg font-black">
-                <span>Total estimado</span>
-                <span className="text-lime">{formatMoneyFromCents(estimatedTotal)}</span>
               </div>
+            )}
+          </main>
+
+          <aside className="border-t border-border bg-graphite px-5 py-6 sm:px-8 lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-t-0 lg:px-6">
+            <div className="space-y-5">
+              {!reviewing ? (
+                <>
+                  <section>
+                    <p className="mb-3 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                      Forma de pagamento
+                    </p>
+                    <div className={`grid gap-3 ${allowBoleto ? "grid-cols-3" : "grid-cols-2"}`}>
+                      <button
+                        type="button"
+                        onClick={() => changePaymentMethod("PIX")}
+                        className={`min-h-[72px] rounded-xl border p-4 text-left ${
+                          paymentMethod === "PIX" ? "border-lime bg-lime/10" : "border-border"
+                        }`}
+                      >
+                        <span className="block text-xs font-black">PIX</span>
+                        <span className="mt-1 block text-[10px] text-lime">
+                          {paymentDiscountLabel("PIX", pixDiscountPercent)}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => changePaymentMethod("CARD")}
+                        className={`min-h-[72px] rounded-xl border p-4 text-left ${
+                          paymentMethod === "CARD" ? "border-lime bg-lime/10" : "border-border"
+                        }`}
+                      >
+                        <span className="block text-xs font-black">CARTÃO</span>
+                        <span className="mt-1 block text-[10px] text-muted-foreground">
+                          {paymentDiscountLabel("CARD", cardDiscountPercent)}
+                        </span>
+                      </button>
+                      {allowBoleto && (
+                        <button
+                          type="button"
+                          onClick={() => changePaymentMethod("BOLETO")}
+                          className={`min-h-[72px] rounded-xl border p-4 text-left ${
+                            paymentMethod === "BOLETO" ? "border-lime bg-lime/10" : "border-border"
+                          }`}
+                        >
+                          <span className="block text-xs font-black">BOLETO</span>
+                          <span className="mt-1 block text-[10px] text-muted-foreground">
+                            {paymentDiscountLabel("BOLETO", boletoDiscountPercent)}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  </section>
+
+                  <section className="space-y-5">
+                    <div className="space-y-3">
+                      <label
+                        htmlFor="marketplace-coupon"
+                        className="block text-[10px] font-black uppercase tracking-wider text-muted-foreground"
+                      >
+                        Cupom de desconto
+                      </label>
+                      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_96px] lg:grid-cols-1 xl:grid-cols-[minmax(0,1fr)_96px]">
+                        <input
+                          id="marketplace-coupon"
+                          value={coupon}
+                          onChange={(event) => {
+                            setCoupon(event.target.value.toUpperCase())
+                            setCouponPreview(null)
+                            setCouponError("")
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault()
+                              applyCoupon()
+                            }
+                          }}
+                          placeholder="Cupom de desconto"
+                          className="h-12 min-w-0 rounded-xl border border-border bg-background px-4 text-sm uppercase"
+                        />
+                        <button
+                          type="button"
+                          onClick={applyCoupon}
+                          disabled={!coupon.trim() || couponLoading}
+                          className="flex h-12 min-w-24 items-center justify-center gap-2 rounded-xl border border-lime/30 px-4 text-[10px] font-black text-lime disabled:opacity-50"
+                        >
+                          {couponLoading && <LoaderCircle className="h-4 w-4 animate-spin" />}
+                          {couponLoading ? "VALIDANDO" : "APLICAR"}
+                        </button>
+                      </div>
+                      {couponPreview && (
+                        <p className="flex items-center gap-2 text-[10px] font-bold text-lime">
+                          <CheckCircle2 className="h-4 w-4" />
+                          Cupom {couponPreview.code} aplicado.
+                        </p>
+                      )}
+                      {couponError && <p className="text-[10px] font-bold text-red-300">{couponError}</p>}
+                    </div>
+
+                    <div className="space-y-3">
+                      <label
+                        htmlFor="marketplace-order-notes"
+                        className="block text-[10px] font-black uppercase tracking-wider text-muted-foreground"
+                      >
+                        Observações do pedido
+                      </label>
+                      <textarea
+                        id="marketplace-order-notes"
+                        value={notes}
+                        onChange={(event) => setNotes(event.target.value)}
+                        placeholder="Observações do pedido"
+                        rows={4}
+                        className="min-h-28 w-full rounded-xl border border-border bg-background p-4 text-sm"
+                      />
+                    </div>
+                  </section>
+                </>
+              ) : (
+                <section className="rounded-xl border border-border bg-background/45 p-4 text-sm">
+                  <h4 className="text-sm font-black uppercase">Detalhes do pedido</h4>
+                  <div className="mt-4 flex justify-between gap-4">
+                    <span className="text-muted-foreground">Pagamento</span>
+                    <span className="font-black uppercase">{getPaymentMethodLabel(paymentMethod)}</span>
+                  </div>
+                  {couponPreview && (
+                    <div className="mt-3 flex justify-between gap-4">
+                      <span className="text-muted-foreground">Cupom</span>
+                      <span className="font-black uppercase">{couponPreview.code}</span>
+                    </div>
+                  )}
+                  {notes.trim() && (
+                    <div className="mt-4 border-t border-border pt-4">
+                      <p className="text-xs font-black uppercase text-muted-foreground">Observações</p>
+                      <p className="mt-2 leading-6">{notes.trim()}</p>
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {renderSummary()}
+
+              {error && <p className="text-center text-xs font-bold text-red-300">{error}</p>}
+              <button
+                type="button"
+                onClick={reviewing ? checkout : startReview}
+                disabled={loading}
+                className={`flex h-13 w-full items-center justify-center gap-2 rounded-full text-xs font-black disabled:opacity-60 ${
+                  reviewing ? "bg-[#25D366] text-white" : "bg-lime text-background"
+                }`}
+              >
+                {loading && <LoaderCircle className="h-4 w-4 animate-spin" />}
+                {loading ? "CRIANDO PEDIDO..." : reviewing ? "Confirmar e enviar pelo WhatsApp" : "Revisar pedido"}
+              </button>
+              <p className="px-2 text-center text-[10px] leading-4 text-muted-foreground">
+                A Factory enviará o código PIX, o link para cartão ou as instruções do boleto na conversa.
+              </p>
             </div>
-            {error && <p className="text-center text-xs font-bold text-red-300">{error}</p>}
-            <button
-              onClick={checkout}
-              disabled={loading}
-              className="flex h-13 w-full items-center justify-center gap-2 rounded-full bg-[#25D366] text-xs font-black text-white disabled:opacity-60"
-            >
-              {loading && <LoaderCircle className="h-4 w-4 animate-spin" />}
-              {loading ? "CRIANDO PEDIDO..." : "FINALIZAR PELO WHATSAPP"}
-            </button>
-            <p className="text-center text-[10px] leading-4 text-muted-foreground">
-              A Factory enviará o código PIX, o link para cartão ou as instruções do boleto na conversa.
-            </p>
-          </footer>
-        )}
-      </aside>
-    </>
+          </aside>
+        </div>
+      )}
+    </aside>
   )
 }

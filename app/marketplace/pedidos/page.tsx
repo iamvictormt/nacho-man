@@ -1,12 +1,14 @@
-import { CalendarDays, ChevronDown, CreditCard, PackageCheck, ReceiptText, WalletCards } from "lucide-react"
+import { CalendarDays, ChevronDown, CreditCard, MessageCircle, PackageCheck, ReceiptText, WalletCards } from "lucide-react"
 import { requireMarketplaceUser } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
 import { PaginationControls } from "@/components/pagination-controls"
 import { getCurrentPage, getPagination, type SearchParams } from "@/lib/pagination"
 import { PrivatePageHeader } from "@/components/private-page-header"
-import { getPaymentDiscountLabel, getPaymentMethodLabel } from "@/lib/payment-method"
+import { getPaymentDiscountLabel, getPaymentMethodInstruction, getPaymentMethodLabel } from "@/lib/payment-method"
 import { formatOrderCode } from "@/lib/order-number"
+import { getOrderMessageSettings, getStoreWhatsAppNumber } from "@/lib/site-settings"
+import { buildWhatsAppUrl } from "@/lib/whatsapp"
 
 const statusLabels: Record<string, string> = {
   AWAITING_SERVICE: "Aguardando atendimento",
@@ -45,10 +47,10 @@ export default async function FranchiseOrdersPage({ searchParams }: { searchPara
   const where = user.role === "FRANCHISEE" ? { franchiseId: user.franchiseId! } : { userId: user.id }
   const totalOrders = await prisma.order.count({ where })
   const pagination = getPagination(page, totalOrders, 10)
-  const [orders, activeOrders, deliveredOrders] = await Promise.all([
+  const [orders, activeOrders, deliveredOrders, messageSettings, storeWhatsAppNumber] = await Promise.all([
     prisma.order.findMany({
       where,
-      include: { items: true },
+      include: { coupon: true, items: true },
       orderBy: { createdAt: "desc" },
       skip: pagination.skip,
       take: pagination.take,
@@ -60,6 +62,8 @@ export default async function FranchiseOrdersPage({ searchParams }: { searchPara
       },
     }),
     prisma.order.count({ where: { ...where, status: "DELIVERED" } }),
+    getOrderMessageSettings(),
+    getStoreWhatsAppNumber(),
   ])
 
   return (
@@ -85,7 +89,17 @@ export default async function FranchiseOrdersPage({ searchParams }: { searchPara
         {orders.length > 0 ? (
           <div className="space-y-5">
             {orders.map((order) => (
-              <OrderCard key={order.id} order={order} />
+              <OrderCard
+                key={order.id}
+                order={order}
+                buyerLine={
+                  user.role === "FRANCHISEE" && user.franchise
+                    ? `Unidade: *${user.franchise.tradeName}*`
+                    : `Cliente: *${user.name}*`
+                }
+                storeWhatsAppNumber={storeWhatsAppNumber}
+                whatsappTemplate={messageSettings.whatsappTemplate}
+              />
             ))}
           </div>
         ) : (
@@ -110,6 +124,9 @@ export default async function FranchiseOrdersPage({ searchParams }: { searchPara
 
 function OrderCard({
   order,
+  buyerLine,
+  storeWhatsAppNumber,
+  whatsappTemplate,
 }: {
   order: {
     number: number
@@ -122,6 +139,9 @@ function OrderCard({
     totalInCents: number
     notes: string | null
     createdAt: Date
+    coupon: {
+      code: string
+    } | null
     items: {
       id: string
       name: string
@@ -132,11 +152,24 @@ function OrderCard({
       selectedOptions: unknown
     }[]
   }
+  buyerLine: string
+  storeWhatsAppNumber: string
+  whatsappTemplate: string
 }) {
   const number = formatOrderCode(order.number)
   const discountTotal = order.promotionDiscountInCents + order.couponDiscountInCents + order.pixDiscountInCents
   const progress = progressByStatus[order.status] ?? 12
   const paymentDiscountLabel = getPaymentDiscountLabel(order.paymentMethod)
+  const whatsappUrl = buildWhatsAppUrl(
+    storeWhatsAppNumber,
+    buildOrderWhatsAppMessage({
+      order,
+      buyerLine,
+      orderNumber: number,
+      paymentDiscountLabel,
+      template: whatsappTemplate,
+    })
+  )
 
   return (
     <article className="overflow-hidden rounded-2xl border border-border bg-graphite">
@@ -237,10 +270,86 @@ function OrderCard({
             )}
             {discountTotal <= 0 && <p className="text-muted-foreground">Sem descontos aplicados.</p>}
           </div>
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#25D366] px-4 text-[10px] font-black uppercase text-white transition hover:brightness-110"
+          >
+            <MessageCircle className="h-4 w-4" />
+            Enviar novamente
+          </a>
         </div>
       </div>
     </article>
   )
+}
+
+function buildOrderWhatsAppMessage({
+  order,
+  buyerLine,
+  orderNumber,
+  paymentDiscountLabel,
+  template,
+}: {
+  order: {
+    paymentMethod: string
+    subtotalInCents: number
+    promotionDiscountInCents: number
+    couponDiscountInCents: number
+    pixDiscountInCents: number
+    totalInCents: number
+    notes: string | null
+    coupon: { code: string } | null
+    items: {
+      name: string
+      unit: string
+      quantity: number
+      totalInCents: number
+      selectedOptions: unknown
+    }[]
+  }
+  buyerLine: string
+  orderNumber: string
+  paymentDiscountLabel: string
+  template: string
+}) {
+  const itemLines = order.items.map((item, index) => {
+    const selectedOptions = formatSelectedOptions(item.selectedOptions)
+
+    return [
+      `${index + 1}. ${item.name} - ${item.quantity} ${item.unit} - ${formatMoneyFromCents(item.totalInCents)}`,
+      selectedOptions.length > 0 ? `   Sabores: ${selectedOptions.join(", ")}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n")
+  })
+  const discountLines = [
+    order.promotionDiscountInCents > 0 ? `Descontos: -${formatMoneyFromCents(order.promotionDiscountInCents)}` : null,
+    order.couponDiscountInCents > 0 && order.coupon
+      ? `Cupom ${order.coupon.code}: -${formatMoneyFromCents(order.couponDiscountInCents)}`
+      : null,
+    order.pixDiscountInCents > 0
+      ? `${paymentDiscountLabel}: -${formatMoneyFromCents(order.pixDiscountInCents)}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join("\n")
+
+  return renderTemplate(template, {
+    pedido: `*${orderNumber}*`,
+    cliente: buyerLine,
+    itens: itemLines.join("\n"),
+    subtotal: formatMoneyFromCents(order.subtotalInCents),
+    descontos: discountLines,
+    total: `*${formatMoneyFromCents(order.totalInCents)}*`,
+    pagamento: getPaymentMethodInstruction(order.paymentMethod),
+    observacoes: order.notes ? `Observações: ${order.notes}` : "",
+  })
+}
+
+function renderTemplate(template: string, values: Record<string, string>) {
+  return Object.entries(values).reduce((message, [key, value]) => message.replaceAll(`{${key}}`, value), template)
 }
 
 function SelectedOptionsList({ value }: { value: unknown }) {

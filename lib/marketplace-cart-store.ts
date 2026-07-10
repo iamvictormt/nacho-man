@@ -21,13 +21,22 @@ export type MarketplaceCartItem = {
   }[]
 }
 
+export type MarketplaceLastCheckout = {
+  orderNumber: string
+  whatsappUrl: string
+  createdAt: string
+}
+
 type MarketplaceCart = {
   items: MarketplaceCartItem[]
+  lastCheckout: MarketplaceLastCheckout | null
   open: boolean
   add: (item: Omit<MarketplaceCartItem, "quantity">) => void
   remove: (id: string, type: MarketplaceCartItem["type"], selectionKey?: string) => void
   setQuantity: (id: string, type: MarketplaceCartItem["type"], quantity: number, selectionKey?: string) => void
   clear: () => void
+  setLastCheckout: (checkout: MarketplaceLastCheckout) => void
+  clearLastCheckout: () => void
   openCart: () => void
   closeCart: () => void
 }
@@ -36,6 +45,7 @@ export const useMarketplaceCart = create<MarketplaceCart>()(
   persist(
     (set) => ({
       items: [],
+      lastCheckout: null,
       open: false,
       add: (item) =>
         set((state) => {
@@ -69,13 +79,15 @@ export const useMarketplaceCart = create<MarketplaceCart>()(
           ),
         })),
       clear: () => set({ items: [] }),
+      setLastCheckout: (checkout) => set({ lastCheckout: checkout }),
+      clearLastCheckout: () => set({ lastCheckout: null }),
       openCart: () => set({ open: true }),
       closeCart: () => set({ open: false }),
     }),
     {
       name: "nacho-factory-marketplace-cart",
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ items: state.items }),
+      partialize: (state) => ({ items: state.items, lastCheckout: state.lastCheckout }),
     }
   )
 )

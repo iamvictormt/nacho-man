@@ -10,7 +10,7 @@ const statusLabels: Record<string, string> = {
   AWAITING_SERVICE: "Aguardando atendimento",
   AWAITING_PAYMENT: "Aguardando pagamento",
   PAYMENT_CONFIRMED: "Pagamento confirmado",
-  PICKING: "Em separaÃ§Ã£o",
+  PICKING: "Em separação",
   SHIPPED: "Enviado",
   DELIVERED: "Entregue",
   CANCELLED: "Cancelado",
@@ -154,7 +154,7 @@ function buildOrderConfirmationHtml(input: OrderConfirmationEmailInput, introMes
 
                 ${
                   input.notes
-                    ? `<p style="margin:24px 0 0;padding:14px;border-left:3px solid #7c3aed;background:#111111;color:#d1d5db;font-size:13px;line-height:1.5;"><strong style="color:#ffffff;">ObservaÃ§Ãµes:</strong> ${escapeHtml(input.notes)}</p>`
+                    ? `<p style="margin:24px 0 0;padding:14px;border-left:3px solid #7c3aed;background:#111111;color:#d1d5db;font-size:13px;line-height:1.5;"><strong style="color:#ffffff;">Observações:</strong> ${escapeHtml(input.notes)}</p>`
                     : ""
                 }
 
