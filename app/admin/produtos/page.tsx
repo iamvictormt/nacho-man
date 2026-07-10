@@ -235,6 +235,11 @@ function ProductForm({
     id: string
     name: string
     description: string | null
+    features: string | null
+    applications: string | null
+    storageInfo: string | null
+    usageInfo: string | null
+    yieldInfo: string | null
     image: string | null
     sku: string | null
     priceInCents: number
@@ -275,6 +280,20 @@ function ProductForm({
         defaultValue={product?.description ?? ""}
         placeholder="Descreva o produto para o catálogo selecionado"
       />
+      <AdminTextarea
+        name="features"
+        label="Características"
+        rows={3}
+        defaultValue={product?.features ?? ""}
+        placeholder="Uma característica por linha. Ex: PCT, pronto para uso, rende 900 g"
+      />
+      <AdminTextarea
+        name="applications"
+        label="Aplicações"
+        rows={3}
+        defaultValue={product?.applications ?? ""}
+        placeholder="Uma aplicação por linha. Ex: Churros, sobremesas, finalização"
+      />
       <AdminFieldGrid columns="equal">
         <AdminInput
           name="price"
@@ -299,6 +318,29 @@ function ProductForm({
           required
         />
       </AdminFieldGrid>
+      <AdminFieldGrid columns="equal">
+        <AdminTextarea
+          name="storageInfo"
+          label="Armazenamento"
+          rows={3}
+          defaultValue={product?.storageInfo ?? ""}
+          placeholder="Ex: Guarde em local seco, fresco e protegido da luz."
+        />
+        <AdminTextarea
+          name="usageInfo"
+          label="Uso ou preparo"
+          rows={3}
+          defaultValue={product?.usageInfo ?? ""}
+          placeholder="Ex: Produto pronto para aplicação na operação."
+        />
+      </AdminFieldGrid>
+      <AdminTextarea
+        name="yieldInfo"
+        label="Rendimento ou benefício"
+        rows={3}
+        defaultValue={product?.yieldInfo ?? ""}
+        placeholder="Ex: Ideal para reposição rápida e uso recorrente."
+      />
       <AdminProductImageUpload defaultValue={product?.image ?? ""} />
       <AdminCheckbox
         name="featured"
@@ -364,4 +406,3 @@ function PageTitle({ audience }: { audience: ProductAudienceValue }) {
 function moneyInput(cents: number) {
   return (cents / 100).toFixed(2).replace(".", ",")
 }
-

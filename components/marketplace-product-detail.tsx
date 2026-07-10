@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Check, ChefHat, Clock3, Minus, Plus, ShieldCheck, Snowflake } from "lucide-react"
+import { Check, ChefHat, Clock3, Minus, Plus, ShieldCheck } from "lucide-react"
 import type { CatalogProduct } from "@/lib/products"
 import { useMarketplaceCart } from "@/lib/marketplace-cart-store"
 import { ProductDetailCard } from "@/components/product-detail-card"
@@ -28,6 +28,14 @@ type RelatedMarketplaceProduct = {
   commerce: MarketplaceCommerce
 }
 
+function normalizeDetailText(value: string | null | undefined) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/gi, "")
+    .toLocaleLowerCase("pt-BR")
+}
+
 export function MarketplaceProductDetail({
   product,
   commerce,
@@ -42,20 +50,31 @@ export function MarketplaceProductDetail({
   const add = useMarketplaceCart((state) => state.add)
   const setCartQuantity = useMarketplaceCart((state) => state.setQuantity)
   const items = useMarketplaceCart((state) => state.items)
-  const visibleFeatures = product.features.map((feature) => feature.trim()).filter(Boolean)
+  const duplicateFeatureValues = new Set(
+    [product.weight, commerce.packageLabel, commerce.unit].map(normalizeDetailText).filter(Boolean)
+  )
+  const visibleFeatures = product.features
+    .map((feature) => feature.trim())
+    .filter((feature) => feature && !duplicateFeatureValues.has(normalizeDetailText(feature)))
+  const visibleApplications = product.applications.map((application) => application.trim()).filter(Boolean)
 
-  const careInfo =
-    product.category === "CONGELADO"
-      ? [
-          { icon: Snowflake, title: "Conservação", text: "Mantenha congelado a -18°C até o preparo." },
-          { icon: ChefHat, title: "Preparo", text: "Aqueça ou finalize conforme sua operação." },
-          { icon: Clock3, title: "Praticidade", text: "Reduz tempo de cozinha e padroniza os pedidos." },
-        ]
-      : [
-          { icon: ShieldCheck, title: "Armazenamento", text: "Guarde em local seco, fresco e protegido da luz." },
-          { icon: ChefHat, title: "Uso", text: "Produto pronto para aplicação na operação." },
-          { icon: Clock3, title: "Rendimento", text: "Ideal para reposição rápida e uso recorrente." },
-        ]
+  const careInfo = [
+    {
+      icon: ShieldCheck,
+      title: "Armazenamento",
+      text: product.storageInfo?.trim(),
+    },
+    {
+      icon: ChefHat,
+      title: "Uso",
+      text: product.usageInfo?.trim(),
+    },
+    {
+      icon: Clock3,
+      title: "Rendimento",
+      text: product.yieldInfo?.trim(),
+    },
+  ].filter((item) => item.text)
 
   function handleAdd() {
     const existing = items.find((item) => item.id === commerce.id && item.type === "PRODUCT")
@@ -124,20 +143,13 @@ export function MarketplaceProductDetail({
                   {product.subcategory}
                 </span>
                 <span className="rounded-full border border-border bg-background/78 px-3 py-1 text-muted-foreground backdrop-blur">
-                  Exclusivo franqueados
+                  Exclusivo para franqueados
                 </span>
               </div>
             </div>
 
             <div className="space-y-6">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="rounded-full border border-lime/25 bg-lime/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-lime">
-                  {product.category}
-                </span>
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-medium">
-                  {product.subcategory}
-                </span>
-              </div>
+ 
 
               <h1 className="text-3xl font-black leading-tight tracking-tight text-foreground md:text-4xl">
                 {product.displayName}
@@ -145,39 +157,42 @@ export function MarketplaceProductDetail({
               {product.subtitle && <p className="text-sm font-bold text-lime">{product.subtitle}</p>}
               <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">{product.description}</p>
 
-              <div className="grid grid-cols-1 gap-6 border-t border-border/70 py-5 md:grid-cols-2">
-                <div>
-                  <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">
-                    Características
-                  </p>
-                  <ul className="space-y-2">
-                    {visibleFeatures.map((feature) => (
-                      <li key={feature} className="flex gap-2 text-sm text-muted-foreground">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-lime" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
+              {(visibleFeatures.length > 0 || visibleApplications.length > 0) && (
+                <div className="grid grid-cols-1 gap-6 border-t border-border/70 py-5 md:grid-cols-2">
+                  {visibleFeatures.length > 0 && (
+                    <div>
+                      <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">
+                        Características
+                      </p>
+                      <ul className="space-y-2">
+                        {visibleFeatures.map((feature) => (
+                          <li key={feature} className="flex gap-2 text-sm text-muted-foreground">
+                            <Check className="mt-0.5 h-4 w-4 shrink-0 text-lime" />
+                            <span>{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {visibleApplications.length > 0 && (
+                    <div>
+                      <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">
+                        Aplicações
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {visibleApplications.map((application) => (
+                          <span
+                            key={application}
+                            className="border border-border bg-graphite px-2.5 py-1 text-[11px] font-bold text-muted-foreground"
+                          >
+                            {application}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">
-                    Aplicações
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {product.applications.map((application) => (
-                      <span
-                        key={application}
-                        className="border border-border bg-graphite px-2.5 py-1 text-[11px] font-bold text-muted-foreground"
-                      >
-                        {application}
-                      </span>
-                    ))}
-                    {product.applications.length === 0 && (
-                      <span className="text-sm text-muted-foreground">Consulte a Factory para recomendações.</span>
-                    )}
-                  </div>
-                </div>
-              </div>
+              )}
 
               <div className="grid grid-cols-[1.1fr_0.9fr] gap-5 border-y border-border/70 py-5">
                 <div>
@@ -229,17 +244,23 @@ export function MarketplaceProductDetail({
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 border-t border-border/50 pt-6 sm:grid-cols-3">
-                {careInfo.map((item) => (
-                  <div key={item.title} className="rounded-lg border border-border bg-graphite p-4">
-                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-lime/25 bg-lime/10">
-                      <item.icon className="h-4 w-4 text-lime" />
-                    </div>
-                    <p className="text-[10px] font-black uppercase tracking-wider">{item.title}</p>
-                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{item.text}</p>
-                  </div>
-                ))}
-              </div>
+              {careInfo.length > 0 && (
+                <div className="grid grid-cols-1 gap-3 border-t border-border/50 pt-6 sm:grid-cols-3">
+                  {careInfo.map((item) => {
+                    const Icon = item.icon
+
+                    return (
+                      <div key={item.title} className="rounded-lg border border-border bg-graphite p-4">
+                        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-lime/25 bg-lime/10">
+                          <Icon className="h-4 w-4 text-lime" />
+                        </div>
+                        <p className="text-[10px] font-black uppercase tracking-wider">{item.title}</p>
+                        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{item.text}</p>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>

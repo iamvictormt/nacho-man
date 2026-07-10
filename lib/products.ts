@@ -20,6 +20,9 @@ export type CatalogProduct = Product & {
   priceLabel: string
   features: string[]
   applications: string[]
+  storageInfo?: string
+  usageInfo?: string
+  yieldInfo?: string
 }
 
 export const allProducts: Product[] = [

@@ -7,6 +7,11 @@ export type MarketplaceProductRecord = {
   name: string
   slug: string
   description: string | null
+  features: string | null
+  applications: string | null
+  storageInfo: string | null
+  usageInfo: string | null
+  yieldInfo: string | null
   image: string | null
   priceInCents: number
   unit: "KG" | "UND" | "CX"
@@ -33,7 +38,11 @@ function getCatalogCategory(product: MarketplaceProductRecord): CatalogProduct["
 }
 
 function getProductFeatures(product: MarketplaceProductRecord, description: string, publicDetails?: CatalogProduct) {
-  const features = publicDetails?.features ?? [description, product.packageLabel || "Embalagem sob consulta"]
+  const customFeatures = parseList(product.features)
+  const features =
+    customFeatures.length > 0
+      ? customFeatures
+      : (publicDetails?.features ?? [description, product.packageLabel || "Embalagem sob consulta"])
   const visibleFeatures = features.map((feature) => feature.trim()).filter(Boolean)
 
   return visibleFeatures.length > 0 ? visibleFeatures : ["Embalagem sob consulta"]
@@ -59,6 +68,18 @@ export function adaptMarketplaceProduct(product: MarketplaceProductRecord): Cata
     tagColor: publicDetails?.tagColor ?? "",
     subtitle: publicDetails?.subtitle,
     features: getProductFeatures(product, description, publicDetails),
-    applications: publicDetails?.applications ?? [],
+    applications: parseList(product.applications, publicDetails?.applications ?? []),
+    storageInfo: product.storageInfo?.trim() || publicDetails?.storageInfo,
+    usageInfo: product.usageInfo?.trim() || publicDetails?.usageInfo,
+    yieldInfo: product.yieldInfo?.trim() || publicDetails?.yieldInfo,
   }
+}
+
+function parseList(value: string | null | undefined, fallback: string[] = []) {
+  const items = String(value ?? "")
+    .split(/\r?\n|;/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+
+  return items.length > 0 ? items : fallback
 }

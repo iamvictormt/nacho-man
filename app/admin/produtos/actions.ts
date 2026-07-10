@@ -21,6 +21,10 @@ function getProductAudience(formData: FormData) {
   return validAudiences.has(audience) ? audience : "FRANCHISEE"
 }
 
+function optionalText(formData: FormData, key: string) {
+  return String(formData.get(key) ?? "").trim() || null
+}
+
 export async function createProductAction(formData: FormData) {
   await requireAdmin()
 
@@ -47,9 +51,14 @@ export async function createProductAction(formData: FormData) {
     data: {
       name,
       slug,
-      description: String(formData.get("description") ?? "").trim() || null,
-      image: String(formData.get("image") ?? "").trim() || null,
-      sku: String(formData.get("sku") ?? "").trim() || null,
+      description: optionalText(formData, "description"),
+      features: optionalText(formData, "features"),
+      applications: optionalText(formData, "applications"),
+      storageInfo: optionalText(formData, "storageInfo"),
+      usageInfo: optionalText(formData, "usageInfo"),
+      yieldInfo: optionalText(formData, "yieldInfo"),
+      image: optionalText(formData, "image"),
+      sku: optionalText(formData, "sku"),
       priceInCents,
       unit,
       audience: getProductAudience(formData),
@@ -97,9 +106,14 @@ export async function updateProductAction(formData: FormData) {
     where: { id },
     data: {
       name,
-      description: String(formData.get("description") ?? "").trim() || null,
-      image: String(formData.get("image") ?? "").trim() || null,
-      sku: String(formData.get("sku") ?? "").trim() || null,
+      description: optionalText(formData, "description"),
+      features: optionalText(formData, "features"),
+      applications: optionalText(formData, "applications"),
+      storageInfo: optionalText(formData, "storageInfo"),
+      usageInfo: optionalText(formData, "usageInfo"),
+      yieldInfo: optionalText(formData, "yieldInfo"),
+      image: optionalText(formData, "image"),
+      sku: optionalText(formData, "sku"),
       priceInCents,
       unit: String(formData.get("unit") ?? "UND") as ProductUnit,
       audience: getProductAudience(formData),
