@@ -25,8 +25,8 @@ export default async function FranchisesPage({ searchParams }: { searchParams?: 
           { legalName: { contains: query, mode: "insensitive" } },
           { document: { contains: query, mode: "insensitive" } },
           { whatsapp: { contains: query, mode: "insensitive" } },
-          { users: { some: { name: { contains: query, mode: "insensitive" } } } },
-          { users: { some: { email: { contains: query, mode: "insensitive" } } } },
+          { user: { is: { name: { contains: query, mode: "insensitive" } } } },
+          { user: { is: { email: { contains: query, mode: "insensitive" } } } },
           { addresses: { some: { city: { contains: query, mode: "insensitive" } } } },
           { addresses: { some: { state: { contains: query, mode: "insensitive" } } } },
         ],
@@ -41,9 +41,9 @@ export default async function FranchisesPage({ searchParams }: { searchParams?: 
   const franchises = await prisma.franchise.findMany({
     where: franchiseWhere,
     include: {
-      users: { select: { id: true, name: true, email: true }, orderBy: { createdAt: "asc" } },
+      user: { select: { id: true, name: true, email: true } },
       addresses: { select: { id: true, city: true, state: true }, take: 1 },
-      _count: { select: { orders: true, users: true } },
+      _count: { select: { orders: true } },
     },
     orderBy: [{ active: "desc" }, { tradeName: "asc" }],
     skip: pagination.skip,
@@ -76,7 +76,11 @@ export default async function FranchisesPage({ searchParams }: { searchParams?: 
         </AdminModal>
       </div>
       <div className="mt-8 flex justify-end">
-        <AdminSearch containerId="franchises-grid" placeholder="Buscar unidade, responsável ou CNPJ..." queryParam="q" />
+        <AdminSearch
+          containerId="franchises-grid"
+          placeholder="Buscar unidade, responsável ou CNPJ..."
+          queryParam="q"
+        />
       </div>
       <div id="franchises-grid" className="mt-6">
         <AdminDataList
@@ -87,7 +91,7 @@ export default async function FranchisesPage({ searchParams }: { searchParams?: 
           emptyDescription="Cadastre a primeira unidade para liberar acesso ao marketplace e aos pedidos."
         >
           {franchises.map((franchise, index) => {
-            const user = franchise.users[0]
+            const user = franchise.user
             const address = franchise.addresses[0]
             const location = address ? `${address.city} — ${address.state}` : "Não cadastrada"
             return (

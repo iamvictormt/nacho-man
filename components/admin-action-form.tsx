@@ -29,11 +29,16 @@ export function AdminActionForm({
   const pendingRef = useRef(false)
   const router = useRouter()
 
-  async function handleAction(formData: FormData) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
     if (pendingRef.current) return
     pendingRef.current = true
     setPending(true)
     try {
+      const form = event.currentTarget
+      const formData = new FormData(form)
+
       await action(formData)
       toast.success(successMessage)
       if (modalId) window.dispatchEvent(new CustomEvent("admin-modal-success", { detail: modalId }))
@@ -51,7 +56,7 @@ export function AdminActionForm({
   }
 
   return (
-    <form action={handleAction} className={`admin-action-form min-w-0 ${className ?? ""}`}>
+    <form onSubmit={handleSubmit} className={`admin-action-form min-w-0 ${className ?? ""}`}>
       <fieldset disabled={pending} className="contents">
         {children}
       </fieldset>

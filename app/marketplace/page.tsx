@@ -9,6 +9,7 @@ import {
   ShoppingBag,
   Truck,
 } from "lucide-react"
+import { ProductAudience, type Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { requireMarketplaceUser } from "@/lib/auth"
 import { formatMoneyFromCents } from "@/lib/money"
@@ -66,10 +67,10 @@ export default async function MarketplacePage() {
     .filter(Boolean)
     .join(" - ")
   const now = new Date()
-  const showCombos = user.role === "FRANCHISEE"
-  const audience = user.role === "FRANCHISEE" ? "FRANCHISEE" : "PUBLIC"
+  const audience = user.role === "FRANCHISEE" ? ProductAudience.FRANCHISEE : ProductAudience.PUBLIC
   const orderOwnerWhere = user.role === "FRANCHISEE" ? { franchiseId: user.franchiseId! } : { userId: user.id }
-  const activeComboWhere = {
+  const activeComboWhere: Prisma.ComboWhereInput = {
+    audience,
     active: true,
     AND: [
       { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
@@ -84,16 +85,14 @@ export default async function MarketplacePage() {
       orderBy: [{ featured: "desc" }, { name: "asc" }],
       take: 3,
     }),
-    showCombos
-      ? prisma.combo.findMany({
-          where: activeComboWhere,
-          include: { options: { include: { product: { select: { name: true, image: true } } } } },
-          orderBy: { createdAt: "desc" },
-          take: 3,
-        })
-      : Promise.resolve([]),
+    prisma.combo.findMany({
+      where: activeComboWhere,
+      include: { options: { include: { product: { select: { name: true, image: true } } } } },
+      orderBy: { createdAt: "desc" },
+      take: 3,
+    }),
     prisma.product.count({ where: { audience, active: true, category: { active: true } } }),
-    showCombos ? prisma.combo.count({ where: activeComboWhere }) : Promise.resolve(0),
+    prisma.combo.count({ where: activeComboWhere }),
     prisma.order.count({
       where: { ...orderOwnerWhere, status: { in: [...activeOrderStatuses] } },
     }),
@@ -116,11 +115,7 @@ export default async function MarketplacePage() {
             Painel da <span className="text-lime neon-glow">Factory.</span>
           </>
         }
-        description={
-          showCombos
-            ? "Acompanhe sua reposição, veja pedidos em andamento e acesse rapidamente produtos e combos disponíveis para sua unidade."
-            : "Acompanhe seus pedidos em andamento e acesse rapidamente os produtos disponíveis."
-        }
+        description="Acompanhe seus pedidos em andamento e acesse rapidamente produtos e combos disponíveis."
         icon={ShoppingBag}
       >
         <div className="flex max-w-xs items-center gap-3 rounded-2xl border border-lime/20 bg-lime/10 p-4">
@@ -142,9 +137,7 @@ export default async function MarketplacePage() {
             value={String(productCount)}
             href="/marketplace/produtos"
           />
-          {showCombos && (
-            <DashboardStat icon={Gift} label="Combos ativos" value={String(comboCount)} href="/marketplace/combos" />
-          )}
+          <DashboardStat icon={Gift} label="Combos ativos" value={String(comboCount)} href="/marketplace/combos" />
           <DashboardStat
             icon={Truck}
             label="Pedidos em andamento"
@@ -173,13 +166,7 @@ export default async function MarketplacePage() {
                 title="Ver produtos"
                 text="Buscar itens de reposição por nome, categoria ou embalagem."
               />
-              {showCombos && (
-                <QuickLink
-                  href="/marketplace/combos"
-                  title="Ver combos"
-                  text="Aproveitar ofertas montadas com vários produtos."
-                />
-              )}
+              <QuickLink href="/marketplace/combos" title="Ver combos" text="Aproveitar ofertas montadas com vários produtos." />
               <QuickLink
                 href="/marketplace/pedidos"
                 title="Meus pedidos"
@@ -235,7 +222,7 @@ export default async function MarketplacePage() {
           </div>
         </section>
 
-        {showCombos && combos.length > 0 && (
+        {combos.length > 0 && (
           <section>
             <SectionHeader
               eyebrow="Condições especiais"

@@ -183,7 +183,7 @@ export async function registerAction(_state: RegisterState, formData: FormData):
           document,
           whatsapp: phone,
           active: false,
-          users: {
+          user: {
             create: {
               name,
               email,

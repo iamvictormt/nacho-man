@@ -223,10 +223,10 @@ export async function rejectFranchiseeUserAction(formData: FormData) {
   } else {
     const franchise = await prisma.franchise.findUnique({
       where: { id: user.franchiseId },
-      select: { _count: { select: { orders: true, users: true } } },
+      select: { _count: { select: { orders: true } } },
     })
 
-    if ((franchise?._count.orders ?? 0) > 0 || user._count.orders > 0 || (franchise?._count.users ?? 0) > 1) {
+    if ((franchise?._count.orders ?? 0) > 0 || user._count.orders > 0) {
       await prisma.$transaction([
         prisma.user.update({ where: { id }, data: { active: false } }),
         prisma.franchise.update({ where: { id: user.franchiseId }, data: { active: false } }),
@@ -240,6 +240,71 @@ export async function rejectFranchiseeUserAction(formData: FormData) {
     }
   }
 
+  revalidatePath("/admin")
+  revalidatePath("/admin/usuarios")
+  revalidatePath("/admin/franqueados")
+}
+
+export async function deleteUserAction(formData: FormData) {
+  await requireAdmin()
+
+  const id = String(formData.get("id") ?? "")
+  if (!id) throw new Error("Usuário não encontrado.")
+
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      role: true,
+      franchiseId: true,
+      _count: { select: { orders: true } },
+    },
+  })
+  if (!user || user.role === "ADMIN") throw new Error("Usuário não encontrado.")
+
+  if (user.role === "USER") {
+    if (user._count.orders > 0) {
+      await prisma.user.update({ where: { id }, data: { active: false } })
+    } else {
+      await prisma.user.delete({ where: { id } })
+    }
+
+    revalidateUserPaths()
+    return
+  }
+
+  if (!user.franchiseId) {
+    if (user._count.orders > 0) {
+      await prisma.user.update({ where: { id }, data: { active: false } })
+    } else {
+      await prisma.user.delete({ where: { id } })
+    }
+
+    revalidateUserPaths()
+    return
+  }
+
+  const franchise = await prisma.franchise.findUnique({
+    where: { id: user.franchiseId },
+    select: { _count: { select: { orders: true } } },
+  })
+
+  if ((franchise?._count.orders ?? 0) > 0 || user._count.orders > 0) {
+    await prisma.$transaction([
+      prisma.user.update({ where: { id }, data: { active: false } }),
+      prisma.franchise.update({ where: { id: user.franchiseId }, data: { active: false } }),
+    ])
+  } else {
+    await prisma.$transaction([
+      prisma.address.deleteMany({ where: { franchiseId: user.franchiseId } }),
+      prisma.user.delete({ where: { id } }),
+      prisma.franchise.delete({ where: { id: user.franchiseId } }),
+    ])
+  }
+
+  revalidateUserPaths()
+}
+
+function revalidateUserPaths() {
   revalidatePath("/admin")
   revalidatePath("/admin/usuarios")
   revalidatePath("/admin/franqueados")

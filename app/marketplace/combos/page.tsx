@@ -1,5 +1,4 @@
 import { Gift } from "lucide-react"
-import { redirect } from "next/navigation"
 import type { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { requireMarketplaceUser } from "@/lib/auth"
@@ -12,12 +11,13 @@ import { getCurrentPage, getPagination, getSearchQuery, type SearchParams } from
 export default async function MarketplaceCombosPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const resolvedSearchParams = await searchParams
   const user = await requireMarketplaceUser()
-  if (user.role !== "FRANCHISEE") redirect("/marketplace/produtos")
 
   const page = getCurrentPage(resolvedSearchParams)
   const query = getSearchQuery(resolvedSearchParams)
   const now = new Date()
+  const audience = user.role === "FRANCHISEE" ? "FRANCHISEE" : "PUBLIC"
   const where: Prisma.ComboWhereInput = {
+    audience,
     active: true,
     AND: [
       { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },

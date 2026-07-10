@@ -23,7 +23,7 @@ export default async function MarketplaceLayout({ children }: { children: React.
       userRole={user.role}
       organizationName={user.franchise?.tradeName ?? "Cliente Nacho Man"}
       whatsappNumber={whatsappNumber}
-      showMarketplaceCombos={user.role === "FRANCHISEE"}
+      showMarketplaceCombos
     >
       {children}
       <MarketplaceCartButton />

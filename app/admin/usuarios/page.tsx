@@ -13,6 +13,7 @@ import { AdminSearch } from "@/components/admin-search"
 import { DeleteActionDialog } from "@/components/delete-action-dialog"
 import { PaginationControls } from "@/components/pagination-controls"
 import {
+  deleteUserAction,
   rejectFranchiseeUserAction,
   toggleCommonUserAction,
   toggleFranchiseeUserAction,
@@ -176,7 +177,9 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
       <div className="mt-8 flex justify-end">
         <AdminSearch
           containerId="users-grid"
-          placeholder={view === "franqueados" ? "Buscar franqueado, e-mail, unidade ou CNPJ..." : "Buscar cliente ou e-mail..."}
+          placeholder={
+            view === "franqueados" ? "Buscar franqueado, e-mail, unidade ou CNPJ..." : "Buscar cliente ou e-mail..."
+          }
           queryParam="q"
         />
       </div>
@@ -228,6 +231,7 @@ function FranchiseUsersList({ users }: { users: FranchiseeUser[] }) {
       {users.map((user) => {
         const franchise = user.franchise
         const address = franchise?.addresses[0]
+        const hasOrderHistory = user._count.orders > 0 || (franchise?._count.orders ?? 0) > 0
         const location = address ? `${address.city} - ${address.state}` : "Localização não informada"
         return (
           <AdminDataRow
@@ -247,7 +251,9 @@ function FranchiseUsersList({ users }: { users: FranchiseeUser[] }) {
             </div>
             <div className="min-w-0">
               <AdminDataLabel>Unidade</AdminDataLabel>
-              <p className="mt-1 truncate text-xs font-bold xl:mt-0">{franchise?.tradeName ?? "Unidade não vinculada"}</p>
+              <p className="mt-1 truncate text-xs font-bold xl:mt-0">
+                {franchise?.tradeName ?? "Unidade não vinculada"}
+              </p>
               <p className="mt-1 flex items-center gap-1 truncate text-[9px] text-muted-foreground">
                 <MapPinned className="h-3 w-3 shrink-0" />
                 {location}
@@ -290,6 +296,18 @@ function FranchiseUsersList({ users }: { users: FranchiseeUser[] }) {
                       successMessage="Cadastro reprovado."
                     />
                   )}
+                  <DeleteActionDialog
+                    action={deleteUserAction}
+                    fields={{ id: user.id }}
+                    title={hasOrderHistory ? "Arquivar usuário?" : "Excluir usuário?"}
+                    description={
+                      hasOrderHistory
+                        ? "Este usuário ou a unidade possui pedidos. O acesso e a unidade serão desativados para preservar o histórico."
+                        : "O usuário, a unidade vinculada e o endereço serão excluídos definitivamente."
+                    }
+                    label={hasOrderHistory ? "Arquivar" : "Excluir"}
+                    successMessage={hasOrderHistory ? "Usuário arquivado." : "Usuário excluído."}
+                  />
                 </div>
               </AdminManageModal>
             </div>
@@ -329,66 +347,82 @@ function CommonUsersList({
       emptyTitle="Nenhum cliente comum cadastrado"
       emptyDescription="Quando clientes não franqueados criarem conta, eles aparecerão nesta lista."
     >
-      {users.map((user) => (
-        <AdminDataRow
-          key={user.id}
-          template="minmax(200px,1.35fr) minmax(220px,1.25fr) 90px 120px 100px 72px"
-          search={`${user.name} ${user.email} ${user.businessProfile?.tradeName ?? ""} ${user.businessProfile?.legalName ?? ""} ${user.businessProfile?.document ?? ""}`}
-          inactive={!user.active}
-        >
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-lime/20 bg-lime/10 text-sm font-black text-lime">
-              {getInitials(user.name)}
-            </span>
+      {users.map((user) => {
+        const hasOrderHistory = user._count.orders > 0
+
+        return (
+          <AdminDataRow
+            key={user.id}
+            template="minmax(200px,1.35fr) minmax(220px,1.25fr) 90px 120px 100px 72px"
+            search={`${user.name} ${user.email} ${user.businessProfile?.tradeName ?? ""} ${user.businessProfile?.legalName ?? ""} ${user.businessProfile?.document ?? ""}`}
+            inactive={!user.active}
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-lime/20 bg-lime/10 text-sm font-black text-lime">
+                {getInitials(user.name)}
+              </span>
+              <div className="min-w-0">
+                <h2 className="truncate text-sm font-black uppercase">{user.name}</h2>
+                <p className="mt-1 text-[9px] text-muted-foreground">
+                  {user.businessProfile?.tradeName ?? "Cliente comum"}
+                </p>
+              </div>
+            </div>
             <div className="min-w-0">
-              <h2 className="truncate text-sm font-black uppercase">{user.name}</h2>
-              <p className="mt-1 text-[9px] text-muted-foreground">
-                {user.businessProfile?.tradeName ?? "Cliente comum"}
+              <AdminDataLabel>E-mail</AdminDataLabel>
+              <p className="mt-1 flex items-center gap-2 truncate text-xs font-bold xl:mt-0">
+                <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                {user.businessProfile?.email ?? user.email}
+              </p>
+              <p className="mt-1 truncate text-[9px] text-muted-foreground">
+                {user.businessProfile?.document ? formatDocument(user.businessProfile.document) : user.email}
               </p>
             </div>
-          </div>
-          <div className="min-w-0">
-            <AdminDataLabel>E-mail</AdminDataLabel>
-            <p className="mt-1 flex items-center gap-2 truncate text-xs font-bold xl:mt-0">
-              <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              {user.businessProfile?.email ?? user.email}
-            </p>
-            <p className="mt-1 truncate text-[9px] text-muted-foreground">
-              {user.businessProfile?.document ? formatDocument(user.businessProfile.document) : user.email}
-            </p>
-          </div>
-          <div>
-            <AdminDataLabel>Pedidos</AdminDataLabel>
-            <p className="mt-1 text-xs font-bold xl:mt-0">{user._count.orders}</p>
-          </div>
-          <div>
-            <AdminDataLabel>Cadastro</AdminDataLabel>
-            <p className="mt-1 text-xs font-bold xl:mt-0">{formatDate(user.createdAt)}</p>
-          </div>
-          <StatusPill active={user.active} activeText="Ativo" inactiveText="Inativo" />
-          <div className="xl:justify-self-end">
-            <AdminManageModal
-              id={`edit-common-user-${user.id}`}
-              title="Editar cliente"
-              description="Atualize os dados do cliente comum."
-              ariaLabel={`Editar cliente ${user.name}`}
-              size="sm"
-            >
-              <CommonUserEditForm user={user} modalId={`edit-common-user-${user.id}`} />
-              <div className="mt-5 flex flex-col gap-2 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-end">
-                <AdminInlineActionForm
-                  action={toggleCommonUserAction}
-                  label={user.active ? "DESATIVAR" : "ATIVAR"}
-                  successMessage={user.active ? "Cliente desativado." : "Cliente ativado."}
-                >
-                  <input type="hidden" name="id" value={user.id} />
-                  <input type="hidden" name="active" value={String(user.active)} />
-                </AdminInlineActionForm>
-              </div>
-            </AdminManageModal>
-          </div>
-        </AdminDataRow>
-      ))}
+            <div>
+              <AdminDataLabel>Pedidos</AdminDataLabel>
+              <p className="mt-1 text-xs font-bold xl:mt-0">{user._count.orders}</p>
+            </div>
+            <div>
+              <AdminDataLabel>Cadastro</AdminDataLabel>
+              <p className="mt-1 text-xs font-bold xl:mt-0">{formatDate(user.createdAt)}</p>
+            </div>
+            <StatusPill active={user.active} activeText="Ativo" inactiveText="Inativo" />
+            <div className="xl:justify-self-end">
+              <AdminManageModal
+                id={`edit-common-user-${user.id}`}
+                title="Editar cliente"
+                description="Atualize os dados do cliente comum."
+                ariaLabel={`Editar cliente ${user.name}`}
+                size="sm"
+              >
+                <CommonUserEditForm user={user} modalId={`edit-common-user-${user.id}`} />
+                <div className="mt-5 flex flex-col gap-2 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-end">
+                  <AdminInlineActionForm
+                    action={toggleCommonUserAction}
+                    label={user.active ? "DESATIVAR" : "ATIVAR"}
+                    successMessage={user.active ? "Cliente desativado." : "Cliente ativado."}
+                  >
+                    <input type="hidden" name="id" value={user.id} />
+                    <input type="hidden" name="active" value={String(user.active)} />
+                  </AdminInlineActionForm>
+                  <DeleteActionDialog
+                    action={deleteUserAction}
+                    fields={{ id: user.id }}
+                    title={hasOrderHistory ? "Arquivar usuário?" : "Excluir usuário?"}
+                    description={
+                      hasOrderHistory
+                        ? "Este usuário possui pedidos. O acesso será desativado para preservar o histórico."
+                        : "O usuário e seus dados comerciais serão excluídos definitivamente."
+                    }
+                    label={hasOrderHistory ? "Arquivar" : "Excluir"}
+                    successMessage={hasOrderHistory ? "Usuário arquivado." : "Usuário excluído."}
+                  />
+                </div>
+              </AdminManageModal>
+            </div>
+          </AdminDataRow>
+        )
+      })}
     </AdminDataList>
   )
 }
@@ -415,12 +449,7 @@ function FranchiseeEditForm({ user, modalId }: { user: FranchiseeUser; modalId: 
       </div>
       <div>
         <p className="mb-3 text-[10px] font-black uppercase tracking-[0.14em] text-lime">Dados da unidade</p>
-        <AdminInput
-          name="tradeName"
-          label="Nome da unidade"
-          defaultValue={franchise?.tradeName ?? ""}
-          required
-        />
+        <AdminInput name="tradeName" label="Nome da unidade" defaultValue={franchise?.tradeName ?? ""} required />
         <AdminFieldGrid className="mt-5" columns="equal">
           <AdminInput name="document" label="CNPJ" mask="cnpj" defaultValue={franchise?.document ?? ""} />
           <AdminInput name="whatsapp" label="WhatsApp" mask="phone" defaultValue={franchise?.whatsapp ?? ""} />
@@ -481,7 +510,13 @@ function CommonUserEditForm({
           <AdminInput name="tradeName" label="Nome fantasia" defaultValue={businessProfile?.tradeName ?? ""} required />
         </AdminFieldGrid>
         <AdminFieldGrid className="mt-5" columns="equal">
-          <AdminInput name="document" label="CNPJ" mask="cnpj" defaultValue={businessProfile?.document ?? ""} required />
+          <AdminInput
+            name="document"
+            label="CNPJ"
+            mask="cnpj"
+            defaultValue={businessProfile?.document ?? ""}
+            required
+          />
           <AdminInput
             name="businessEmail"
             label="E-mail comercial"
@@ -491,7 +526,12 @@ function CommonUserEditForm({
           />
         </AdminFieldGrid>
         <AdminFieldGrid className="mt-5" columns="equal">
-          <AdminInput name="phone" label="WhatsApp comercial" mask="phone" defaultValue={businessProfile?.phone ?? ""} />
+          <AdminInput
+            name="phone"
+            label="WhatsApp comercial"
+            mask="phone"
+            defaultValue={businessProfile?.phone ?? ""}
+          />
         </AdminFieldGrid>
         <AdminLocationFields defaultState={businessProfile?.state ?? ""} defaultCity={businessProfile?.city ?? ""} />
       </div>
@@ -531,7 +571,9 @@ function UserTypeCard({
       <div className="flex items-start justify-between gap-4">
         <span
           className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${
-            active ? "border-lime/25 bg-lime/10 text-lime" : "border-purple-medium/30 bg-purple-medium/10 text-purple-medium"
+            active
+              ? "border-lime/25 bg-lime/10 text-lime"
+              : "border-purple-medium/30 bg-purple-medium/10 text-purple-medium"
           }`}
         >
           <Icon className="h-5 w-5" />

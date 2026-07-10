@@ -43,8 +43,8 @@ export function DeleteActionDialog({
       await action(formData)
       toast.success(successMessage)
       setOpen(false)
-    } catch {
-      toast.error("Não foi possível concluir a exclusão.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível concluir a exclusão.")
     } finally {
       pendingRef.current = false
       setPending(false)

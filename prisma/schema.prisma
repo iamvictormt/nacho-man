@@ -59,15 +59,13 @@ model User {
   passwordHash       String
   role               UserRole
   active             Boolean             @default(true)
-  franchiseId        String?
+  franchiseId        String?             @unique
   franchise          Franchise?          @relation(fields: [franchiseId], references: [id])
   businessProfile    BusinessProfile?
   orders             Order[]
   passwordResetCodes PasswordResetCode[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
-
-  @@index([franchiseId])
 }
 
 model PasswordResetCode {
@@ -139,7 +137,7 @@ model Franchise {
   whatsapp      String?
   active        Boolean   @default(true)
   priceDiscount Int       @default(0)
-  users         User[]
+  user          User?
   orders        Order[]
   addresses     Address[]
   createdAt     DateTime  @default(now())
@@ -227,20 +225,23 @@ model Product {
 }
 
 model Combo {
-  id           String        @id @default(cuid())
+  id           String          @id @default(cuid())
   name         String
-  slug         String        @unique
+  slug         String          @unique
   description  String?
   image        String?
   priceInCents Int
-  totalUnits   Int           @default(1)
-  active       Boolean       @default(true)
+  audience     ProductAudience @default(FRANCHISEE)
+  totalUnits   Int             @default(1)
+  active       Boolean         @default(true)
   startsAt     DateTime?
   endsAt       DateTime?
   options      ComboOption[]
   orderItems   OrderItem[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([audience, active])
 }
 
 model ComboOption {

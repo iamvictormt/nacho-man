@@ -47,7 +47,7 @@ export async function createFranchiseAction(formData: FormData) {
       tradeName,
       document,
       whatsapp: String(formData.get("whatsapp") ?? "").replace(/\D/g, "") || null,
-      users: {
+      user: {
         create: {
           name: userName,
           email,
