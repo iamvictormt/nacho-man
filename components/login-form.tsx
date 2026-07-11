@@ -13,6 +13,7 @@ import {
   type RegisterState,
 } from "@/app/login/actions"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { toast } from "@/hooks/use-toast"
 
 const initialLoginState: LoginState = {}
 const initialRegisterState: RegisterState = {}
@@ -167,6 +168,15 @@ export function LoginForm({
       active = false
     }
   }, [selectedState])
+
+  useEffect(() => {
+    if (!registerState.success) return
+
+    toast({
+      title: "Solicitação enviada",
+      description: "Seu acesso ficará liberado após aprovação do admin.",
+    })
+  }, [registerState.success])
 
   return (
     <div>
@@ -532,7 +542,6 @@ export function LoginForm({
           )}
 
           {registerState.error && <AlertMessage tone="error" text={registerState.error} />}
-          {registerState.success && <AlertMessage tone="success" text={registerState.success} />}
 
           <SubmitButton pending={registerPending} icon="register" pendingText="CADASTRANDO..." text="CRIAR CADASTRO" />
         </form>

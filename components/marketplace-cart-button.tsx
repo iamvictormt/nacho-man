@@ -1,12 +1,19 @@
 "use client"
 
+import { useEffect } from "react"
 import { ShoppingCart } from "lucide-react"
 import { useMarketplaceCart } from "@/lib/marketplace-cart-store"
 
 export function MarketplaceCartButton() {
   const items = useMarketplaceCart((state) => state.items)
+  const load = useMarketplaceCart((state) => state.load)
+  const loaded = useMarketplaceCart((state) => state.loaded)
   const openCart = useMarketplaceCart((state) => state.openCart)
   const count = items.reduce((total, item) => total + item.quantity, 0)
+
+  useEffect(() => {
+    if (!loaded) void load()
+  }, [load, loaded])
 
   return (
     <button

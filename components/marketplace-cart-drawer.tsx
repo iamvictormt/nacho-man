@@ -49,7 +49,7 @@ export function MarketplaceCartDrawer({
   boletoDiscountPercent: number
   allowBoleto?: boolean
 }) {
-  const { items, lastCheckout, open, closeCart, remove, setQuantity, clear, setLastCheckout } = useMarketplaceCart()
+  const { items, lastCheckout, open, closeCart, remove, setQuantity, clear, setLastCheckout, load } = useMarketplaceCart()
   const [paymentMethod, setPaymentMethod] = useState<MarketplacePaymentMethod>("PIX")
   const [coupon, setCoupon] = useState("")
   const [notes, setNotes] = useState("")
@@ -63,6 +63,10 @@ export function MarketplaceCartDrawer({
   const [whatsappFallbackUrl, setWhatsappFallbackUrl] = useState("")
 
   useLockBodyScroll(open)
+
+  useEffect(() => {
+    if (open) void load()
+  }, [load, open])
 
   useEffect(() => {
     if (open) return
@@ -185,7 +189,7 @@ export function MarketplaceCartDrawer({
         whatsappUrl: result.whatsappUrl,
         createdAt: new Date().toISOString(),
       })
-      clear()
+      void clear()
       openWhatsApp(result.whatsappUrl)
     } catch {
       setError("Falha de conexão. Tente novamente.")

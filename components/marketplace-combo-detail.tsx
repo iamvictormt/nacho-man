@@ -103,9 +103,9 @@ export function MarketplaceComboDetail({ combo }: { combo: ComboDetail }) {
         packageLabel,
         unitPriceInCents: combo.priceInCents,
         minimumQuantity: 1,
+        quantity,
         selectedOptions,
       })
-      if (quantity !== 1) setCartQuantity(combo.id, "COMBO", quantity, selectionKey)
     }
 
     setAdded(true)

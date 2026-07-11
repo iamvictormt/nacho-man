@@ -101,10 +101,8 @@ export function MarketplaceProductDetail({
         packageLabel: commerce.packageLabel,
         unitPriceInCents: Math.round(product.price * 100),
         minimumQuantity: commerce.minimumQuantity,
+        quantity,
       })
-      if (quantity !== commerce.minimumQuantity) {
-        setCartQuantity(commerce.id, "PRODUCT", quantity)
-      }
     }
 
     setAdded(true)

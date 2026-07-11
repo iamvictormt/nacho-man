@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Montserrat } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { SiteChrome } from "@/components/site-chrome"
+import { Toaster } from "@/components/ui/toaster"
 import { absoluteUrl, defaultSeoDescription, siteName, siteUrl } from "@/lib/seo"
 import { getStoreWhatsAppNumber } from "@/lib/site-settings"
 import { formatWhatsAppDisplay } from "@/lib/whatsapp"
@@ -125,6 +126,7 @@ export default async function RootLayout({
       </head>
       <body className={`${montserrat.className} font-sans antialiased`}>
         <SiteChrome whatsappNumber={whatsappNumber}>{children}</SiteChrome>
+        <Toaster />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLdWithSettings) }}

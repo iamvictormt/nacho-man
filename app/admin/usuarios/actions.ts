@@ -1,8 +1,21 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
+
+function getUniqueConstraintMessage(error: unknown) {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") return null
+
+  const target = Array.isArray(error.meta?.target) ? error.meta.target.join(",") : String(error.meta?.target ?? "")
+
+  if (target.includes("document")) return "Já existe uma franquia cadastrada com este CNPJ."
+  if (target.includes("email")) return "Já existe um usuário cadastrado com este e-mail."
+  if (target.includes("franchiseId")) return "Já existe um usuário vinculado a esta franquia."
+
+  return "Já existe um cadastro com estes dados."
+}
 
 export async function toggleCommonUserAction(formData: FormData) {
   await requireAdmin()
@@ -58,27 +71,34 @@ export async function updateCommonUserAction(formData: FormData) {
   if (existingUser) throw new Error("E-mail já cadastrado.")
 
   const [existingFranchise, existingBusinessProfile] = await Promise.all([
-    prisma.franchise.findUnique({ where: { document }, select: { id: true } }),
+    prisma.franchise.findUnique({ where: { document }, select: { tradeName: true } }),
     prisma.businessProfile.findFirst({
       where: { document, userId: { not: id } },
       select: { id: true },
     }),
   ])
-  if (existingFranchise || existingBusinessProfile) throw new Error("CNPJ já cadastrado.")
+  if (existingFranchise) {
+    throw new Error(`Já existe uma franquia cadastrada com este CNPJ: ${existingFranchise.tradeName}.`)
+  }
+  if (existingBusinessProfile) throw new Error("CNPJ já cadastrado em outro cliente.")
 
-  await prisma.user.update({
-    where: { id },
-    data: {
-      name,
-      email,
-      businessProfile: {
-        upsert: {
-          create: { legalName, tradeName, document, email: businessEmail, phone, state, city },
-          update: { legalName, tradeName, document, email: businessEmail, phone, state, city },
+  try {
+    await prisma.user.update({
+      where: { id },
+      data: {
+        name,
+        email,
+        businessProfile: {
+          upsert: {
+            create: { legalName, tradeName, document, email: businessEmail, phone, state, city },
+            update: { legalName, tradeName, document, email: businessEmail, phone, state, city },
+          },
         },
       },
-    },
-  })
+    })
+  } catch (error) {
+    throw new Error(getUniqueConstraintMessage(error) ?? "Não foi possível atualizar o cliente.", { cause: error })
+  }
 
   revalidatePath("/admin")
   revalidatePath("/admin/usuarios")
@@ -157,46 +177,52 @@ export async function updateFranchiseeUserAction(formData: FormData) {
     document
       ? prisma.franchise.findFirst({
           where: { document, id: { not: user.franchiseId } },
-          select: { id: true },
+          select: { tradeName: true },
         })
       : null,
   ])
   if (existingUser) throw new Error("E-mail já cadastrado.")
-  if (existingFranchise) throw new Error("CNPJ já cadastrado.")
+  if (existingFranchise) {
+    throw new Error(`Já existe uma franquia cadastrada com este CNPJ: ${existingFranchise.tradeName}.`)
+  }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.user.update({
-      where: { id },
-      data: { name, email },
-    })
-    await tx.franchise.update({
-      where: { id: franchiseId },
-      data: { tradeName, document, whatsapp },
-    })
-
-    if (state && city) {
-      const address = await tx.address.findFirst({
-        where: { franchiseId },
-        select: { id: true },
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id },
+        data: { name, email },
       })
-      const addressData = {
-        label: "Principal",
-        street: "Não informado",
-        number: "S/N",
-        complement: null,
-        district: "Não informado",
-        city,
-        state,
-        postalCode: "00000000",
-      }
+      await tx.franchise.update({
+        where: { id: franchiseId },
+        data: { tradeName, document, whatsapp },
+      })
 
-      if (address) {
-        await tx.address.update({ where: { id: address.id }, data: addressData })
-      } else {
-        await tx.address.create({ data: { ...addressData, franchiseId } })
+      if (state && city) {
+        const address = await tx.address.findFirst({
+          where: { franchiseId },
+          select: { id: true },
+        })
+        const addressData = {
+          label: "Principal",
+          street: "Não informado",
+          number: "S/N",
+          complement: null,
+          district: "Não informado",
+          city,
+          state,
+          postalCode: "00000000",
+        }
+
+        if (address) {
+          await tx.address.update({ where: { id: address.id }, data: addressData })
+        } else {
+          await tx.address.create({ data: { ...addressData, franchiseId } })
+        }
       }
-    }
-  })
+    })
+  } catch (error) {
+    throw new Error(getUniqueConstraintMessage(error) ?? "Não foi possível atualizar o franqueado.", { cause: error })
+  }
 
   revalidatePath("/admin")
   revalidatePath("/admin/usuarios")
