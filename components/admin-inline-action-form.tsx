@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react"
 import { useFormStatus } from "react-dom"
+import { useRouter } from "next/navigation"
 import { LoaderCircle } from "lucide-react"
 import { toast } from "sonner"
 
@@ -18,6 +19,7 @@ export function AdminInlineActionForm({
 }) {
   const [pending, setPending] = useState(false)
   const pendingRef = useRef(false)
+  const router = useRouter()
   const normalizedLabel = label.toLowerCase()
   const destructive = normalizedLabel.includes("desativar") || normalizedLabel.includes("cancelar")
   async function run(formData: FormData) {
@@ -27,6 +29,7 @@ export function AdminInlineActionForm({
     try {
       await action(formData)
       toast.success(successMessage)
+      router.refresh()
     } catch {
       toast.error("Não foi possível concluir esta ação.")
     } finally {

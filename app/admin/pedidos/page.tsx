@@ -3,13 +3,21 @@ import type { OrderStatus, PaymentMethod, Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
 import { AdminActionForm } from "@/components/admin-action-form"
+import { AdminInlineActionForm } from "@/components/admin-inline-action-form"
 import { AdminSearch } from "@/components/admin-search"
-import { AdminSelect } from "@/components/admin-form-fields"
+import { AdminFieldGrid, AdminInput, AdminSelect } from "@/components/admin-form-fields"
 import { DeleteActionDialog } from "@/components/delete-action-dialog"
 import { AdminManageModal } from "@/components/admin-manage-modal"
 import { PaginationControls } from "@/components/pagination-controls"
 import { getCurrentPage, getPagination, getSearchQuery, type SearchParams } from "@/lib/pagination"
-import { cancelOrderAction, deleteOrderAction, removeOrderItemAction, updateOrderStatusAction } from "./actions"
+import {
+  addOrderProductItemAction,
+  cancelOrderAction,
+  deleteOrderAction,
+  removeOrderItemAction,
+  updateOrderItemQuantityAction,
+  updateOrderStatusAction,
+} from "./actions"
 import { getPaymentDiscountLabel, getPaymentMethodLabel } from "@/lib/payment-method"
 import { formatOrderCode } from "@/lib/order-number"
 import { getOrderItemCategoryName, sortOrderItemsByCategory } from "@/lib/order-items"
@@ -45,7 +53,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
   const orderWhere = getOrderWhere(query)
   const totalOrders = await prisma.order.count({ where: orderWhere })
   const pagination = getPagination(page, totalOrders, 10)
-  const [orders, awaiting, inProgress] = await Promise.all([
+  const [orders, awaiting, inProgress, availableProducts] = await Promise.all([
     prisma.order.findMany({
       where: orderWhere,
       include: {
@@ -59,6 +67,11 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
     }),
     prisma.order.count({ where: { status: { in: ["AWAITING_SERVICE", "AWAITING_PAYMENT"] } } }),
     prisma.order.count({ where: { status: { in: ["PAYMENT_CONFIRMED", "PICKING", "SHIPPED"] } } }),
+    prisma.product.findMany({
+      where: { active: true, category: { active: true } },
+      include: { category: true },
+      orderBy: [{ category: { sortOrder: "asc" } }, { category: { name: "asc" } }, { name: "asc" }],
+    }),
   ])
 
   return (
@@ -156,7 +169,11 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
                     size="xl"
                     ariaLabel={`Gerenciar pedido ${number}`}
                   >
-                    <OrderManagement order={{ ...order, items: sortedItems }} modalId={`manage-order-${order.id}`} />
+                    <OrderManagement
+                      order={{ ...order, items: sortedItems }}
+                      modalId={`manage-order-${order.id}`}
+                      availableProducts={availableProducts}
+                    />
                   </AdminManageModal>
                 </article>
               )
@@ -183,6 +200,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
 function OrderManagement({
   order,
   modalId,
+  availableProducts,
 }: {
   order: {
     id: string
@@ -195,6 +213,7 @@ function OrderManagement({
     pixDiscountInCents: number
     totalInCents: number
     notes: string | null
+    franchiseId: string | null
     franchise: {
       tradeName: string
       whatsapp: string | null
@@ -224,6 +243,17 @@ function OrderManagement({
     }[]
   }
   modalId: string
+  availableProducts: {
+    id: string
+    name: string
+    unit: string
+    audience: string
+    minimumQuantity: number
+    stockQuantity: number | null
+    category: {
+      name: string
+    }
+  }[]
 }) {
   const number = formatOrderCode(order.number)
   const paymentDiscountLabel = getPaymentDiscountLabel(order.paymentMethod)
@@ -232,6 +262,8 @@ function OrderManagement({
   const ownerWhatsApp = getOrderOwnerWhatsApp(order)
   const ownerName = order.franchise?.tradeName ?? order.user?.name ?? "cliente"
   const ownerWhatsAppMessage = `Olá, ${ownerName}! Aqui é a Nacho Factory sobre o pedido ${number}.`
+  const orderAudience = order.franchiseId ? "FRANCHISEE" : "PUBLIC"
+  const productsForOrder = availableProducts.filter((product) => product.audience === orderAudience)
   return (
     <div className="space-y-7 pt-1">
       <section className="flex flex-col gap-3 rounded-xl border border-border bg-graphite/45 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -281,6 +313,25 @@ function OrderManagement({
               </div>
               <div className="flex flex-col gap-2 min-[520px]:items-end">
                 <p className="shrink-0 text-sm font-black text-lime">{formatMoneyFromCents(item.totalInCents)}</p>
+                {order.status !== "CANCELLED" && (
+                  <AdminInlineActionForm
+                    action={updateOrderItemQuantityAction}
+                    label="Salvar qtd"
+                    successMessage="Quantidade atualizada."
+                  >
+                    <input type="hidden" name="orderId" value={order.id} />
+                    <input type="hidden" name="itemId" value={item.id} />
+                    <AdminInput
+                      name="quantity"
+                      label="Qtd"
+                      mask="integer"
+                      min={1}
+                      max={999}
+                      defaultValue={item.quantity}
+                      className="w-24"
+                    />
+                  </AdminInlineActionForm>
+                )}
                 {canRemoveItems && (
                   <DeleteActionDialog
                     action={removeOrderItemAction}
@@ -295,6 +346,30 @@ function OrderManagement({
             </div>
           ))}
         </div>
+        {order.status !== "CANCELLED" && (
+          <div className="mt-4 rounded-xl border border-border bg-graphite/45 p-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime">Adicionar produto</p>
+            <AdminActionForm
+              action={addOrderProductItemAction}
+              submitLabel="ADICIONAR AO PEDIDO"
+              successMessage="Produto adicionado ao pedido."
+              className="mt-4"
+            >
+              <input type="hidden" name="orderId" value={order.id} />
+              <AdminFieldGrid columns="wide-first">
+                <AdminSelect name="productId" label="Produto" required placeholder="Selecione um produto">
+                  {productsForOrder.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.category.name} - {product.name}
+                      {typeof product.stockQuantity === "number" ? ` (Estoque ${product.stockQuantity})` : ""}
+                    </option>
+                  ))}
+                </AdminSelect>
+                <AdminInput name="quantity" label="Quantidade" mask="integer" min={1} max={999} defaultValue={1} required />
+              </AdminFieldGrid>
+            </AdminActionForm>
+          </div>
+        )}
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
