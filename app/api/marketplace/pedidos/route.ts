@@ -7,6 +7,7 @@ import { formatMoneyFromCents } from "@/lib/money"
 import { getOrderMessageSettings, getPaymentDiscountSettings, getStoreWhatsAppNumber } from "@/lib/site-settings"
 import { buildWhatsAppUrl } from "@/lib/whatsapp"
 import { sendOrderConfirmationEmail } from "@/lib/order-email"
+import { sortOrderItemsByCategory } from "@/lib/order-items"
 import {
   getPaymentDiscountLabel,
   getPaymentMethodInstruction,
@@ -224,6 +225,7 @@ export async function POST(request: Request) {
       quantity: requestedItem.quantity,
       unitPriceInCents: product.priceInCents,
       totalInCents,
+      product: { category: product.category },
     }
   })
 
@@ -277,7 +279,14 @@ export async function POST(request: Request) {
       selectedOptions: normalizedOptions,
     }
   })
-  const items = [...productItems, ...comboItems]
+  const items = sortOrderItemsByCategory([...productItems, ...comboItems]).map((item) => {
+    if ("product" in item) {
+      const { product: _product, ...createItem } = item
+      return createItem
+    }
+
+    return item
+  })
 
   const couponCode = parsed.data.coupon?.trim().toUpperCase()
   const coupon = couponCode ? await prisma.coupon.findUnique({ where: { code: couponCode } }) : null
@@ -327,12 +336,13 @@ export async function POST(request: Request) {
         items: { create: items },
         statusHistory: { create: { status: "AWAITING_SERVICE", note: "Pedido criado pelo marketplace." } },
       },
-      include: { items: true },
+      include: { items: { include: { product: { include: { category: true } } } } },
     })
   })
 
   const orderNumber = formatOrderCode(order.number)
-  const itemLines = order.items.map((item, index) => {
+  const sortedOrderItems = sortOrderItemsByCategory(order.items)
+  const itemLines = sortedOrderItems.map((item, index) => {
     const selectedOptions = formatSelectedOptions(item.selectedOptions)
 
     return [
@@ -377,7 +387,7 @@ export async function POST(request: Request) {
     orderNumber,
     status: order.status,
     paymentMethod: order.paymentMethod,
-    items: order.items,
+    items: sortedOrderItems,
     subtotalInCents: order.subtotalInCents,
     promotionDiscountInCents: order.promotionDiscountInCents,
     couponDiscountInCents: order.couponDiscountInCents,

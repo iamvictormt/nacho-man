@@ -20,6 +20,7 @@ import { MarketplaceComboCard } from "@/components/marketplace-combo-card"
 import { PrivatePageHeader } from "@/components/private-page-header"
 import { ProductDetailCard } from "@/components/product-detail-card"
 import { formatOrderCode } from "@/lib/order-number"
+import { sortOrderItemsByCategory } from "@/lib/order-items"
 
 const statusLabels: Record<string, string> = {
   AWAITING_SERVICE: "Aguardando atendimento",
@@ -98,7 +99,7 @@ export default async function MarketplacePage() {
     }),
     prisma.order.findMany({
       where: orderOwnerWhere,
-      include: { items: true },
+      include: { items: { include: { product: { include: { category: true } } } } },
       orderBy: { createdAt: "desc" },
       take: 3,
     }),
@@ -206,7 +207,9 @@ export default async function MarketplacePage() {
                         {statusLabels[order.status] ?? order.status}
                       </p>
                       <p className="mt-2 line-clamp-1 text-xs text-foreground/70">
-                        {order.items.map((item) => `${item.quantity}x ${item.name}`).join(" · ")}
+                        {sortOrderItemsByCategory(order.items)
+                          .map((item) => `${item.quantity}x ${item.name}`)
+                          .join(" · ")}
                       </p>
                     </div>
                     <p className="shrink-0 text-sm font-black text-lime">{formatMoneyFromCents(order.totalInCents)}</p>

@@ -1,4 +1,4 @@
-import { CalendarDays, CreditCard, PackageCheck, ReceiptText, WalletCards } from "lucide-react"
+import { CalendarDays, CreditCard, MessageCircle, PackageCheck, ReceiptText, WalletCards } from "lucide-react"
 import type { OrderStatus, PaymentMethod, Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
@@ -9,9 +9,11 @@ import { DeleteActionDialog } from "@/components/delete-action-dialog"
 import { AdminManageModal } from "@/components/admin-manage-modal"
 import { PaginationControls } from "@/components/pagination-controls"
 import { getCurrentPage, getPagination, getSearchQuery, type SearchParams } from "@/lib/pagination"
-import { cancelOrderAction, deleteOrderAction, updateOrderStatusAction } from "./actions"
+import { cancelOrderAction, deleteOrderAction, removeOrderItemAction, updateOrderStatusAction } from "./actions"
 import { getPaymentDiscountLabel, getPaymentMethodLabel } from "@/lib/payment-method"
 import { formatOrderCode } from "@/lib/order-number"
+import { getOrderItemCategoryName, sortOrderItemsByCategory } from "@/lib/order-items"
+import { buildWhatsAppUrl } from "@/lib/whatsapp"
 
 const statusLabels: Record<string, string> = {
   AWAITING_SERVICE: "Aguardando atendimento",
@@ -46,7 +48,11 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
   const [orders, awaiting, inProgress] = await Promise.all([
     prisma.order.findMany({
       where: orderWhere,
-      include: { franchise: true, user: true, items: true },
+      include: {
+        franchise: true,
+        user: { include: { businessProfile: true } },
+        items: { include: { product: { include: { category: true } } } },
+      },
       orderBy: { createdAt: "desc" },
       skip: pagination.skip,
       take: pagination.take,
@@ -89,7 +95,8 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
           <div id="orders-list" className="divide-y divide-border">
             {orders.map((order) => {
               const number = formatOrderCode(order.number)
-              const preview = order.items.slice(0, 2)
+              const sortedItems = sortOrderItemsByCategory(order.items)
+              const preview = sortedItems.slice(0, 2)
               const buyerName = order.franchise?.tradeName ?? order.user?.name ?? "Cliente Nacho Man"
               return (
                 <article
@@ -117,7 +124,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
                       {preview.map((item) => `${item.quantity}x ${item.name}`).join(" · ")}
                     </p>
                     <p className="mt-1 text-[9px] font-bold uppercase text-purple-medium">
-                      {order.items.length} {order.items.length === 1 ? "item" : "itens"}
+                      {sortedItems.length} {sortedItems.length === 1 ? "item" : "itens"}
                     </p>
                   </div>
                   <div>
@@ -149,7 +156,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
                     size="xl"
                     ariaLabel={`Gerenciar pedido ${number}`}
                   >
-                    <OrderManagement order={order} modalId={`manage-order-${order.id}`} />
+                    <OrderManagement order={{ ...order, items: sortedItems }} modalId={`manage-order-${order.id}`} />
                   </AdminManageModal>
                 </article>
               )
@@ -188,6 +195,17 @@ function OrderManagement({
     pixDiscountInCents: number
     totalInCents: number
     notes: string | null
+    franchise: {
+      tradeName: string
+      whatsapp: string | null
+    } | null
+    user: {
+      name: string
+      email: string
+      businessProfile: {
+        phone: string | null
+      } | null
+    } | null
     items: {
       id: string
       name: string
@@ -196,6 +214,13 @@ function OrderManagement({
       unitPriceInCents: number
       totalInCents: number
       selectedOptions: unknown
+      product?: {
+        stockQuantity?: number | null
+        category?: {
+          name: string
+          sortOrder: number
+        } | null
+      } | null
     }[]
   }
   modalId: string
@@ -203,24 +228,70 @@ function OrderManagement({
   const number = formatOrderCode(order.number)
   const paymentDiscountLabel = getPaymentDiscountLabel(order.paymentMethod)
   const defaultEditableStatus = order.status === "CANCELLED" ? undefined : order.status
+  const canRemoveItems = order.status !== "CANCELLED" && order.items.length > 1
+  const ownerWhatsApp = getOrderOwnerWhatsApp(order)
+  const ownerName = order.franchise?.tradeName ?? order.user?.name ?? "cliente"
+  const ownerWhatsAppMessage = `Olá, ${ownerName}! Aqui é a Nacho Factory sobre o pedido ${number}.`
   return (
     <div className="space-y-7 pt-1">
+      <section className="flex flex-col gap-3 rounded-xl border border-border bg-graphite/45 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime">Contato do pedido</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {ownerWhatsApp ? `Falar com ${ownerName}` : "Este pedido nÃ£o tem WhatsApp cadastrado."}
+          </p>
+        </div>
+        {ownerWhatsApp && (
+          <a
+            href={buildWhatsAppUrl(ownerWhatsApp, ownerWhatsAppMessage)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[#25D366] px-4 text-[10px] font-black uppercase text-white shadow-[0_0_0_rgba(37,211,102,0)] transition duration-200 hover:-translate-y-0.5 hover:scale-[1.02] hover:brightness-110 hover:shadow-[0_0_24px_rgba(37,211,102,0.32)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            <MessageCircle className="h-4 w-4" />
+            Chamar no WhatsApp
+          </a>
+        )}
+      </section>
       <section>
         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime">Itens do pedido</p>
         <div className="mt-3 divide-y divide-border overflow-hidden rounded-xl border border-border bg-graphite/45">
           {order.items.map((item) => (
             <div
               key={item.id}
-              className="flex flex-col gap-2 px-4 py-3.5 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between min-[420px]:gap-4"
+              className="grid gap-3 px-4 py-3.5 min-[520px]:grid-cols-[minmax(0,1fr)_auto] min-[520px]:items-center"
             >
               <div className="min-w-0">
-                <p className="truncate text-xs font-black uppercase">{item.name}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="truncate text-xs font-black uppercase">{item.name}</p>
+                  {item.product?.stockQuantity === 0 && (
+                    <span className="rounded-full border border-red-400/25 bg-red-500/10 px-2 py-1 text-[8px] font-black uppercase text-red-300">
+                      Sem estoque
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-[9px] font-black uppercase tracking-wider text-purple-medium">
+                  {getOrderItemCategoryName(item) ?? "Combo"}
+                  {typeof item.product?.stockQuantity === "number" ? ` · Estoque ${item.product.stockQuantity}` : ""}
+                </p>
                 <p className="mt-1 text-[10px] text-muted-foreground">
                   {item.quantity} {item.unit} × {formatMoneyFromCents(item.unitPriceInCents)}
                 </p>
                 <SelectedOptionsList value={item.selectedOptions} />
               </div>
-              <p className="shrink-0 text-sm font-black text-lime">{formatMoneyFromCents(item.totalInCents)}</p>
+              <div className="flex flex-col gap-2 min-[520px]:items-end">
+                <p className="shrink-0 text-sm font-black text-lime">{formatMoneyFromCents(item.totalInCents)}</p>
+                {canRemoveItems && (
+                  <DeleteActionDialog
+                    action={removeOrderItemAction}
+                    fields={{ orderId: order.id, itemId: item.id }}
+                    title="Remover item do pedido?"
+                    description={`O item ${item.name} serÃ¡ removido e os totais do pedido ${number} serÃ£o recalculados.`}
+                    label="Remover item"
+                    successMessage="Item removido do pedido."
+                  />
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -388,6 +459,17 @@ function getOrderWhere(query: string): Prisma.OrderWhereInput {
   if (paymentMatches.length > 0) filters.push({ paymentMethod: { in: paymentMatches } })
 
   return { OR: filters }
+}
+
+function getOrderOwnerWhatsApp(order: {
+  franchise: { whatsapp: string | null } | null
+  user: { businessProfile: { phone: string | null } | null } | null
+}) {
+  const rawPhone = order.franchise?.whatsapp ?? order.user?.businessProfile?.phone
+  const digits = String(rawPhone ?? "").replace(/\D/g, "")
+  if (!digits) return null
+
+  return digits.startsWith("55") ? digits : `55${digits}`
 }
 
 function formatDateTime(date: Date) {

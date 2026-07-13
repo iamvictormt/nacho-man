@@ -22,6 +22,12 @@ type OrderEmailItem = {
   quantity: number
   totalInCents: number
   selectedOptions?: unknown
+  product?: {
+    category?: {
+      name: string
+      sortOrder: number
+    } | null
+  } | null
 }
 
 type OrderConfirmationEmailInput = {

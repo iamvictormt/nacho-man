@@ -19,6 +19,7 @@ import {
   UsersRound,
   UserRound,
   X,
+  type LucideIcon,
 } from "lucide-react"
 import { logoutAction } from "@/app/login/actions"
 import { LogoutSubmitButton } from "@/components/logout-submit-button"
@@ -50,6 +51,16 @@ type PrivateShellProps = {
   organizationName?: string
   whatsappNumber: string
   showMarketplaceCombos?: boolean
+  pendingFranchiseeUsersCount?: number
+}
+
+type PrivateShellLink = {
+  href: string
+  label: string
+  icon: LucideIcon
+  exact?: boolean
+  activePrefix?: string
+  badgeCount?: number
 }
 
 export function PrivateShell({
@@ -60,10 +71,13 @@ export function PrivateShell({
   organizationName,
   whatsappNumber,
   showMarketplaceCombos = true,
+  pendingFranchiseeUsersCount = 0,
 }: PrivateShellProps) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const admin = area === "admin"
+  const pendingFranchiseeUsersLabel =
+    pendingFranchiseeUsersCount > 99 ? "99+" : String(pendingFranchiseeUsersCount)
   const profileOrganization = organizationName ?? (admin ? "Nacho Factory" : "Cliente Nacho Man")
   const profileTitle = admin ? profileOrganization : userName
   const profileSubtitle = admin ? "Painel administrativo" : profileOrganization
@@ -74,14 +88,14 @@ export function PrivateShell({
       ? "Portal exclusivo para franqueados Nacho Man"
       : "Portal exclusivo para clientes"
   const homeHref = admin ? "/admin" : "/marketplace"
-  const links = admin
+  const links: PrivateShellLink[] = admin
     ? [
         { href: "/admin", label: "Visão geral", icon: Factory, exact: true },
         { href: "/admin/saipos", label: "Indicadores", icon: BarChart3 },
         { href: "/admin/produtos", label: "Produtos", icon: PackageSearch },
         { href: "/admin/combos", label: "Combos", icon: Gift },
         { href: "/admin/campanhas", label: "Promoções", icon: Tags },
-        { href: "/admin/usuarios", label: "Usuários", icon: UsersRound },
+        { href: "/admin/usuarios", label: "Usuários", icon: UsersRound, badgeCount: pendingFranchiseeUsersCount },
         { href: "/admin/pedidos", label: "Pedidos", icon: ReceiptText },
         { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
       ]
@@ -122,8 +136,9 @@ export function PrivateShell({
           </div>
 
           <nav className="hidden items-center justify-center gap-5 xl:flex">
-            {links.map(({ href, label, exact, activePrefix }) => {
+            {links.map(({ href, label, exact, activePrefix, badgeCount }) => {
               const active = exact ? pathname === href : pathname.startsWith(activePrefix ?? href)
+              const showBadge = admin && href === "/admin/usuarios" && (badgeCount ?? 0) > 0
               return (
                 <Link
                   key={href}
@@ -133,6 +148,14 @@ export function PrivateShell({
                   }`}
                 >
                   {label}
+                  {showBadge && (
+                    <span
+                      className="absolute -right-4 top-1 flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-black leading-none text-white ring-2 ring-background"
+                      aria-label={`${pendingFranchiseeUsersCount} franqueados aguardando aprovação ou rejeição`}
+                    >
+                      {pendingFranchiseeUsersLabel}
+                    </span>
+                  )}
                   {active && <span className="absolute inset-x-0 bottom-1 h-0.5 rounded-full bg-lime" />}
                 </Link>
               )
@@ -238,8 +261,9 @@ export function PrivateShell({
             </div>
           </div>
           <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
-            {links.map(({ href, label, icon: Icon, exact, activePrefix }) => {
+            {links.map(({ href, label, icon: Icon, exact, activePrefix, badgeCount }) => {
               const active = exact ? pathname === href : pathname.startsWith(activePrefix ?? href)
+              const showBadge = admin && href === "/admin/usuarios" && (badgeCount ?? 0) > 0
               return (
                 <Link
                   key={href}
@@ -251,7 +275,15 @@ export function PrivateShell({
                   }`}
                 >
                   <Icon className="h-4 w-4" />
-                  {label}
+                  <span className="min-w-0 flex-1 truncate">{label}</span>
+                  {showBadge && (
+                    <span
+                      className="flex min-w-5 shrink-0 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-black leading-none text-white"
+                      aria-label={`${pendingFranchiseeUsersCount} franqueados aguardando aprovação ou rejeição`}
+                    >
+                      {pendingFranchiseeUsersLabel}
+                    </span>
+                  )}
                 </Link>
               )
             })}

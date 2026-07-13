@@ -7,6 +7,7 @@ import { getCurrentPage, getPagination, type SearchParams } from "@/lib/paginati
 import { PrivatePageHeader } from "@/components/private-page-header"
 import { getPaymentDiscountLabel, getPaymentMethodInstruction, getPaymentMethodLabel } from "@/lib/payment-method"
 import { formatOrderCode } from "@/lib/order-number"
+import { getOrderItemCategoryName, sortOrderItemsByCategory } from "@/lib/order-items"
 import { getOrderMessageSettings, getStoreWhatsAppNumber } from "@/lib/site-settings"
 import { buildWhatsAppUrl } from "@/lib/whatsapp"
 
@@ -50,7 +51,7 @@ export default async function FranchiseOrdersPage({ searchParams }: { searchPara
   const [orders, activeOrders, deliveredOrders, messageSettings, storeWhatsAppNumber] = await Promise.all([
     prisma.order.findMany({
       where,
-      include: { coupon: true, items: true },
+      include: { coupon: true, items: { include: { product: { include: { category: true } } } } },
       orderBy: { createdAt: "desc" },
       skip: pagination.skip,
       take: pagination.take,
@@ -150,6 +151,12 @@ function OrderCard({
       unitPriceInCents: number
       totalInCents: number
       selectedOptions: unknown
+      product?: {
+        category?: {
+          name: string
+          sortOrder: number
+        } | null
+      } | null
     }[]
   }
   buyerLine: string
@@ -160,10 +167,11 @@ function OrderCard({
   const discountTotal = order.promotionDiscountInCents + order.couponDiscountInCents + order.pixDiscountInCents
   const progress = progressByStatus[order.status] ?? 12
   const paymentDiscountLabel = getPaymentDiscountLabel(order.paymentMethod)
+  const sortedItems = sortOrderItemsByCategory(order.items)
   const whatsappUrl = buildWhatsAppUrl(
     storeWhatsAppNumber,
     buildOrderWhatsAppMessage({
-      order,
+      order: { ...order, items: sortedItems },
       buyerLine,
       orderNumber: number,
       paymentDiscountLabel,
@@ -224,19 +232,24 @@ function OrderCard({
                   Itens do pedido
                 </span>
                 <span className="mt-1 block text-xs font-bold text-muted-foreground">
-                  {order.items.length} {order.items.length === 1 ? "item" : "itens"} neste pedido
+                  {sortedItems.length} {sortedItems.length === 1 ? "item" : "itens"} neste pedido
                 </span>
               </span>
               <ChevronDown className="h-5 w-5 shrink-0 text-lime transition-transform group-open:rotate-180" />
             </summary>
             <div className="divide-y divide-border border-t border-border">
-              {order.items.map((item) => (
+              {sortedItems.map((item) => (
                 <div
                   key={item.id}
                   className="grid gap-2 px-4 py-3.5 sm:grid-cols-[minmax(0,1fr)_110px] sm:items-center"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-black uppercase">{item.name}</p>
+                    {getOrderItemCategoryName(item) && (
+                      <p className="mt-1 text-[9px] font-black uppercase tracking-wider text-purple-medium">
+                        {getOrderItemCategoryName(item)}
+                      </p>
+                    )}
                     <p className="mt-1 text-[10px] text-muted-foreground">
                       {item.quantity} {item.unit} x {formatMoneyFromCents(item.unitPriceInCents)}
                     </p>
@@ -307,6 +320,12 @@ function buildOrderWhatsAppMessage({
       quantity: number
       totalInCents: number
       selectedOptions: unknown
+      product?: {
+        category?: {
+          name: string
+          sortOrder: number
+        } | null
+      } | null
     }[]
   }
   buyerLine: string
