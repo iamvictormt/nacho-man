@@ -321,6 +321,8 @@ function OrderManagement({
                     action={updateOrderItemQuantityAction}
                     label="Salvar qtd"
                     successMessage="Quantidade atualizada."
+                    alignWithField
+                    buttonClassName="h-12 min-w-32 px-5 text-[10px] hover:bg-lime hover:shadow-[0_0_24px_rgba(239,255,13,.25)]"
                   >
                     <input type="hidden" name="orderId" value={order.id} />
                     <input type="hidden" name="itemId" value={item.id} />
