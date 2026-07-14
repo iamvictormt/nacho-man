@@ -1,6 +1,8 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { randomInt } from "crypto"
+import { hash } from "bcryptjs"
 import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
@@ -15,6 +17,19 @@ function getUniqueConstraintMessage(error: unknown) {
   if (target.includes("franchiseId")) return "Já existe um usuário vinculado a esta franquia."
 
   return "Já existe um cadastro com estes dados."
+}
+
+export type TemporaryPasswordResetState = {
+  temporaryPassword?: string
+  error?: string
+}
+
+const TEMPORARY_PASSWORD_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%*"
+
+function generateTemporaryPassword(length = 12) {
+  return Array.from({ length }, () => TEMPORARY_PASSWORD_ALPHABET[randomInt(TEMPORARY_PASSWORD_ALPHABET.length)]).join(
+    ""
+  )
 }
 
 export async function toggleCommonUserAction(formData: FormData) {
@@ -227,6 +242,38 @@ export async function updateFranchiseeUserAction(formData: FormData) {
   revalidatePath("/admin")
   revalidatePath("/admin/usuarios")
   revalidatePath("/admin/franqueados")
+}
+
+export async function resetUserTemporaryPasswordAction(
+  _state: TemporaryPasswordResetState,
+  formData: FormData
+): Promise<TemporaryPasswordResetState> {
+  await requireAdmin()
+
+  const id = String(formData.get("id") ?? "")
+
+  if (!id) return { error: "Usuário não encontrado." }
+
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: { role: true },
+  })
+  if (!user || user.role === "ADMIN") return { error: "Não é possível resetar a senha deste usuário." }
+
+  const temporaryPassword = generateTemporaryPassword()
+
+  await prisma.user.update({
+    where: { id },
+    data: {
+      passwordHash: await hash(temporaryPassword, 12),
+      mustChangePassword: true,
+    },
+  })
+
+  revalidatePath("/admin")
+  revalidatePath("/admin/usuarios")
+
+  return { temporaryPassword }
 }
 
 export async function rejectFranchiseeUserAction(formData: FormData) {

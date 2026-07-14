@@ -39,12 +39,12 @@ function generateResetCode() {
 
 function buildPasswordResetEmail(code: string) {
   return {
-    subject: "Código para redefinir sua senha - Nacho Man",
+    subject: "Código para redefinir sua senha - Nacho Factory",
     text: `Seu código para redefinir a senha é ${code}. Ele expira em ${RESET_CODE_EXPIRATION_MINUTES} minutos.`,
     html: `
       <div style="font-family:Arial,sans-serif;background:#0f0f0f;color:#fff;padding:28px;">
         <div style="max-width:520px;margin:0 auto;background:#171717;border:1px solid #2a2a2a;border-radius:16px;padding:26px;">
-          <p style="margin:0 0 8px;color:#d6ff2f;font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;">Nacho Man</p>
+          <p style="margin:0 0 8px;color:#d6ff2f;font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;">Nacho Factory</p>
           <h1 style="margin:0 0 16px;font-size:24px;text-transform:uppercase;">Redefinição de senha</h1>
           <p style="margin:0 0 20px;color:#d1d5db;line-height:1.6;">Use o código abaixo para criar uma nova senha. Ele expira em ${RESET_CODE_EXPIRATION_MINUTES} minutos.</p>
           <p style="margin:0;padding:18px;border-radius:12px;background:#d6ff2f;color:#101010;text-align:center;font-size:32px;font-weight:900;letter-spacing:.3em;">${code}</p>
@@ -92,7 +92,7 @@ export async function loginAction(_state: LoginState, formData: FormData): Promi
     rememberMe
   )
 
-  redirect(user.role === "ADMIN" ? "/admin" : "/marketplace")
+  redirect(user.mustChangePassword ? "/alterar-senha" : user.role === "ADMIN" ? "/admin" : "/marketplace")
 }
 
 export async function registerAction(_state: RegisterState, formData: FormData): Promise<RegisterState> {
@@ -318,7 +318,7 @@ export async function resetPasswordAction(
   await prisma.$transaction([
     prisma.user.update({
       where: { id: user.id },
-      data: { passwordHash },
+      data: { passwordHash, mustChangePassword: false },
     }),
     prisma.passwordResetCode.update({
       where: { id: resetCode.id },

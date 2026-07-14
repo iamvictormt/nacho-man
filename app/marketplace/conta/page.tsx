@@ -143,7 +143,7 @@ export default async function MarketplaceAccountPage() {
                     required
                   />
                 </AdminFieldGrid>
-                <AdminFieldGrid className="mt-5" columns="equal">
+                <AdminFieldGrid className="mt-5" columns="three">
                   <AdminInput
                     name="document"
                     label="CNPJ"
@@ -158,8 +158,6 @@ export default async function MarketplaceAccountPage() {
                     defaultValue={isFranchisee ? user.email : (businessProfile?.email ?? "")}
                     required
                   />
-                </AdminFieldGrid>
-                <AdminFieldGrid className="mt-5" columns="equal">
                   <AdminInput
                     name="whatsapp"
                     label={isFranchisee ? "WhatsApp" : "WhatsApp comercial"}

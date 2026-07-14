@@ -31,7 +31,7 @@ function getOptionalString(value: unknown) {
 
 async function runSyncRequest(request: NextRequest, body: Record<string, unknown>) {
   const user = await getCurrentUser()
-  const authorized = user?.role === "ADMIN" || hasValidSyncSecret(request)
+  const authorized = (user?.role === "ADMIN" && !user.mustChangePassword) || hasValidSyncSecret(request)
 
   if (!authorized) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 })

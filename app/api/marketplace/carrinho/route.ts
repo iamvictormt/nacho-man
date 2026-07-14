@@ -34,7 +34,9 @@ const removeCartItemSchema = cartItemIdentitySchema.partial().extend({
 type MarketplaceUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>
 
 function canUseMarketplace(user: Awaited<ReturnType<typeof getCurrentUser>>): user is MarketplaceUser {
-  return Boolean(user && user.role !== "ADMIN" && (user.role !== "FRANCHISEE" || user.franchise?.active))
+  return Boolean(
+    user && !user.mustChangePassword && user.role !== "ADMIN" && (user.role !== "FRANCHISEE" || user.franchise?.active)
+  )
 }
 
 function audienceForUser(user: MarketplaceUser): ProductAudience {

@@ -109,6 +109,7 @@ export function LoginForm({
   const [showLoginPassword, setShowLoginPassword] = useState(false)
   const [showRegisterPassword, setShowRegisterPassword] = useState(false)
   const [showResetPassword, setShowResetPassword] = useState(false)
+  const [forgotStep, setForgotStep] = useState<"email" | "code">("email")
   const [isFranchisee, setIsFranchisee] = useState(false)
   const [franchiseModalOpen, setFranchiseModalOpen] = useState(false)
   const [cities, setCities] = useState<IbgeCity[]>([])
@@ -123,8 +124,10 @@ export function LoginForm({
   const hasFranchiseData = hasBusinessData
   const showLegacyFranchiseCard = false
   const resetEmail = forgotState.email || resetState.email || ""
+  const showResetStep = mode === "forgot" && forgotStep === "code" && Boolean(resetEmail)
 
   function changeMode(nextMode: LoginMode) {
+    if (nextMode !== "forgot") setForgotStep("email")
     setInternalMode(nextMode)
     onModeChange?.(nextMode)
   }
@@ -178,6 +181,14 @@ export function LoginForm({
     })
   }, [registerState.success])
 
+  useEffect(() => {
+    if (forgotState.success && forgotState.email) setForgotStep("code")
+  }, [forgotState])
+
+  useEffect(() => {
+    if (resetState.error || resetState.success) setForgotStep("code")
+  }, [resetState.error, resetState.success])
+
   return (
     <div>
       <div className="mb-6 grid grid-cols-2 rounded-full border border-border bg-background p-1">
@@ -206,30 +217,32 @@ export function LoginForm({
           <div className="rounded-xl border border-lime/20 bg-lime/5 p-4">
             <p className="text-xs font-black uppercase text-lime">Recuperar acesso</p>
             <p className="mt-2 text-xs leading-5 text-muted-foreground">
-              Informe seu e-mail para receber um código de 4 caracteres e criar uma nova senha.
+              {showResetStep
+                ? "Informe o código recebido e escolha uma nova senha para concluir."
+                : "Informe seu e-mail para receber um código de 4 caracteres e criar uma nova senha."}
             </p>
           </div>
 
-          <form action={forgotFormAction} className="space-y-4">
-            <TextField
-              id="resetEmail"
-              name="resetEmail"
-              label="E-mail"
-              type="email"
-              autoComplete="email"
-              mask="email"
-              defaultValue={resetEmail}
-              placeholder="seuemail@nachoman.com.br"
-              required
-            />
-            {forgotState.error && <AlertMessage tone="error" text={forgotState.error} />}
-            {forgotState.success && <AlertMessage tone="success" text={forgotState.success} />}
-            <SubmitButton pending={forgotPending} icon="register" pendingText="ENVIANDO..." text="ENVIAR CÓDIGO" />
-          </form>
-
-          {(forgotState.success || resetState.error || resetState.success) && (
+          {!showResetStep ? (
+            <form action={forgotFormAction} className="space-y-4">
+              <TextField
+                id="resetEmail"
+                name="resetEmail"
+                label="E-mail"
+                type="email"
+                autoComplete="email"
+                mask="email"
+                defaultValue={resetEmail}
+                placeholder="seuemail@nachoman.com.br"
+                required
+              />
+              {forgotState.error && <AlertMessage tone="error" text={forgotState.error} />}
+              <SubmitButton pending={forgotPending} icon="register" pendingText="ENVIANDO..." text="ENVIAR CÓDIGO" />
+            </form>
+          ) : (
             <form action={resetFormAction} className="space-y-4 rounded-xl border border-border bg-background p-4">
               <input type="hidden" name="resetEmail" value={resetEmail} />
+              <AlertMessage tone="success" text="Código enviado. Informe o código recebido e crie uma nova senha." />
               <TextField
                 id="resetCode"
                 name="resetCode"
@@ -250,6 +263,15 @@ export function LoginForm({
               {resetState.error && <AlertMessage tone="error" text={resetState.error} />}
               {resetState.success && <AlertMessage tone="success" text={resetState.success} />}
               <SubmitButton pending={resetPending} icon="login" pendingText="SALVANDO..." text="TROCAR SENHA" />
+              {!resetState.success && (
+                <button
+                  type="button"
+                  onClick={() => setForgotStep("email")}
+                  className="w-full text-center text-[10px] font-black uppercase tracking-wider text-muted-foreground transition hover:text-lime"
+                >
+                  Usar outro e-mail
+                </button>
+              )}
             </form>
           )}
 

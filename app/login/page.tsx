@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default async function LoginPage() {
   const user = await getCurrentUser()
-  if (user) redirect(user.role === "ADMIN" ? "/admin" : "/marketplace")
+  if (user) redirect(user.mustChangePassword ? "/alterar-senha" : user.role === "ADMIN" ? "/admin" : "/marketplace")
   const sideContent = await getLoginSideContent()
 
   return <LoginExperience sideContent={sideContent} />

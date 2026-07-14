@@ -20,6 +20,7 @@ import {
   updateCommonUserAction,
   updateFranchiseeUserAction,
 } from "./actions"
+import { TemporaryPasswordResetForm } from "./temporary-password-reset-form"
 
 type UsersPageProps = {
   searchParams?: Promise<SearchParams>
@@ -88,6 +89,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
               name: true,
               email: true,
               active: true,
+              mustChangePassword: true,
               createdAt: true,
               businessProfile: true,
               _count: { select: { orders: true } },
@@ -107,6 +109,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
               name: true,
               email: true,
               active: true,
+              mustChangePassword: true,
               createdAt: true,
               franchise: {
                 select: {
@@ -207,6 +210,7 @@ type FranchiseeUser = {
   name: string
   email: string
   active: boolean
+  mustChangePassword: boolean
   createdAt: Date
   franchise: {
     tradeName: string
@@ -274,9 +278,10 @@ function FranchiseUsersList({ users }: { users: FranchiseeUser[] }) {
                 title="Editar franqueado"
                 description="Atualize os dados do usuário e da unidade vinculada."
                 ariaLabel={`Ver dados de ${user.name}`}
-                size="sm"
+                size="md"
               >
                 <FranchiseeEditForm user={user} modalId={`view-franchisee-${user.id}`} />
+                <PasswordResetPanel userId={user.id} mustChangePassword={user.mustChangePassword} />
                 <div className="mt-5 flex flex-col gap-2 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-end">
                   <AdminInlineActionForm
                     action={toggleFranchiseeUserAction}
@@ -326,6 +331,7 @@ function CommonUsersList({
     name: string
     email: string
     active: boolean
+    mustChangePassword: boolean
     createdAt: Date
     businessProfile: {
       legalName: string
@@ -396,6 +402,7 @@ function CommonUsersList({
                 size="sm"
               >
                 <CommonUserEditForm user={user} modalId={`edit-common-user-${user.id}`} />
+                <PasswordResetPanel userId={user.id} mustChangePassword={user.mustChangePassword} />
                 <div className="mt-5 flex flex-col gap-2 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-end">
                   <AdminInlineActionForm
                     action={toggleCommonUserAction}
@@ -475,6 +482,7 @@ function CommonUserEditForm({
     name: string
     email: string
     active: boolean
+    mustChangePassword: boolean
     createdAt: Date
     businessProfile: {
       legalName: string
@@ -541,6 +549,32 @@ function CommonUserEditForm({
         <DetailRow label="Status" value={user.active ? "Ativo" : "Inativo"} />
       </div>
     </AdminActionForm>
+  )
+}
+
+function PasswordResetPanel({
+  userId,
+  mustChangePassword,
+}: {
+  userId: string
+  mustChangePassword: boolean
+}) {
+  return (
+    <section className="mt-5 rounded-xl border border-amber-400/20 bg-amber-400/10 p-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-amber-200">Reset de senha</p>
+          <p className="mt-2 text-xs leading-5 text-amber-100/80">
+            Gere uma senha temporária para passar ao usuário. No próximo acesso, ele será obrigado a cadastrar uma nova
+            senha.
+          </p>
+        </div>
+        <span className="inline-flex min-h-7 shrink-0 items-center rounded-full border border-amber-300/25 px-3 text-[9px] font-black uppercase text-amber-100">
+          {mustChangePassword ? "Troca pendente" : "Sem troca pendente"}
+        </span>
+      </div>
+      <TemporaryPasswordResetForm userId={userId} />
+    </section>
   )
 }
 

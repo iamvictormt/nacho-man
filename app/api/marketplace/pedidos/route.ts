@@ -65,7 +65,9 @@ function getPaymentDiscountPercent(
 }
 
 function canUseMarketplace(user: Awaited<ReturnType<typeof getCurrentUser>>) {
-  return Boolean(user && user.role !== "ADMIN" && (user.role !== "FRANCHISEE" || user.franchise?.active))
+  return Boolean(
+    user && !user.mustChangePassword && user.role !== "ADMIN" && (user.role !== "FRANCHISEE" || user.franchise?.active)
+  )
 }
 
 function formatSelectedOptions(value: unknown) {

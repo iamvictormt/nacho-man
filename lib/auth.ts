@@ -19,6 +19,7 @@ export const getCurrentUser = cache(async () => {
       name: true,
       email: true,
       role: true,
+      mustChangePassword: true,
       franchiseId: true,
       franchise: {
         select: {
@@ -38,14 +39,22 @@ export async function requireUser() {
   return user
 }
 
+export async function requirePasswordChangeUser() {
+  const user = await requireUser()
+  if (!user.mustChangePassword) redirect(user.role === "ADMIN" ? "/admin" : "/marketplace")
+  return user
+}
+
 export async function requireAdmin() {
   const user = await requireUser()
+  if (user.mustChangePassword) redirect("/alterar-senha")
   if (user.role !== "ADMIN") redirect("/marketplace")
   return user
 }
 
 export async function requireFranchisee() {
   const user = await requireUser()
+  if (user.mustChangePassword) redirect("/alterar-senha")
   if (user.role !== "FRANCHISEE" || !user.franchiseId || !user.franchise?.active) {
     redirect(user.role === "ADMIN" ? "/admin" : "/login")
   }
@@ -54,6 +63,7 @@ export async function requireFranchisee() {
 
 export async function requireMarketplaceUser() {
   const user = await requireUser()
+  if (user.mustChangePassword) redirect("/alterar-senha")
   if (user.role === "ADMIN") redirect("/admin")
   if (user.role === "FRANCHISEE" && (!user.franchiseId || !user.franchise?.active)) {
     redirect("/login")

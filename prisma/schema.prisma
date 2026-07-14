@@ -67,6 +67,7 @@ model User {
   name                 String
   email                String                @unique
   passwordHash         String
+  mustChangePassword   Boolean               @default(false)
   role                 UserRole
   active               Boolean               @default(true)
   franchiseId          String?               @unique
