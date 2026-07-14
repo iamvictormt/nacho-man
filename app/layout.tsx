@@ -64,7 +64,7 @@ export const metadata: Metadata = {
     description: defaultSeoDescription,
     images: [
       {
-        url: absoluteUrl("/embalagens-3.webp"),
+        url: absoluteUrl("/lutador-nacho-factory.jpg"),
         width: 1200,
         height: 630,
         alt: "Produtos Nacho Factory para food service",
@@ -75,7 +75,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Nacho Factory | Alimentos Prontos para Food Service",
     description: defaultSeoDescription,
-    images: [absoluteUrl("/embalagens-3.webp")],
+    images: [absoluteUrl("/lutador-nacho-factory.jpg")],
   },
   robots: {
     index: true,
@@ -95,8 +95,8 @@ const organizationJsonLd = {
   "@type": "FoodEstablishment",
   name: siteName,
   url: siteUrl,
-  image: absoluteUrl("/estrutura.webp"),
-  email: "factory.administrativo@nachomanbrasil.com.br",
+  image: absoluteUrl("/lutador-nacho-factory.jpg"),
+  email: "adm@nachofactory.com.br",
   address: {
     "@type": "PostalAddress",
     addressLocality: "Blumenau",
@@ -104,7 +104,7 @@ const organizationJsonLd = {
     addressCountry: "BR",
   },
   description: defaultSeoDescription,
-  sameAs: ["https://instagram.com/nachoman", "https://facebook.com/nachoman"],
+  sameAs: ["https://instagram.com/nachofactoryalimentos"],
 }
 
 export default async function RootLayout({

@@ -4,6 +4,7 @@ import { formatMoneyFromCents } from "@/lib/money"
 import { sendMail } from "@/lib/email"
 import { getOrderMessageSettings } from "@/lib/site-settings"
 import { getPaymentDiscountLabel, getPaymentMethodLabel } from "@/lib/payment-method"
+import { getOrderFulfillmentLabel } from "@/lib/order-fulfillment"
 
 const statusLabels: Record<string, string> = {
   DRAFT: "Rascunho",
@@ -37,6 +38,7 @@ type OrderConfirmationEmailInput = {
   orderNumber: string
   status: string
   paymentMethod: "PIX" | "CARD" | "BOLETO" | string
+  fulfillmentMethod: "FACTORY_PICKUP" | "SHIP_BY_CARRIER" | string
   items: OrderEmailItem[]
   subtotalInCents: number
   promotionDiscountInCents: number
@@ -77,6 +79,7 @@ function formatSelectedOptions(value: unknown) {
 function buildOrderConfirmationHtml(input: OrderConfirmationEmailInput, introMessage: string) {
   const statusLabel = statusLabels[input.status] ?? input.status
   const paymentLabel = getPaymentMethodLabel(input.paymentMethod)
+  const fulfillmentLabel = getOrderFulfillmentLabel(input.fulfillmentMethod)
   const paymentDiscountLabel = getPaymentDiscountLabel(input.paymentMethod)
   const discountRows = [
     input.promotionDiscountInCents > 0
@@ -145,6 +148,10 @@ function buildOrderConfirmationHtml(input: OrderConfirmationEmailInput, introMes
                   </tr>
                 </table>
 
+                <p style="margin:0 0 18px;padding:14px;border:1px solid #2a2a2a;border-radius:12px;background:#111111;color:#d1d5db;font-size:13px;">
+                  <strong style="color:#ffffff;">Entrega:</strong> ${escapeHtml(fulfillmentLabel)}
+                </p>
+
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
                   ${itemRows}
                 </table>
@@ -186,6 +193,7 @@ function buildOrderConfirmationText(input: OrderConfirmationEmailInput, introMes
     `Empresa: ${input.franchiseName}`,
     `Status atual: ${statusLabels[input.status] ?? input.status}`,
     `Pagamento: ${getPaymentMethodLabel(input.paymentMethod)}`,
+    `Entrega: ${getOrderFulfillmentLabel(input.fulfillmentMethod)}`,
     "",
     ...input.items.map((item) => {
       const selectedOptions = formatSelectedOptions(item.selectedOptions)

@@ -105,7 +105,7 @@ export default async function AdminSettingsPage() {
               name={orderMessageSettings.whatsapp.key}
               label={orderMessageSettings.whatsapp.label}
               defaultValue={values.get(orderMessageSettings.whatsapp.key) ?? orderMessageSettings.whatsapp.fallback}
-              hint="Placeholders: {pedido}, {cliente}, {itens}, {subtotal}, {descontos}, {total}, {pagamento}, {observacoes}."
+              hint="Placeholders: {pedido}, {cliente}, {itens}, {subtotal}, {descontos}, {total}, {pagamento}, {entrega}, {observacoes}."
               required
             />
             <div className="space-y-5">

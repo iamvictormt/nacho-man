@@ -14,6 +14,7 @@ import {
   type MarketplacePaymentMethod,
 } from "@/lib/payment-method"
 import { formatOrderCode } from "@/lib/order-number"
+import { getOrderFulfillmentInstruction } from "@/lib/order-fulfillment"
 
 export const runtime = "nodejs"
 
@@ -37,6 +38,7 @@ const orderSchema = z.object({
     )
     .min(1),
   paymentMethod: z.enum(["PIX", "CARD", "BOLETO"]),
+  fulfillmentMethod: z.enum(["FACTORY_PICKUP", "SHIP_BY_CARRIER"]),
   coupon: z.string().max(50).optional(),
   notes: z.string().max(1000).optional(),
 })
@@ -326,6 +328,7 @@ export async function POST(request: Request) {
         franchiseId: user!.role === "FRANCHISEE" ? user!.franchiseId : null,
         userId: user!.id,
         paymentMethod: parsed.data.paymentMethod as PaymentMethod,
+        fulfillmentMethod: parsed.data.fulfillmentMethod,
         couponId: coupon?.id,
         subtotalInCents,
         promotionDiscountInCents: promotionDiscountInCents + franchiseDiscountInCents,
@@ -369,6 +372,14 @@ export async function POST(request: Request) {
     .filter(Boolean)
     .join("\n")
   const messageSettings = await getOrderMessageSettings()
+  const fulfillmentText = getOrderFulfillmentInstruction(order.fulfillmentMethod)
+  const notesLine = parsed.data.notes ? `Observações: ${parsed.data.notes}` : ""
+  const observationLines = [
+    messageSettings.whatsappTemplate.includes("{entrega}") ? null : `Entrega: ${fulfillmentText}`,
+    notesLine,
+  ]
+    .filter(Boolean)
+    .join("\n")
   const message = renderTemplate(messageSettings.whatsappTemplate, {
     pedido: `*${orderNumber}*`,
     cliente: buyerLine,
@@ -377,7 +388,8 @@ export async function POST(request: Request) {
     descontos: discountLines,
     total: `*${formatMoneyFromCents(order.totalInCents)}*`,
     pagamento: paymentText,
-    observacoes: parsed.data.notes ? `Observações: ${parsed.data.notes}` : "",
+    entrega: fulfillmentText,
+    observacoes: observationLines,
   })
 
   await sendOrderConfirmationEmail({
@@ -387,6 +399,7 @@ export async function POST(request: Request) {
     orderNumber,
     status: order.status,
     paymentMethod: order.paymentMethod,
+    fulfillmentMethod: order.fulfillmentMethod,
     items: sortedOrderItems,
     subtotalInCents: order.subtotalInCents,
     promotionDiscountInCents: order.promotionDiscountInCents,

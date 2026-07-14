@@ -1,6 +1,6 @@
 "use server"
 
-import { OrderStatus, PromotionScope, type Prisma } from "@prisma/client"
+import { OrderFulfillmentMethod, OrderStatus, PromotionScope, type Prisma } from "@prisma/client"
 import { revalidatePath } from "next/cache"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
@@ -74,7 +74,11 @@ async function recalculateOrderTotals(
   const afterCoupon = Math.max(0, afterPromotions - couponDiscountInCents)
   const franchiseDiscountInCents = order.franchise ? Math.round(afterCoupon * (order.franchise.priceDiscount / 100)) : 0
   const pixBase = Math.max(0, afterCoupon - franchiseDiscountInCents)
-  const paymentDiscountPercent = getPaymentDiscountPercent(order.paymentMethod, paymentSettings, Boolean(order.franchise))
+  const paymentDiscountPercent = getPaymentDiscountPercent(
+    order.paymentMethod,
+    paymentSettings,
+    Boolean(order.franchise)
+  )
   const pixDiscountInCents = Math.round(pixBase * (paymentDiscountPercent / 100))
   const totalInCents = Math.max(0, pixBase - pixDiscountInCents)
 
@@ -122,6 +126,35 @@ export async function updateOrderStatusAction(formData: FormData) {
 
   revalidatePath("/admin/pedidos")
   revalidatePath("/marketplace/pedidos")
+}
+
+export async function updateOrderFulfillmentMethodAction(formData: FormData) {
+  await requireAdmin()
+  const orderId = String(formData.get("orderId") ?? "")
+  const fulfillmentMethod = String(formData.get("fulfillmentMethod") ?? "") as OrderFulfillmentMethod
+
+  if (!orderId || !Object.values(OrderFulfillmentMethod).includes(fulfillmentMethod)) return
+
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { status: true, fulfillmentMethod: true },
+  })
+  if (!order || order.fulfillmentMethod === fulfillmentMethod) return
+
+  await prisma.order.update({
+    where: { id: orderId },
+    data: {
+      fulfillmentMethod,
+      statusHistory: {
+        create: {
+          status: order.status,
+          note: "Tipo de entrega atualizado pela Nacho Factory.",
+        },
+      },
+    },
+  })
+
+  revalidateOrderPaths()
 }
 
 export async function updateOrderItemQuantityAction(formData: FormData) {
@@ -262,7 +295,8 @@ export async function removeOrderItemAction(formData: FormData) {
 
     if (!order) throw new Error("Pedido nao encontrado.")
     if (order.status === "CANCELLED") throw new Error("Nao e possivel alterar um pedido cancelado.")
-    if (order.items.length <= 1) throw new Error("O pedido precisa ter pelo menos um item. Cancele o pedido se necessario.")
+    if (order.items.length <= 1)
+      throw new Error("O pedido precisa ter pelo menos um item. Cancele o pedido se necessario.")
 
     const removedItem = order.items.find((item) => item.id === itemId)
     if (!removedItem) throw new Error("Item do pedido nao encontrado.")

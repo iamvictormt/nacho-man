@@ -52,6 +52,11 @@ enum PaymentMethod {
   BOLETO
 }
 
+enum OrderFulfillmentMethod {
+  FACTORY_PICKUP
+  SHIP_BY_CARRIER
+}
+
 enum MarketplaceCartItemType {
   PRODUCT
   COMBO
@@ -331,28 +336,29 @@ model Coupon {
 }
 
 model Order {
-  id                       String               @id @default(cuid())
-  number                   Int                  @unique @default(autoincrement())
+  id                       String                 @id @default(cuid())
+  number                   Int                    @unique @default(autoincrement())
   franchiseId              String?
-  franchise                Franchise?           @relation(fields: [franchiseId], references: [id])
+  franchise                Franchise?             @relation(fields: [franchiseId], references: [id])
   userId                   String?
-  user                     User?                @relation(fields: [userId], references: [id])
-  status                   OrderStatus          @default(AWAITING_SERVICE)
+  user                     User?                  @relation(fields: [userId], references: [id])
+  status                   OrderStatus            @default(AWAITING_SERVICE)
   paymentMethod            PaymentMethod
+  fulfillmentMethod        OrderFulfillmentMethod @default(SHIP_BY_CARRIER)
   couponId                 String?
-  coupon                   Coupon?              @relation(fields: [couponId], references: [id])
+  coupon                   Coupon?                @relation(fields: [couponId], references: [id])
   subtotalInCents          Int
-  promotionDiscountInCents Int                  @default(0)
-  couponDiscountInCents    Int                  @default(0)
-  pixDiscountInCents       Int                  @default(0)
-  shippingInCents          Int                  @default(0)
+  promotionDiscountInCents Int                    @default(0)
+  couponDiscountInCents    Int                    @default(0)
+  pixDiscountInCents       Int                    @default(0)
+  shippingInCents          Int                    @default(0)
   totalInCents             Int
   notes                    String?
   deliveryAddress          Json?
   items                    OrderItem[]
   statusHistory            OrderStatusHistory[]
-  createdAt                DateTime             @default(now())
-  updatedAt                DateTime             @updatedAt
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
 
   @@index([franchiseId, createdAt])
   @@index([userId, createdAt])

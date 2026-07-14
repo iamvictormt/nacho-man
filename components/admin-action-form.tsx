@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom"
 import { useRouter } from "next/navigation"
 import { LoaderCircle } from "lucide-react"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 export function AdminActionForm({
   action,
@@ -14,6 +15,8 @@ export function AdminActionForm({
   successMessage,
   modalId,
   className,
+  submitClassName,
+  alignSubmitWithField = false,
   reloadOnSuccess = false,
 }: {
   action: (formData: FormData) => Promise<void>
@@ -23,6 +26,8 @@ export function AdminActionForm({
   successMessage: string
   modalId?: string
   className?: string
+  submitClassName?: string
+  alignSubmitWithField?: boolean
   reloadOnSuccess?: boolean
 }) {
   const [pending, setPending] = useState(false)
@@ -60,7 +65,26 @@ export function AdminActionForm({
       <fieldset disabled={pending} className="contents">
         {children}
       </fieldset>
-      <AdminActionSubmitButton pending={pending} pendingLabel={pendingLabel} submitLabel={submitLabel} />
+      {alignSubmitWithField ? (
+        <div className="min-w-0 space-y-2.5">
+          <span className="invisible block text-xs font-bold leading-4" aria-hidden="true">
+            Ação
+          </span>
+          <AdminActionSubmitButton
+            pending={pending}
+            pendingLabel={pendingLabel}
+            submitLabel={submitLabel}
+            className={cn("mt-0", submitClassName)}
+          />
+        </div>
+      ) : (
+        <AdminActionSubmitButton
+          pending={pending}
+          pendingLabel={pendingLabel}
+          submitLabel={submitLabel}
+          className={submitClassName}
+        />
+      )}
     </form>
   )
 }
@@ -69,10 +93,12 @@ function AdminActionSubmitButton({
   pending,
   pendingLabel,
   submitLabel,
+  className,
 }: {
   pending: boolean
   pendingLabel: string
   submitLabel: string
+  className?: string
 }) {
   const { pending: formPending } = useFormStatus()
   const busy = pending || formPending
@@ -82,7 +108,10 @@ function AdminActionSubmitButton({
       type="submit"
       disabled={busy}
       aria-busy={busy}
-      className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-lime text-[10px] font-black text-background transition hover:shadow-[0_0_24px_rgba(239,255,13,.25)] disabled:cursor-wait disabled:opacity-60"
+      className={cn(
+        "mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-lime px-5 text-[10px] font-black text-background transition hover:shadow-[0_0_24px_rgba(239,255,13,.25)] disabled:cursor-wait disabled:opacity-60",
+        className
+      )}
     >
       {busy && <LoaderCircle className="h-4 w-4 animate-spin" />}
       {busy ? pendingLabel : submitLabel}

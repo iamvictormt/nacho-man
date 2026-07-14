@@ -33,7 +33,7 @@ export const orderMessageSettings = {
     key: "order.message.whatsapp",
     label: "Mensagem padrão do WhatsApp",
     fallback:
-      "Olá! Quero finalizar o pedido {pedido}.\n\n{cliente}\n\n{itens}\n\nSubtotal: {subtotal}\n{descontos}\nTotal estimado: {total}\n\nPagamento: {pagamento}\n{observacoes}",
+      "Olá! Quero finalizar o pedido {pedido}.\n\n{cliente}\n\n{itens}\n\nSubtotal: {subtotal}\n{descontos}\nTotal estimado: {total}\n\nPagamento: {pagamento}\nEntrega: {entrega}\n{observacoes}",
   },
   emailSubject: {
     key: "order.email.subject",

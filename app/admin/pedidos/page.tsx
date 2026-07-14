@@ -1,4 +1,4 @@
-import { CalendarDays, CreditCard, MessageCircle, PackageCheck, ReceiptText, WalletCards } from "lucide-react"
+import { CalendarDays, CreditCard, MessageCircle, PackageCheck, ReceiptText, Truck, WalletCards } from "lucide-react"
 import type { OrderStatus, PaymentMethod, Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
@@ -15,6 +15,7 @@ import {
   cancelOrderAction,
   deleteOrderAction,
   removeOrderItemAction,
+  updateOrderFulfillmentMethodAction,
   updateOrderItemQuantityAction,
   updateOrderStatusAction,
 } from "./actions"
@@ -22,6 +23,7 @@ import { getPaymentDiscountLabel, getPaymentMethodLabel } from "@/lib/payment-me
 import { formatOrderCode } from "@/lib/order-number"
 import { getOrderItemCategoryName, sortOrderItemsByCategory } from "@/lib/order-items"
 import { buildWhatsAppUrl } from "@/lib/whatsapp"
+import { getOrderFulfillmentLabel, orderFulfillmentMethods } from "@/lib/order-fulfillment"
 
 const statusLabels: Record<string, string> = {
   AWAITING_SERVICE: "Aguardando atendimento",
@@ -207,6 +209,7 @@ function OrderManagement({
     number: number
     status: string
     paymentMethod: string
+    fulfillmentMethod: string
     subtotalInCents: number
     promotionDiscountInCents: number
     couponDiscountInCents: number
@@ -328,7 +331,7 @@ function OrderManagement({
                       min={1}
                       max={999}
                       defaultValue={item.quantity}
-                      className="w-24"
+                      className="w-18"
                     />
                   </AdminInlineActionForm>
                 )}
@@ -353,10 +356,12 @@ function OrderManagement({
               action={addOrderProductItemAction}
               submitLabel="ADICIONAR AO PEDIDO"
               successMessage="Produto adicionado ao pedido."
-              className="mt-4"
+              className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_180px] md:items-start"
+              submitClassName="mt-0 h-12 w-full"
+              alignSubmitWithField
             >
               <input type="hidden" name="orderId" value={order.id} />
-              <AdminFieldGrid columns="wide-first">
+              <AdminFieldGrid columns="wide-first" className="gap-4 md:gap-4">
                 <AdminSelect name="productId" label="Produto" required placeholder="Selecione um produto">
                   {productsForOrder.map((product) => (
                     <option key={product.id} value={product.id}>
@@ -365,7 +370,15 @@ function OrderManagement({
                     </option>
                   ))}
                 </AdminSelect>
-                <AdminInput name="quantity" label="Quantidade" mask="integer" min={1} max={999} defaultValue={1} required />
+                <AdminInput
+                  name="quantity"
+                  label="Quantidade"
+                  mask="integer"
+                  min={1}
+                  max={999}
+                  defaultValue={1}
+                  required
+                />
               </AdminFieldGrid>
             </AdminActionForm>
           </div>
@@ -374,23 +387,51 @@ function OrderManagement({
 
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime">Atualizar operação</p>
-          <AdminActionForm
-            action={updateOrderStatusAction}
-            submitLabel="SALVAR NOVO STATUS"
-            successMessage="Status atualizado com sucesso."
-            modalId={modalId}
-            className="mt-4"
-          >
-            <input type="hidden" name="orderId" value={order.id} />
-            <AdminSelect name="status" label="Status do pedido" defaultValue={defaultEditableStatus}>
-              {editableStatusLabels.map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </AdminSelect>
-          </AdminActionForm>
+          <div className="rounded-xl border border-border bg-graphite/45 p-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime">Atualizar operação</p>
+            <div className="mt-4 space-y-4">
+              <AdminActionForm
+                action={updateOrderStatusAction}
+                submitLabel="SALVAR STATUS"
+                successMessage="Status atualizado com sucesso."
+                modalId={modalId}
+                className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px] sm:items-start"
+                submitClassName="mt-0 h-12 w-full"
+                alignSubmitWithField
+              >
+                <input type="hidden" name="orderId" value={order.id} />
+                <AdminSelect name="status" label="Status do pedido" defaultValue={defaultEditableStatus}>
+                  {editableStatusLabels.map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </AdminSelect>
+              </AdminActionForm>
+              <AdminActionForm
+                action={updateOrderFulfillmentMethodAction}
+                submitLabel="SALVAR ENTREGA"
+                successMessage="Tipo de entrega atualizado."
+                modalId={modalId}
+                className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px] sm:items-start"
+                submitClassName="mt-0 h-12 w-full"
+                alignSubmitWithField
+              >
+                <input type="hidden" name="orderId" value={order.id} />
+                <AdminSelect
+                  name="fulfillmentMethod"
+                  label="Entrega ou retirada"
+                  defaultValue={order.fulfillmentMethod}
+                >
+                  {orderFulfillmentMethods.map((method) => (
+                    <option key={method} value={method}>
+                      {getOrderFulfillmentLabel(method)}
+                    </option>
+                  ))}
+                </AdminSelect>
+              </AdminActionForm>
+            </div>
+          </div>
           {order.status !== "CANCELLED" && (
             <div className="mt-4 flex justify-end border-t border-border pt-4">
               <DeleteActionDialog
@@ -431,6 +472,10 @@ function OrderManagement({
             {order.paymentMethod === "CARD" && <CreditCard className="h-4 w-4 text-purple-medium" />}
             {order.paymentMethod === "BOLETO" && <ReceiptText className="h-4 w-4 text-purple-medium" />}
             Pagamento via {getPaymentMethodLabel(order.paymentMethod)}
+          </p>
+          <p className="mt-2 flex items-center gap-2 text-[10px] font-bold text-muted-foreground">
+            <Truck className="h-4 w-4 text-purple-medium" />
+            {getOrderFulfillmentLabel(order.fulfillmentMethod)}
           </p>
         </div>
       </section>

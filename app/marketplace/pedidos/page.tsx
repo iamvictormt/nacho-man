@@ -1,4 +1,13 @@
-import { CalendarDays, ChevronDown, CreditCard, MessageCircle, PackageCheck, ReceiptText, WalletCards } from "lucide-react"
+import {
+  CalendarDays,
+  ChevronDown,
+  CreditCard,
+  MessageCircle,
+  PackageCheck,
+  ReceiptText,
+  Truck,
+  WalletCards,
+} from "lucide-react"
 import { requireMarketplaceUser } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
@@ -10,6 +19,7 @@ import { formatOrderCode } from "@/lib/order-number"
 import { getOrderItemCategoryName, sortOrderItemsByCategory } from "@/lib/order-items"
 import { getOrderMessageSettings, getStoreWhatsAppNumber } from "@/lib/site-settings"
 import { buildWhatsAppUrl } from "@/lib/whatsapp"
+import { getOrderFulfillmentInstruction, getOrderFulfillmentLabel } from "@/lib/order-fulfillment"
 
 const statusLabels: Record<string, string> = {
   AWAITING_SERVICE: "Aguardando atendimento",
@@ -133,6 +143,7 @@ function OrderCard({
     number: number
     status: string
     paymentMethod: string
+    fulfillmentMethod: string
     subtotalInCents: number
     promotionDiscountInCents: number
     couponDiscountInCents: number
@@ -219,6 +230,10 @@ function OrderCard({
               : order.paymentMethod === "BOLETO"
                 ? "Boleto para franqueado"
                 : getPaymentMethodLabel(order.paymentMethod)}
+          </p>
+          <p className="mt-2 flex items-center gap-2 text-xs font-bold text-muted-foreground md:justify-end">
+            <Truck className="h-4 w-4 text-purple-medium" />
+            {getOrderFulfillmentLabel(order.fulfillmentMethod)}
           </p>
         </div>
       </div>
@@ -307,6 +322,7 @@ function buildOrderWhatsAppMessage({
 }: {
   order: {
     paymentMethod: string
+    fulfillmentMethod: string
     subtotalInCents: number
     promotionDiscountInCents: number
     couponDiscountInCents: number
@@ -348,10 +364,13 @@ function buildOrderWhatsAppMessage({
     order.couponDiscountInCents > 0 && order.coupon
       ? `Cupom ${order.coupon.code}: -${formatMoneyFromCents(order.couponDiscountInCents)}`
       : null,
-    order.pixDiscountInCents > 0
-      ? `${paymentDiscountLabel}: -${formatMoneyFromCents(order.pixDiscountInCents)}`
-      : null,
+    order.pixDiscountInCents > 0 ? `${paymentDiscountLabel}: -${formatMoneyFromCents(order.pixDiscountInCents)}` : null,
   ]
+    .filter(Boolean)
+    .join("\n")
+  const fulfillmentText = getOrderFulfillmentInstruction(order.fulfillmentMethod)
+  const notesLine = order.notes ? `Observações: ${order.notes}` : ""
+  const observationLines = [template.includes("{entrega}") ? null : `Entrega: ${fulfillmentText}`, notesLine]
     .filter(Boolean)
     .join("\n")
 
@@ -363,7 +382,8 @@ function buildOrderWhatsAppMessage({
     descontos: discountLines,
     total: `*${formatMoneyFromCents(order.totalInCents)}*`,
     pagamento: getPaymentMethodInstruction(order.paymentMethod),
-    observacoes: order.notes ? `Observações: ${order.notes}` : "",
+    entrega: fulfillmentText,
+    observacoes: observationLines,
   })
 }
 

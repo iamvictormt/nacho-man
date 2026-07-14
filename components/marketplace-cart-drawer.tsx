@@ -10,6 +10,7 @@ import {
   Plus,
   Send,
   ShoppingCart,
+  Truck,
   Trash2,
   X,
 } from "lucide-react"
@@ -17,6 +18,7 @@ import { useLockBodyScroll } from "@/hooks/use-lock-body-scroll"
 import { useMarketplaceCart } from "@/lib/marketplace-cart-store"
 import { formatMoneyFromCents } from "@/lib/money"
 import { getPaymentMethodLabel, type MarketplacePaymentMethod } from "@/lib/payment-method"
+import { getOrderFulfillmentLabel, type OrderFulfillmentMethod } from "@/lib/order-fulfillment"
 
 type CheckoutResponse = {
   whatsappUrl?: string
@@ -49,8 +51,10 @@ export function MarketplaceCartDrawer({
   boletoDiscountPercent: number
   allowBoleto?: boolean
 }) {
-  const { items, lastCheckout, open, closeCart, remove, setQuantity, clear, setLastCheckout, load } = useMarketplaceCart()
+  const { items, lastCheckout, open, closeCart, remove, setQuantity, clear, setLastCheckout, load } =
+    useMarketplaceCart()
   const [paymentMethod, setPaymentMethod] = useState<MarketplacePaymentMethod>("PIX")
+  const [fulfillmentMethod, setFulfillmentMethod] = useState<OrderFulfillmentMethod>("SHIP_BY_CARRIER")
   const [coupon, setCoupon] = useState("")
   const [notes, setNotes] = useState("")
   const [loading, setLoading] = useState(false)
@@ -170,6 +174,7 @@ export function MarketplaceCartDrawer({
             selectedOptions: item.selectedOptions,
           })),
           paymentMethod,
+          fulfillmentMethod,
           coupon: couponPreview?.code ?? "",
           notes: notes.trim(),
         }),
@@ -488,6 +493,44 @@ export function MarketplaceCartDrawer({
                     </div>
                   </section>
 
+                  <section>
+                    <p className="mb-3 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                      Entrega ou retirada
+                    </p>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFulfillmentMethod("SHIP_BY_CARRIER")
+                          setReviewing(false)
+                        }}
+                        className={`min-h-[78px] rounded-xl border p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-lime/40 hover:shadow-[0_10px_28px_rgba(0,0,0,0.18)] active:scale-[0.98] ${
+                          fulfillmentMethod === "SHIP_BY_CARRIER" ? "border-lime bg-lime/10" : "border-border"
+                        }`}
+                      >
+                        <Truck className="mb-2 h-4 w-4 text-lime" />
+                        <span className="block text-xs font-black">TRANSPORTADORA</span>
+                        <span className="mt-1 block text-[10px] text-muted-foreground">
+                          Receber no endereço combinado
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFulfillmentMethod("FACTORY_PICKUP")
+                          setReviewing(false)
+                        }}
+                        className={`min-h-[78px] rounded-xl border p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-lime/40 hover:shadow-[0_10px_28px_rgba(0,0,0,0.18)] active:scale-[0.98] ${
+                          fulfillmentMethod === "FACTORY_PICKUP" ? "border-lime bg-lime/10" : "border-border"
+                        }`}
+                      >
+                        <ShoppingCart className="mb-2 h-4 w-4 text-purple-medium" />
+                        <span className="block text-xs font-black">RETIRADA</span>
+                        <span className="mt-1 block text-[10px] text-muted-foreground">Retirar na fábrica</span>
+                      </button>
+                    </div>
+                  </section>
+
                   <section className="space-y-5">
                     <div className="space-y-3">
                       <label
@@ -557,6 +600,12 @@ export function MarketplaceCartDrawer({
                   <div className="mt-4 flex justify-between gap-4">
                     <span className="text-muted-foreground">Pagamento</span>
                     <span className="font-black uppercase">{getPaymentMethodLabel(paymentMethod)}</span>
+                  </div>
+                  <div className="mt-3 flex justify-between gap-4">
+                    <span className="text-muted-foreground">Entrega</span>
+                    <span className="text-right font-black uppercase">
+                      {getOrderFulfillmentLabel(fulfillmentMethod)}
+                    </span>
                   </div>
                   {couponPreview && (
                     <div className="mt-3 flex justify-between gap-4">
