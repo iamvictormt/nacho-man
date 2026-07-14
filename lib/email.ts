@@ -3,7 +3,9 @@ import "server-only"
 import nodemailer from "nodemailer"
 import type { SendMailOptions } from "nodemailer"
 
-type MailPayload = Pick<SendMailOptions, "to" | "subject" | "html" | "text" | "cc" | "bcc">
+type MailPayload = Pick<SendMailOptions, "to" | "subject" | "html" | "text" | "cc" | "bcc"> & {
+  copySender?: boolean
+}
 
 function getSmtpPort() {
   const port = Number(process.env.SMTP_PORT ?? 587)
@@ -57,15 +59,16 @@ export async function sendMail(payload: MailPayload) {
     },
   })
 
-  const senderCopy = getSenderCopyAddress()
+  const { copySender = true, ...mailPayload } = payload
+  const senderCopy = copySender ? getSenderCopyAddress() : undefined
   const bcc =
-    senderCopy && !recipientText(payload.to).toLowerCase().includes(senderCopy.toLowerCase())
-      ? addSenderCopyBcc(payload.bcc, senderCopy)
-      : payload.bcc
+    senderCopy && !recipientText(mailPayload.to).toLowerCase().includes(senderCopy.toLowerCase())
+      ? addSenderCopyBcc(mailPayload.bcc, senderCopy)
+      : mailPayload.bcc
 
   await transporter.sendMail({
     from: process.env.SMTP_FROM ?? process.env.SMTP_USER,
-    ...payload,
+    ...mailPayload,
     bcc,
   })
 }

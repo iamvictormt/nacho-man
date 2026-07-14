@@ -4,7 +4,13 @@ import { adaptMarketplaceProduct } from "@/lib/marketplace-product-adapter"
 
 export const dynamic = "force-dynamic"
 
-export default async function ProdutosPage() {
+type ProdutosPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}
+
+export default async function ProdutosPage({ searchParams }: ProdutosPageProps) {
+  const resolvedSearchParams = await searchParams
+  const initialCategory = getSearchParam(resolvedSearchParams, "category")
   const products = await prisma.product.findMany({
     where: { audience: "PUBLIC", active: true, category: { active: true } },
     include: { category: true },
@@ -20,5 +26,10 @@ export default async function ProdutosPage() {
     return first.name.localeCompare(second.name, "pt-BR")
   })
 
-  return <PublicProductsCatalog products={sortedProducts} />
+  return <PublicProductsCatalog products={sortedProducts} initialCategory={initialCategory ?? null} />
+}
+
+function getSearchParam(searchParams: Record<string, string | string[] | undefined> | undefined, key: string) {
+  const value = searchParams?.[key]
+  return Array.isArray(value) ? value[0] : value
 }

@@ -41,9 +41,32 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
   const resolvedSearchParams = await searchParams
   const audience = getProductAudience(resolvedSearchParams)
   const query = getSearchQuery(resolvedSearchParams)
+  const categorySlug = getSearchQuery(resolvedSearchParams, "categoria")
   const page = getCurrentPage(resolvedSearchParams)
+  const categories = await prisma.category.findMany({
+    select: { id: true, name: true, slug: true, _count: { select: { products: true } } },
+    orderBy: { name: "asc" },
+  })
+  const filterCategories = await prisma.category.findMany({
+    where: { products: { some: { audience } } },
+    include: {
+      _count: {
+        select: {
+          products: { where: { audience } },
+        },
+      },
+    },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+  })
+  const sortedFilterCategories = [...filterCategories].sort((first, second) => {
+    const countComparison = second._count.products - first._count.products
+    if (countComparison !== 0) return countComparison
+    return first.name.localeCompare(second.name, "pt-BR")
+  })
+  const selectedCategory = filterCategories.find((category) => category.slug === categorySlug)
   const productWhere: Prisma.ProductWhereInput = {
     audience,
+    ...(selectedCategory ? { category: { slug: selectedCategory.slug } } : {}),
     ...(query
       ? {
           OR: [
@@ -55,14 +78,10 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
         }
       : {}),
   }
-  const [totalProducts, franchiseeCount, publicCount, categories] = await Promise.all([
+  const [totalProducts, franchiseeCount, publicCount] = await Promise.all([
     prisma.product.count({ where: productWhere }),
     prisma.product.count({ where: { audience: "FRANCHISEE" } }),
     prisma.product.count({ where: { audience: "PUBLIC" } }),
-    prisma.category.findMany({
-      select: { id: true, name: true, _count: { select: { products: true } } },
-      orderBy: { name: "asc" },
-    }),
   ])
   const pagination = getPagination(page, totalProducts)
   const products = await prisma.product.findMany({
@@ -98,7 +117,13 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
 
       <ProductAudienceTabs currentAudience={audience} franchiseeCount={franchiseeCount} publicCount={publicCount} />
 
-      <div className="mt-8 flex justify-end">
+      <div className="mt-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <CategoryFilterChips
+          audience={audience}
+          searchParams={resolvedSearchParams}
+          categories={sortedFilterCategories}
+          selectedCategoryId={selectedCategory?.id ?? null}
+        />
         <AdminSearch containerId="products-grid" placeholder="Buscar produto ou categoria..." queryParam="q" />
       </div>
       <div id="products-grid" className="mt-6">
@@ -391,6 +416,88 @@ function ProductAudienceTabs({
         )
       })}
     </nav>
+  )
+}
+
+function CategoryFilterChips({
+  audience,
+  searchParams,
+  categories,
+  selectedCategoryId,
+}: {
+  audience: ProductAudienceValue
+  searchParams?: SearchParams
+  categories: Array<{ id: string; name: string; slug: string; _count: { products: number } }>
+  selectedCategoryId: string | null
+}) {
+  const total = categories.reduce((sum, category) => sum + category._count.products, 0)
+
+  return (
+    <nav className="flex flex-wrap gap-2" aria-label="Filtrar produtos por categoria">
+      <ProductCategoryFilterLink
+        active={!selectedCategoryId}
+        href={adminProductCategoryHref(searchParams, audience, null)}
+        label="Todas"
+        count={total}
+      />
+      {categories.map((category) => (
+        <ProductCategoryFilterLink
+          key={category.id}
+          active={selectedCategoryId === category.id}
+          href={adminProductCategoryHref(searchParams, audience, category.slug)}
+          label={category.name}
+          count={category._count.products}
+        />
+      ))}
+    </nav>
+  )
+}
+
+function adminProductCategoryHref(
+  searchParams: SearchParams | undefined,
+  audience: ProductAudienceValue,
+  categorySlug: string | null
+) {
+  const params = new URLSearchParams()
+  params.set("audience", audience)
+
+  for (const [key, value] of Object.entries(searchParams ?? {})) {
+    if (key === "page" || key === "audience" || key === "categoria" || value === undefined) continue
+    if (Array.isArray(value)) value.forEach((item) => params.append(key, item))
+    else params.set(key, value)
+  }
+
+  if (categorySlug) params.set("categoria", categorySlug)
+
+  return `/admin/produtos?${params.toString()}`
+}
+
+function ProductCategoryFilterLink({
+  active,
+  href,
+  label,
+  count,
+}: {
+  active: boolean
+  href: string
+  label: string
+  count: number
+}) {
+  return (
+    <Link
+      href={href}
+      scroll={false}
+      className={`inline-flex h-10 items-center gap-2 rounded-full border px-4 text-[10px] font-black uppercase tracking-wider transition ${
+        active
+          ? "border-lime bg-lime text-background"
+          : "border-border bg-graphite text-muted-foreground hover:border-lime/40 hover:text-lime"
+      }`}
+    >
+      {label}
+      <span className={`rounded-full px-2 py-0.5 text-[9px] ${active ? "bg-background/15" : "bg-background"}`}>
+        {count}
+      </span>
+    </Link>
   )
 }
 

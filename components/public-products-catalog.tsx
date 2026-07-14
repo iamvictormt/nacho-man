@@ -15,17 +15,39 @@ function normalizeSearchText(value: string) {
     .toLocaleLowerCase("pt-BR")
 }
 
-export function PublicProductsCatalog({ products }: { products: CatalogProduct[] }) {
+export function PublicProductsCatalog({
+  products,
+  initialCategory = null,
+}: {
+  products: CatalogProduct[]
+  initialCategory?: string | null
+}) {
   const [search, setSearch] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(initialCategory)
+  const categoryFilters = useMemo(() => {
+    const totals = products.reduce<Record<string, number>>((acc, product) => {
+      acc[product.subcategory] = (acc[product.subcategory] ?? 0) + 1
+      return acc
+    }, {})
+
+    return Object.entries(totals)
+      .map(([name, count]) => ({ name, count }))
+      .sort((first, second) => {
+        const countComparison = second.count - first.count
+        if (countComparison !== 0) return countComparison
+        return first.name.localeCompare(second.name, "pt-BR")
+      })
+  }, [products])
 
   const filteredProducts = useMemo(() => {
     const normalizedSearch = normalizeSearchText(search.trim())
 
-    if (!normalizedSearch) {
-      return products
-    }
-
     return products.filter((product) => {
+      const matchesCategory =
+        !selectedCategory || product.subcategory === selectedCategory || product.category === selectedCategory
+      if (!matchesCategory) return false
+      if (!normalizedSearch) return true
+
       const searchableContent = [
         product.name,
         product.displayName,
@@ -38,7 +60,7 @@ export function PublicProductsCatalog({ products }: { products: CatalogProduct[]
 
       return normalizeSearchText(searchableContent).includes(normalizedSearch)
     })
-  }, [products, search])
+  }, [products, search, selectedCategory])
 
   return (
     <main className="min-h-screen bg-background">
@@ -53,6 +75,24 @@ export function PublicProductsCatalog({ products }: { products: CatalogProduct[]
         <div className="mx-auto max-w-7xl px-4">
           <div className="mb-6">
             <SearchBar value={search} onChange={setSearch} />
+          </div>
+
+          <div className="mb-8 flex flex-wrap gap-2">
+            <CategoryChip
+              active={!selectedCategory}
+              label="Todas"
+              count={products.length}
+              onClick={() => setSelectedCategory(null)}
+            />
+            {categoryFilters.map((category) => (
+              <CategoryChip
+                key={category.name}
+                active={selectedCategory === category.name}
+                label={category.name}
+                count={category.count}
+                onClick={() => setSelectedCategory(category.name)}
+              />
+            ))}
           </div>
 
           {filteredProducts.length > 0 ? (
@@ -78,7 +118,10 @@ export function PublicProductsCatalog({ products }: { products: CatalogProduct[]
               <h3 className="mb-2 mt-1 text-lg font-black text-foreground">Nenhum produto encontrado</h3>
               <p className="mb-6 max-w-sm text-sm text-muted-foreground">Tente buscar por outro termo ou nome.</p>
               <button
-                onClick={() => setSearch("")}
+                onClick={() => {
+                  setSearch("")
+                  setSelectedCategory(null)
+                }}
                 className="rounded-full bg-lime px-6 py-3 text-sm font-black tracking-wider text-background transition-all duration-300 hover:shadow-[0_0_20px_rgba(239,255,13,0.3)]"
               >
                 LIMPAR BUSCA
@@ -107,5 +150,34 @@ export function PublicProductsCatalog({ products }: { products: CatalogProduct[]
         </div>
       </section>
     </main>
+  )
+}
+
+function CategoryChip({
+  active,
+  label,
+  count,
+  onClick,
+}: {
+  active: boolean
+  label: string
+  count: number
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex h-10 items-center gap-2 rounded-full border px-4 text-[10px] font-black uppercase tracking-wider transition ${
+        active
+          ? "border-lime bg-lime text-background"
+          : "border-border bg-graphite text-muted-foreground hover:border-lime/40 hover:text-lime"
+      }`}
+    >
+      {label}
+      <span className={`rounded-full px-2 py-0.5 text-[9px] ${active ? "bg-background/15" : "bg-background"}`}>
+        {count}
+      </span>
+    </button>
   )
 }

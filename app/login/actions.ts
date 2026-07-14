@@ -266,6 +266,7 @@ export async function requestPasswordResetAction(
 
   await sendMail({
     to: user.email,
+    copySender: false,
     ...emailContent,
   })
 
