@@ -20,6 +20,7 @@ import { getOrderItemCategoryName, sortOrderItemsByCategory } from "@/lib/order-
 import { getOrderMessageSettings, getStoreWhatsAppNumber } from "@/lib/site-settings"
 import { buildWhatsAppUrl } from "@/lib/whatsapp"
 import { getOrderFulfillmentInstruction, getOrderFulfillmentLabel } from "@/lib/order-fulfillment"
+import { formatBrazilDateTime } from "@/lib/date-format"
 
 const statusLabels: Record<string, string> = {
   AWAITING_SERVICE: "Aguardando atendimento",
@@ -209,7 +210,7 @@ function OrderCard({
           </div>
           <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
             <CalendarDays className="h-4 w-4 text-purple-medium" />
-            Enviado em {formatDateTime(order.createdAt)}
+            Enviado em {formatBrazilDateTime(order.createdAt)}
           </p>
           <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-background">
             <div
@@ -440,14 +441,4 @@ function SummaryLine({ label, value }: { label: string; value: number }) {
       </span>
     </div>
   )
-}
-
-function formatDateTime(date: Date) {
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date)
 }

@@ -24,6 +24,7 @@ import { formatOrderCode } from "@/lib/order-number"
 import { getOrderItemCategoryName, sortOrderItemsByCategory } from "@/lib/order-items"
 import { buildWhatsAppUrl } from "@/lib/whatsapp"
 import { getOrderFulfillmentLabel, orderFulfillmentMethods } from "@/lib/order-fulfillment"
+import { formatBrazilDateTime } from "@/lib/date-format"
 
 const statusLabels: Record<string, string> = {
   AWAITING_SERVICE: "Aguardando atendimento",
@@ -130,7 +131,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
                     <h2 className="mt-2 truncate text-sm font-black uppercase">{buyerName}</h2>
                     <p className="mt-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
                       <CalendarDays className="h-3.5 w-3.5 text-purple-medium" />
-                      {formatDateTime(order.createdAt)}
+                      {formatBrazilDateTime(order.createdAt)}
                     </p>
                   </div>
                   <div className="min-w-0">
@@ -592,14 +593,4 @@ function getOrderOwnerWhatsApp(order: {
   if (!digits) return null
 
   return digits.startsWith("55") ? digits : `55${digits}`
-}
-
-function formatDateTime(date: Date) {
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date)
 }
