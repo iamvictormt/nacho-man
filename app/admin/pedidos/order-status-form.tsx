@@ -91,7 +91,7 @@ export function OrderStatusForm({
             size="sm"
             aria-label="Alterar status do pedido"
             className={cn(
-              "h-10 w-[190px] rounded-full px-4 text-left text-[8px] font-black uppercase leading-3 tracking-wider shadow-none ring-1 ring-inset ring-white/5 transition hover:-translate-y-px hover:brightness-110 focus-visible:ring-2 focus-visible:ring-lime/60 [&>span]:min-w-0 [&>span]:whitespace-normal [&>svg]:size-3.5 [&>svg]:opacity-70",
+              "h-10 w-[190px] rounded-full px-4 text-left text-[8px] font-black uppercase leading-3 tracking-wider shadow-none ring-1 ring-inset ring-black/5 transition hover:-translate-y-px hover:brightness-95 focus-visible:ring-2 focus-visible:ring-lime/60 dark:ring-white/5 dark:hover:brightness-110 [&>span]:min-w-0 [&>span]:whitespace-normal [&>svg]:size-3.5 [&>svg]:opacity-70",
               statusClassName
             )}
           >

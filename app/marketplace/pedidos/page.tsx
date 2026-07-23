@@ -34,10 +34,13 @@ const statusLabels: Record<string, string> = {
 
 const statusClasses: Record<string, string> = {
   AWAITING_SERVICE: "border-purple-medium/30 bg-purple-medium/10 text-purple-medium",
-  AWAITING_PAYMENT: "border-amber-400/30 bg-amber-400/10 text-amber-300",
+  AWAITING_PAYMENT:
+    "border-orange-700/25 bg-orange-100 text-orange-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300",
   PAYMENT_CONFIRMED: "border-lime/30 bg-lime/10 text-lime",
-  PICKING: "border-sky-400/30 bg-sky-400/10 text-sky-300",
-  SHIPPED: "border-blue-400/30 bg-blue-400/10 text-blue-300",
+  PICKING:
+    "border-cyan-700/25 bg-cyan-100 text-cyan-900 dark:border-sky-400/30 dark:bg-sky-400/10 dark:text-sky-300",
+  SHIPPED:
+    "border-blue-700/25 bg-blue-100 text-blue-900 dark:border-blue-400/30 dark:bg-blue-400/10 dark:text-blue-300",
   DELIVERED: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
   CANCELLED: "border-red-400/30 bg-red-500/10 text-red-300",
 }
