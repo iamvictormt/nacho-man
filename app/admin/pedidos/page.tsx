@@ -25,6 +25,7 @@ import { getOrderItemCategoryName, sortOrderItemsByCategory } from "@/lib/order-
 import { buildWhatsAppUrl } from "@/lib/whatsapp"
 import { getOrderFulfillmentLabel, orderFulfillmentMethods } from "@/lib/order-fulfillment"
 import { formatBrazilDateTime } from "@/lib/date-format"
+import { OrderStatusForm } from "./order-status-form"
 
 const statusLabels: Record<string, string> = {
   AWAITING_SERVICE: "Aguardando atendimento",
@@ -100,8 +101,8 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
 
       {orders.length > 0 ? (
         <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-background">
-          <div className="hidden grid-cols-[minmax(200px,1.35fr)_minmax(160px,1fr)_110px_110px_145px_72px] gap-5 border-b border-border bg-graphite px-5 py-3 xl:grid">
-            {["Pedido", "Itens", "Total", "Pagamento", "Status", "Ações"].map((label) => (
+          <div className="hidden grid-cols-[minmax(180px,0.85fr)_minmax(260px,1.2fr)_150px_220px_72px] gap-8 border-b border-border bg-graphite px-5 py-3 xl:grid">
+            {["Pedido", "Itens", "Total", "Status", "Ações"].map((label) => (
               <p key={label} className="text-[9px] font-black uppercase tracking-[0.14em] text-muted-foreground">
                 {label}
               </p>
@@ -118,7 +119,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
                 <article
                   key={order.id}
                   data-search={`${number} ${buyerName} ${statusLabels[order.status]}`}
-                  className="group relative grid gap-4 px-4 py-5 transition hover:bg-graphite/55 sm:grid-cols-2 sm:px-5 xl:grid-cols-[minmax(200px,1.35fr)_minmax(160px,1fr)_110px_110px_145px_72px] xl:items-center"
+                  className="group relative grid gap-4 px-4 py-5 transition hover:bg-graphite/55 sm:grid-cols-2 sm:px-5 xl:grid-cols-[minmax(180px,0.85fr)_minmax(260px,1.2fr)_150px_220px_72px] xl:items-center xl:gap-8"
                 >
                   <span
                     className={`absolute inset-y-4 left-0 w-0.5 rounded-full ${order.status === "CANCELLED" ? "bg-red-400" : "bg-lime"}`}
@@ -128,7 +129,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
                       <ReceiptText className="h-4 w-4 text-lime" />
                       <p className="text-[10px] font-black uppercase tracking-[0.14em] text-lime">{number}</p>
                     </div>
-                    <h2 className="mt-2 truncate text-sm font-black uppercase">{buyerName}</h2>
+                    <h2 className="mt-2 truncate text-xs font-black uppercase leading-4">{buyerName}</h2>
                     <p className="mt-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
                       <CalendarDays className="h-3.5 w-3.5 text-purple-medium" />
                       {formatBrazilDateTime(order.createdAt)}
@@ -148,10 +149,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
                     <p className="mt-1 text-base font-black text-lime xl:mt-0">
                       {formatMoneyFromCents(order.totalInCents)}
                     </p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-black uppercase text-muted-foreground xl:hidden">Pagamento</p>
-                    <p className="mt-1 flex items-center gap-2 text-xs font-bold xl:mt-0">
+                    <p className="mt-1.5 flex items-center gap-2 text-[10px] font-bold text-foreground/80">
                       {order.paymentMethod === "PIX" && <WalletCards className="h-4 w-4 text-lime" />}
                       {order.paymentMethod === "CARD" && <CreditCard className="h-4 w-4 text-purple-medium" />}
                       {order.paymentMethod === "BOLETO" && <ReceiptText className="h-4 w-4 text-purple-medium" />}
@@ -159,11 +157,14 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
                     </p>
                   </div>
                   <div>
-                    <span
-                      className={`inline-flex rounded-full border px-3 py-1.5 text-[9px] font-black uppercase tracking-wider ${statusClasses[order.status]}`}
-                    >
-                      {statusLabels[order.status]}
-                    </span>
+                    <OrderStatusForm
+                      orderId={order.id}
+                      orderNumber={number}
+                      currentStatus={order.status}
+                      currentStatusLabel={statusLabels[order.status] ?? order.status}
+                      options={editableStatusLabels.map(([value, label]) => ({ value, label }))}
+                      statusClassNames={statusClasses}
+                    />
                   </div>
                   <AdminManageModal
                     id={`manage-order-${order.id}`}

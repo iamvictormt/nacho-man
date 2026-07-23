@@ -107,12 +107,27 @@ function revalidateOrderPaths() {
   revalidatePath("/marketplace/pedidos")
 }
 
+const editableOrderStatuses: readonly OrderStatus[] = [
+  OrderStatus.AWAITING_SERVICE,
+  OrderStatus.AWAITING_PAYMENT,
+  OrderStatus.PAYMENT_CONFIRMED,
+  OrderStatus.PICKING,
+  OrderStatus.SHIPPED,
+  OrderStatus.DELIVERED,
+]
+
 export async function updateOrderStatusAction(formData: FormData) {
   await requireAdmin()
   const orderId = String(formData.get("orderId") ?? "")
   const status = String(formData.get("status") ?? "") as OrderStatus
 
-  if (!orderId || !Object.values(OrderStatus).includes(status)) return
+  if (!orderId || !editableOrderStatuses.includes(status)) return
+
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { status: true },
+  })
+  if (!order || order.status === status || order.status === OrderStatus.CANCELLED) return
 
   await prisma.order.update({
     where: { id: orderId },
@@ -124,8 +139,7 @@ export async function updateOrderStatusAction(formData: FormData) {
     },
   })
 
-  revalidatePath("/admin/pedidos")
-  revalidatePath("/marketplace/pedidos")
+  revalidateOrderPaths()
 }
 
 export async function updateOrderFulfillmentMethodAction(formData: FormData) {

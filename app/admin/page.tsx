@@ -424,9 +424,6 @@ export default async function AdminPage() {
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-2">
                         <strong className="text-xs">{formatOrderCode(order.number)}</strong>
-                        <span className="truncate text-[10px] text-muted-foreground">
-                          {order.franchise?.tradeName ?? order.user?.name ?? "Cliente Nacho Man"}
-                        </span>
                       </span>
                       <span className="mt-1 block truncate text-[10px] text-muted-foreground">
                         {statusLabels[order.status]} · {order._count.items}{" "}
