@@ -1,12 +1,13 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
+import { revalidatePath, updateTag } from "next/cache"
 import { requireAdmin } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import {
   loginImageSettings,
   orderMessageSettings,
   paymentDiscountSettings,
+  SITE_SETTINGS_CACHE_TAG,
   storeWhatsAppSetting,
 } from "@/lib/site-settings"
 import { sanitizeWhatsAppNumber } from "@/lib/whatsapp"
@@ -92,6 +93,7 @@ export async function updateLoginImagesAction(formData: FormData) {
     )
   )
 
+  updateTag(SITE_SETTINGS_CACHE_TAG)
   revalidatePath("/admin/configuracoes")
   revalidatePath("/login")
   revalidatePath("/")

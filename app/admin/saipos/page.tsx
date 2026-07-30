@@ -206,11 +206,7 @@ function topEntries(totals: Record<string, number>, limit = 6) {
     .slice(0, limit)
 }
 
-export default async function SaiposDashboardPage({
-  searchParams,
-}: {
-  searchParams?: Promise<PageSearchParams>
-}) {
+export default async function SaiposDashboardPage({ searchParams }: { searchParams?: Promise<PageSearchParams> }) {
   const resolvedSearchParams = (await searchParams) ?? {}
   const period = normalizeSaiposPeriod(resolvedSearchParams)
   const selectedStore = getSearchParam(resolvedSearchParams, "store") ?? "all"
@@ -288,7 +284,9 @@ export default async function SaiposDashboardPage({
     {
       key: isStoreFiltered ? "highest-sale" : "stores",
       label: isStoreFiltered ? "Maior venda" : "Lojas ativas",
-      value: isStoreFiltered ? formatMoneyFromAmount(highestSale) : String(new Set(validSales.map((sale) => sale.idStore)).size),
+      value: isStoreFiltered
+        ? formatMoneyFromAmount(highestSale)
+        : String(new Set(validSales.map((sale) => sale.idStore)).size),
       detail: isStoreFiltered ? "Pedido válido no período" : "Com vendas no período",
       icon: Store,
       tone: "purple",
@@ -342,10 +340,10 @@ export default async function SaiposDashboardPage({
           />
           <AdminSelect name="store" label="Loja" defaultValue={selectedStore}>
             <option value="all">Todas as lojas</option>
-              {storeOptions.map((store) => (
-                <option key={store.value} value={store.value}>
-                  {store.label}
-                </option>
+            {storeOptions.map((store) => (
+              <option key={store.value} value={store.value}>
+                {store.label}
+              </option>
             ))}
           </AdminSelect>
           <FilterSubmitButton />
@@ -482,13 +480,15 @@ function SyncStatusCard({ lastSync }: { lastSync: SaiposSyncRun | null }) {
   const statusLabel =
     lastSync?.status === "SUCCESS"
       ? "Atualizado"
-      : lastSync?.status === "PARTIAL"
-        ? "Atualização parcial"
-        : lastSync?.status === "FAILED"
-          ? "A última sincronização falhou"
-          : lastSync?.status === "RUNNING"
-            ? "Sincronizando"
-            : "Aguardando a primeira sincronização"
+      : lastSync?.status === "SKIPPED"
+        ? "Ja estava atualizado"
+        : lastSync?.status === "PARTIAL"
+          ? "Atualização parcial"
+          : lastSync?.status === "FAILED"
+            ? "A última sincronização falhou"
+            : lastSync?.status === "RUNNING"
+              ? "Sincronizando"
+              : "Aguardando a primeira sincronização"
   const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
     timeStyle: "short",

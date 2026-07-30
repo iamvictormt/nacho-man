@@ -10,7 +10,23 @@ import { ProductDetailCard } from "@/components/product-detail-card"
 import { PaginationControls } from "@/components/pagination-controls"
 import { getCurrentPage, getPagination, getSearchQuery, type SearchParams } from "@/lib/pagination"
 
-type MarketplaceProductListItem = Prisma.ProductGetPayload<{ include: { category: true } }>
+const marketplaceProductSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  description: true,
+  features: true,
+  applications: true,
+  storageInfo: true,
+  usageInfo: true,
+  yieldInfo: true,
+  image: true,
+  priceInCents: true,
+  unit: true,
+  packageLabel: true,
+  minimumQuantity: true,
+  category: { select: { name: true } },
+} satisfies Prisma.ProductSelect
 
 export default async function MarketplaceProductsPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const resolvedSearchParams = await searchParams
@@ -55,14 +71,15 @@ export default async function MarketplaceProductsPage({ searchParams }: { search
         }
       : {}),
   }
+  const totalProducts = await prisma.product.count({ where })
+  const pagination = getPagination(page, totalProducts)
   const products = await prisma.product.findMany({
     where,
-    include: { category: true },
+    select: marketplaceProductSelect,
     orderBy: [{ category: { sortOrder: "asc" } }, { category: { name: "asc" } }, { featured: "desc" }, { name: "asc" }],
+    skip: pagination.skip,
+    take: pagination.take,
   })
-  const sortedProducts = products.sort(compareMarketplaceProducts)
-  const pagination = getPagination(page, sortedProducts.length)
-  const paginatedProducts = sortedProducts.slice(pagination.skip, pagination.skip + pagination.take)
 
   return (
     <main>
@@ -77,7 +94,7 @@ export default async function MarketplaceProductsPage({ searchParams }: { search
         icon={PackageSearch}
       >
         <div className="w-fit rounded-2xl border border-lime/20 bg-lime/10 px-5 py-4">
-          <p className="text-2xl font-black text-lime">{sortedProducts.length}</p>
+          <p className="text-2xl font-black text-lime">{totalProducts}</p>
           <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">produtos ativos</p>
         </div>
       </PrivatePageHeader>
@@ -113,13 +130,13 @@ export default async function MarketplaceProductsPage({ searchParams }: { search
           ))}
         </div>
 
-        {paginatedProducts.length === 0 ? (
+        {products.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border p-12 text-center text-muted-foreground">
             O catálogo ainda não possui produtos ativos.
           </div>
         ) : (
           <div id="marketplace-products-list" className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
-            {paginatedProducts.map((product) => (
+            {products.map((product) => (
               <div
                 key={product.id}
                 data-search={`${product.name} ${product.description ?? ""} ${product.category.name} ${product.packageLabel} ${product.unit}`}
@@ -191,23 +208,4 @@ function CategoryFilterLink({
       </span>
     </Link>
   )
-}
-
-function getMarketplaceProductLine(product: MarketplaceProductListItem) {
-  return adaptMarketplaceProduct(product).category === "CONGELADO" ? 0 : 1
-}
-
-function compareMarketplaceProducts(first: MarketplaceProductListItem, second: MarketplaceProductListItem) {
-  const lineComparison = getMarketplaceProductLine(first) - getMarketplaceProductLine(second)
-  if (lineComparison !== 0) return lineComparison
-
-  const categoryOrderComparison = first.category.sortOrder - second.category.sortOrder
-  if (categoryOrderComparison !== 0) return categoryOrderComparison
-
-  const categoryNameComparison = first.category.name.localeCompare(second.category.name, "pt-BR")
-  if (categoryNameComparison !== 0) return categoryNameComparison
-
-  if (first.featured !== second.featured) return first.featured ? -1 : 1
-
-  return first.name.localeCompare(second.name, "pt-BR")
 }

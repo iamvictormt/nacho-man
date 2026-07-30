@@ -99,40 +99,59 @@ export default async function AdminPage() {
   const nextMonthStart = zonedMonthStartUtc(currentYear, currentMonth + 1)
   const sixMonthsStart = zonedMonthStartUtc(currentYear, currentMonth - 5)
 
-  const [products, franchises, userCount, activePromotions, periodOrders, recentOrders, orderItems, comboItems] =
-    await Promise.all([
-      prisma.product.count({ where: { active: true } }),
-      prisma.franchise.count({ where: { active: true } }),
-      prisma.user.count({ where: { role: { in: ["FRANCHISEE", "USER"] } } }),
-      prisma.promotion.count({
-        where: { active: true, startsAt: { lte: now }, endsAt: { gte: now } },
-      }),
-      prisma.order.findMany({
-        where: { createdAt: { gte: sixMonthsStart } },
-        select: {
-          id: true,
-          status: true,
-          totalInCents: true,
-          createdAt: true,
-          franchise: { select: { tradeName: true } },
-          user: { select: { name: true } },
-        },
-      }),
-      prisma.order.findMany({
-        take: 4,
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          number: true,
-          status: true,
-          totalInCents: true,
-          createdAt: true,
-          franchise: { select: { tradeName: true } },
-          user: { select: { name: true } },
-          _count: { select: { items: true } },
-        },
-      }),
-      prisma.orderItem.findMany({
+  const [
+    products,
+    franchises,
+    userCount,
+    activePromotions,
+    currentMonthSummary,
+    validPeriodOrders,
+    awaitingOrders,
+    monthlyRows,
+    statusRows,
+    topProducts,
+    topCombos,
+    topFranchiseRows,
+    recentOrders,
+  ] = await Promise.all([
+    prisma.product.count({ where: { active: true } }),
+    prisma.franchise.count({ where: { active: true } }),
+    prisma.user.count({ where: { role: { in: ["FRANCHISEE", "USER"] } } }),
+    prisma.promotion.count({
+      where: { active: true, startsAt: { lte: now }, endsAt: { gte: now } },
+    }),
+    prisma.order.aggregate({
+      where: {
+        status: { not: "CANCELLED" },
+        createdAt: { gte: monthStart, lt: nextMonthStart },
+      },
+      _count: { _all: true },
+      _sum: { totalInCents: true },
+    }),
+    prisma.order.count({
+      where: { status: { not: "CANCELLED" }, createdAt: { gte: sixMonthsStart } },
+    }),
+    prisma.order.count({
+      where: { status: { in: ["AWAITING_SERVICE", "AWAITING_PAYMENT"] }, createdAt: { gte: sixMonthsStart } },
+    }),
+    prisma.$queryRaw<Array<{ key: string; orders: number; totalInCents: number }>>`
+        SELECT
+          to_char(date_trunc('month', "createdAt" AT TIME ZONE ${businessTimeZone}), 'YYYY-MM') AS "key",
+          COUNT(*)::int AS "orders",
+          COALESCE(SUM("totalInCents"), 0)::int AS "totalInCents"
+        FROM "Order"
+        WHERE "createdAt" >= ${sixMonthsStart}
+          AND "status" <> 'CANCELLED'
+        GROUP BY 1
+      `,
+    prisma.order.groupBy({
+      by: ["status"],
+      where: { createdAt: { gte: sixMonthsStart } },
+      _count: { _all: true },
+    }),
+    prisma.orderItem
+      .groupBy({
+        by: ["name"],
         where: {
           productId: { not: null },
           order: {
@@ -140,9 +159,14 @@ export default async function AdminPage() {
             createdAt: { gte: sixMonthsStart },
           },
         },
-        select: { name: true, quantity: true },
-      }),
-      prisma.orderItem.findMany({
+        _sum: { quantity: true },
+        orderBy: { _sum: { quantity: "desc" } },
+        take: 3,
+      })
+      .then((items) => items.map((item) => ({ name: item.name, quantity: item._sum.quantity ?? 0 }))),
+    prisma.orderItem
+      .groupBy({
+        by: ["name"],
         where: {
           comboId: { not: null },
           order: {
@@ -150,91 +174,78 @@ export default async function AdminPage() {
             createdAt: { gte: sixMonthsStart },
           },
         },
-        select: { name: true, quantity: true },
-      }),
-    ])
+        _sum: { quantity: true },
+        orderBy: { _sum: { quantity: "desc" } },
+        take: 3,
+      })
+      .then((items) => items.map((item) => ({ name: item.name, quantity: item._sum.quantity ?? 0 }))),
+    prisma.$queryRaw<Array<{ name: string; orders: number; totalInCents: number }>>`
+        SELECT
+          COALESCE(f."tradeName", u."name", 'Cliente Nacho Man') AS "name",
+          COUNT(*)::int AS "orders",
+          COALESCE(SUM(o."totalInCents"), 0)::int AS "totalInCents"
+        FROM "Order" o
+        LEFT JOIN "Franchise" f ON f."id" = o."franchiseId"
+        LEFT JOIN "User" u ON u."id" = o."userId"
+        WHERE o."createdAt" >= ${sixMonthsStart}
+          AND o."status" <> 'CANCELLED'
+        GROUP BY 1
+        ORDER BY "totalInCents" DESC
+        LIMIT 1
+      `,
+    prisma.order.findMany({
+      take: 4,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        number: true,
+        status: true,
+        totalInCents: true,
+        createdAt: true,
+        franchise: { select: { tradeName: true } },
+        user: { select: { name: true } },
+        _count: { select: { items: true } },
+      },
+    }),
+  ])
 
-  const validOrders = periodOrders.filter((order) => order.status !== "CANCELLED")
-  const currentMonthOrders = validOrders.filter(
-    (order) => order.createdAt >= monthStart && order.createdAt < nextMonthStart
-  )
-  const currentMonthValue = currentMonthOrders.reduce((total, order) => total + order.totalInCents, 0)
-  const awaitingOrders = periodOrders.filter((order) =>
-    ["AWAITING_SERVICE", "AWAITING_PAYMENT"].includes(order.status)
-  ).length
+  const currentMonthOrderCount = currentMonthSummary._count._all
+  const currentMonthValue = currentMonthSummary._sum.totalInCents ?? 0
 
   const monthlyData = Array.from({ length: 6 }, (_, index) => {
     const date = zonedMonthStartUtc(currentYear, currentMonth - 5 + index)
+    const row = monthlyRows.find((item) => item.key === monthKey(date))
     return {
       key: monthKey(date),
       label: new Intl.DateTimeFormat("pt-BR", { month: "short", timeZone: businessTimeZone })
         .format(date)
         .replace(".", "")
         .toUpperCase(),
-      orders: 0,
-      totalInCents: 0,
+      orders: row?.orders ?? 0,
+      totalInCents: row?.totalInCents ?? 0,
     }
   })
 
-  for (const order of validOrders) {
-    const month = monthlyData.find((item) => item.key === monthKey(order.createdAt))
-    if (month) {
-      month.orders += 1
-      month.totalInCents += order.totalInCents
-    }
-  }
-
-  const statusCounts = periodOrders.reduce<Record<string, number>>((counts, order) => {
-    counts[order.status] = (counts[order.status] ?? 0) + 1
-    return counts
-  }, {})
-  const totalPeriodOrders = periodOrders.length
+  const statusCounts = Object.fromEntries(statusRows.map((row) => [row.status, row._count._all]))
+  const totalPeriodOrders = statusRows.reduce((total, row) => total + row._count._all, 0)
   const visibleStatuses = Object.entries(statusLabels)
     .map(([status, label]) => ({ status, label, count: statusCounts[status] ?? 0 }))
     .filter((item) => item.count > 0)
     .sort((a, b) => b.count - a.count)
-
-  const productTotals = orderItems.reduce<Record<string, number>>((totals, item) => {
-    totals[item.name] = (totals[item.name] ?? 0) + item.quantity
-    return totals
-  }, {})
-  const topProducts = Object.entries(productTotals)
-    .map(([name, quantity]) => ({ name, quantity }))
-    .sort((a, b) => b.quantity - a.quantity)
-    .slice(0, 3)
-  const comboTotals = comboItems.reduce<Record<string, number>>((totals, item) => {
-    totals[item.name] = (totals[item.name] ?? 0) + item.quantity
-    return totals
-  }, {})
-  const topCombos = Object.entries(comboTotals)
-    .map(([name, quantity]) => ({ name, quantity }))
-    .sort((a, b) => b.quantity - a.quantity)
-    .slice(0, 3)
-
-  const franchiseTotals = validOrders.reduce<Record<string, { orders: number; totalInCents: number }>>(
-    (totals, order) => {
-      const name = order.franchise?.tradeName ?? order.user?.name ?? "Cliente Nacho Man"
-      totals[name] ??= { orders: 0, totalInCents: 0 }
-      totals[name].orders += 1
-      totals[name].totalInCents += order.totalInCents
-      return totals
-    },
-    {}
-  )
-  const topFranchise = Object.entries(franchiseTotals).sort(([, a], [, b]) => b.totalInCents - a.totalInCents)[0]
+  const topFranchise = topFranchiseRows[0]
 
   const stats = [
     {
       label: "Valor dos pedidos no mês",
       value: formatMoneyFromCents(currentMonthValue),
-      detail: `${currentMonthOrders.length} pedidos não cancelados`,
+      detail: `${currentMonthOrderCount} pedidos não cancelados`,
       icon: CircleDollarSign,
       color: "lime",
     },
     {
       label: "Pedidos neste mês",
-      value: currentMonthOrders.length,
-      detail: `${validOrders.length} nos últimos 6 meses`,
+      value: currentMonthOrderCount,
+      detail: `${validPeriodOrders} nos últimos 6 meses`,
       icon: ReceiptText,
       color: "purple",
     },
@@ -248,7 +259,7 @@ export default async function AdminPage() {
     {
       label: "Franqueados ativos",
       value: franchises,
-      detail: topFranchise ? `Destaque: ${topFranchise[0]}` : "Nenhum pedido no período",
+      detail: topFranchise ? `Destaque: ${topFranchise.name}` : "Nenhum pedido no período",
       icon: Store,
       color: "purple",
     },

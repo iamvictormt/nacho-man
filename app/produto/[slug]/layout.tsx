@@ -3,8 +3,27 @@ import type { ReactNode } from "react"
 import { adaptMarketplaceProduct } from "@/lib/marketplace-product-adapter"
 import { prisma } from "@/lib/prisma"
 import { absoluteUrl } from "@/lib/seo"
+import type { Prisma } from "@prisma/client"
 
-export const dynamic = "force-dynamic"
+export const revalidate = 3600
+
+const productMetadataSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  description: true,
+  features: true,
+  applications: true,
+  storageInfo: true,
+  usageInfo: true,
+  yieldInfo: true,
+  image: true,
+  priceInCents: true,
+  unit: true,
+  packageLabel: true,
+  minimumQuantity: true,
+  category: { select: { name: true } },
+} satisfies Prisma.ProductSelect
 
 type ProductLayoutProps = {
   children: ReactNode
@@ -15,7 +34,7 @@ export async function generateMetadata({ params }: ProductLayoutProps): Promise<
   const { slug } = await params
   const productRecord = await prisma.product.findFirst({
     where: { slug, audience: "PUBLIC", active: true, category: { active: true } },
-    include: { category: true },
+    select: productMetadataSelect,
   })
 
   if (!productRecord) {

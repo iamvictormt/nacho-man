@@ -29,6 +29,10 @@ function parseShiftDate(value: string | undefined | null) {
   return new Date(`${dateOnly}T00:00:00.000Z`)
 }
 
+function parsePeriodBoundary(value: string, endOfDay = false) {
+  return new Date(`${value}T${endOfDay ? "23:59:59" : "00:00:00"}.000Z`)
+}
+
 function normalizeSaiposSale(sale: SaiposSale) {
   const createdAtSaipos = parseSaiposDate(sale.created_at)
   if (!createdAtSaipos) return null
@@ -70,12 +74,39 @@ export async function syncSaiposSales({
   period?: SaiposSalesPeriod
   dateColumn?: "shift_date" | "created_at" | "updated_at"
 } = {}) {
+  const periodStart = parsePeriodBoundary(period.start)
+  const periodEnd = parsePeriodBoundary(period.end, true)
+  const previousSuccess = await prisma.saiposSyncRun.findFirst({
+    where: {
+      status: "SUCCESS",
+      dateColumn,
+      periodStart,
+      periodEnd,
+    },
+    orderBy: { finishedAt: "desc" },
+  })
+
+  if (previousSuccess) {
+    return prisma.saiposSyncRun.create({
+      data: {
+        status: "SKIPPED",
+        dateColumn,
+        periodStart,
+        periodEnd,
+        recordsFetched: 0,
+        recordsUpserted: 0,
+        errorMessage: `Periodo ja sincronizado com sucesso em ${previousSuccess.finishedAt?.toISOString() ?? previousSuccess.startedAt.toISOString()}.`,
+        finishedAt: new Date(),
+      },
+    })
+  }
+
   const run = await prisma.saiposSyncRun.create({
     data: {
       status: "RUNNING",
       dateColumn,
-      periodStart: new Date(formatSaiposApiDate(period.start)),
-      periodEnd: new Date(formatSaiposApiDate(period.end, true)),
+      periodStart,
+      periodEnd,
     },
   })
 
@@ -123,4 +154,3 @@ export async function syncSaiposSales({
     throw error
   }
 }
-

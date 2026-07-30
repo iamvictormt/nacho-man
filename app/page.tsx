@@ -10,8 +10,27 @@ import { prisma } from "@/lib/prisma"
 import { absoluteUrl } from "@/lib/seo"
 import { getStoreWhatsAppNumber } from "@/lib/site-settings"
 import { buildWhatsAppUrl } from "@/lib/whatsapp"
+import type { Prisma } from "@prisma/client"
 
-export const dynamic = "force-dynamic"
+export const revalidate = 3600
+
+const featuredProductSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  description: true,
+  features: true,
+  applications: true,
+  storageInfo: true,
+  usageInfo: true,
+  yieldInfo: true,
+  image: true,
+  priceInCents: true,
+  unit: true,
+  packageLabel: true,
+  minimumQuantity: true,
+  category: { select: { name: true } },
+} satisfies Prisma.ProductSelect
 
 export const metadata: Metadata = {
   title: "Alimentos Prontos para sua Operação",
@@ -73,7 +92,7 @@ const processSteps = [
 export default async function Home() {
   const products = await prisma.product.findMany({
     where: { audience: "PUBLIC", active: true, category: { active: true } },
-    include: { category: true },
+    select: featuredProductSelect,
     orderBy: [{ featured: "desc" }, { name: "asc" }],
     take: 6,
   })
@@ -244,4 +263,3 @@ function ProcessSection() {
     </section>
   )
 }
-

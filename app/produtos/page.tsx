@@ -1,8 +1,27 @@
 import { PublicProductsCatalog } from "@/components/public-products-catalog"
 import { prisma } from "@/lib/prisma"
 import { adaptMarketplaceProduct } from "@/lib/marketplace-product-adapter"
+import type { Prisma } from "@prisma/client"
 
-export const dynamic = "force-dynamic"
+export const revalidate = 3600
+
+const publicProductSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  description: true,
+  features: true,
+  applications: true,
+  storageInfo: true,
+  usageInfo: true,
+  yieldInfo: true,
+  image: true,
+  priceInCents: true,
+  unit: true,
+  packageLabel: true,
+  minimumQuantity: true,
+  category: { select: { name: true } },
+} satisfies Prisma.ProductSelect
 
 type ProdutosPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
@@ -13,7 +32,7 @@ export default async function ProdutosPage({ searchParams }: ProdutosPageProps) 
   const initialCategory = getSearchParam(resolvedSearchParams, "category")
   const products = await prisma.product.findMany({
     where: { audience: "PUBLIC", active: true, category: { active: true } },
-    include: { category: true },
+    select: publicProductSelect,
     orderBy: [{ category: { sortOrder: "asc" } }, { category: { name: "asc" } }, { featured: "desc" }, { name: "asc" }],
   })
   const sortedProducts = products.map(adaptMarketplaceProduct).sort((first, second) => {

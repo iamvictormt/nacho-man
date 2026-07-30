@@ -71,13 +71,49 @@ async function getCartItems(user: MarketplaceUser) {
   const rows = await prisma.marketplaceCartItem.findMany({
     where: { userId: user.id },
     orderBy: { createdAt: "asc" },
-    include: {
-      product: { include: { category: true } },
+    select: {
+      id: true,
+      type: true,
+      quantity: true,
+      selectionKey: true,
+      selectedOptions: true,
+      product: {
+        select: {
+          id: true,
+          name: true,
+          image: true,
+          unit: true,
+          packageLabel: true,
+          priceInCents: true,
+          minimumQuantity: true,
+          audience: true,
+          active: true,
+          category: { select: { active: true } },
+        },
+      },
       combo: {
-        include: {
+        select: {
+          id: true,
+          name: true,
+          image: true,
+          priceInCents: true,
+          audience: true,
+          active: true,
+          startsAt: true,
+          endsAt: true,
+          totalUnits: true,
           options: {
-            include: {
-              product: { include: { category: true } },
+            select: {
+              productId: true,
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  image: true,
+                  active: true,
+                  category: { select: { active: true } },
+                },
+              },
             },
           },
         },
@@ -90,11 +126,7 @@ async function getCartItems(user: MarketplaceUser) {
   for (const row of rows) {
     if (row.type === "PRODUCT") {
       const product = row.product
-      const valid =
-        product &&
-        product.audience === audience &&
-        product.active &&
-        product.category.active
+      const valid = product && product.audience === audience && product.active && product.category.active
 
       if (!valid) {
         invalidIds.push(row.id)
@@ -122,7 +154,8 @@ async function getCartItems(user: MarketplaceUser) {
 
     const combo = row.combo
     const selectedOptions = readSelectedOptions(row.selectedOptions)
-    const activeOptions = combo?.options.filter((option) => option.product.active && option.product.category.active) ?? []
+    const activeOptions =
+      combo?.options.filter((option) => option.product.active && option.product.category.active) ?? []
     const optionMap = new Map(activeOptions.map((option) => [option.productId, option.product]))
     const selectedProductIds = new Set(selectedOptions.map((option) => option.productId))
     const selectedTotal = selectedOptions.reduce((total, option) => total + option.quantity, 0)
@@ -221,10 +254,24 @@ export async function POST(request: Request) {
           { OR: [{ endsAt: null }, { endsAt: { gte: new Date() } }] },
         ],
       },
-      include: { options: { include: { product: { include: { category: true } } } } },
+      select: {
+        totalUnits: true,
+        options: {
+          select: {
+            productId: true,
+            product: {
+              select: {
+                active: true,
+                category: { select: { active: true } },
+              },
+            },
+          },
+        },
+      },
     })
     const normalizedOptions = normalizeSelectedOptions(parsed.data.selectedOptions ?? [])
-    const activeOptions = combo?.options.filter((option) => option.product.active && option.product.category.active) ?? []
+    const activeOptions =
+      combo?.options.filter((option) => option.product.active && option.product.category.active) ?? []
     const selectedProductIds = new Set(normalizedOptions.map((option) => option.productId))
     const selectedTotal = normalizedOptions.reduce((total, option) => total + option.quantity, 0)
     const valid =
@@ -232,7 +279,9 @@ export async function POST(request: Request) {
       activeOptions.length === combo.options.length &&
       normalizedOptions.length === activeOptions.length &&
       selectedTotal === combo.totalUnits &&
-      normalizedOptions.every((option) => activeOptions.some((activeOption) => activeOption.productId === option.productId)) &&
+      normalizedOptions.every((option) =>
+        activeOptions.some((activeOption) => activeOption.productId === option.productId)
+      ) &&
       activeOptions.every((option) => selectedProductIds.has(option.productId))
 
     if (!valid) {
