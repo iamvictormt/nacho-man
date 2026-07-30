@@ -42,6 +42,12 @@ function formatAxisMoney(cents: number) {
   return `R$ ${Math.round(value)}`
 }
 
+function getRevenueBarSize(length: number) {
+  if (length <= 7) return 34
+  if (length <= 10) return 28
+  return 22
+}
+
 export function SaiposRevenueChart({ data }: { data: RevenuePoint[] }) {
   return (
     <ChartContainer config={revenueConfig} className="h-[280px] w-full min-w-0 md:h-[330px]">
@@ -62,7 +68,12 @@ export function SaiposRevenueChart({ data }: { data: RevenuePoint[] }) {
             />
           }
         />
-        <Bar dataKey="totalInCents" fill="var(--color-totalInCents)" radius={[7, 7, 0, 0]} barSize={34} />
+        <Bar
+          dataKey="totalInCents"
+          fill="var(--color-totalInCents)"
+          radius={[7, 7, 0, 0]}
+          barSize={getRevenueBarSize(data.length)}
+        />
       </BarChart>
     </ChartContainer>
   )
@@ -94,4 +105,3 @@ export function SaiposDistributionChart({ data }: { data: DistributionPoint[] })
     </ChartContainer>
   )
 }
-

@@ -25,8 +25,10 @@ import { formatBrazilDateTime } from "@/lib/date-format"
 const statusLabels: Record<string, string> = {
   AWAITING_SERVICE: "Aguardando atendimento",
   AWAITING_PAYMENT: "Aguardando pagamento",
-  PAYMENT_CONFIRMED: "Pagamento confirmado",
+  PAYMENT_CONFIRMED: "Pedido faturado",
   PICKING: "Em separação",
+  INVOICED: "Pedido faturado",
+  READY_FOR_PICKUP: "Pronto para retirada",
   SHIPPED: "Enviado",
   DELIVERED: "Entregue",
   CANCELLED: "Cancelado",
@@ -39,6 +41,8 @@ const statusClasses: Record<string, string> = {
   PAYMENT_CONFIRMED: "border-lime/30 bg-lime/10 text-lime",
   PICKING:
     "border-cyan-700/25 bg-cyan-100 text-cyan-900 dark:border-sky-400/30 dark:bg-sky-400/10 dark:text-sky-300",
+  INVOICED: "border-lime/30 bg-lime/10 text-lime",
+  READY_FOR_PICKUP: "border-purple-medium/30 bg-purple-medium/10 text-purple-medium",
   SHIPPED:
     "border-blue-700/25 bg-blue-100 text-blue-900 dark:border-blue-400/30 dark:bg-blue-400/10 dark:text-blue-300",
   DELIVERED: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
@@ -48,9 +52,11 @@ const statusClasses: Record<string, string> = {
 const progressByStatus: Record<string, number> = {
   AWAITING_SERVICE: 18,
   AWAITING_PAYMENT: 32,
-  PAYMENT_CONFIRMED: 48,
-  PICKING: 66,
-  SHIPPED: 84,
+  PAYMENT_CONFIRMED: 64,
+  PICKING: 48,
+  INVOICED: 64,
+  READY_FOR_PICKUP: 78,
+  SHIPPED: 90,
   DELIVERED: 100,
   CANCELLED: 100,
 }
@@ -73,7 +79,17 @@ export default async function FranchiseOrdersPage({ searchParams }: { searchPara
     prisma.order.count({
       where: {
         ...where,
-        status: { in: ["AWAITING_SERVICE", "AWAITING_PAYMENT", "PAYMENT_CONFIRMED", "PICKING", "SHIPPED"] },
+        status: {
+          in: [
+            "AWAITING_SERVICE",
+            "AWAITING_PAYMENT",
+            "PAYMENT_CONFIRMED",
+            "PICKING",
+            "INVOICED",
+            "READY_FOR_PICKUP",
+            "SHIPPED",
+          ],
+        },
       },
     }),
     prisma.order.count({ where: { ...where, status: "DELIVERED" } }),

@@ -7,7 +7,7 @@ const SAIPOS_SYNC_LIMIT = 300
 const SAIPOS_MAX_LIVE_PAGES = 1
 const SAIPOS_REQUEST_TIMEOUT_MS = 15000
 const SAIPOS_SYNC_REQUEST_TIMEOUT_MS = 60000
-const MAX_SALES_DAYS = 15
+const MAX_SALES_DAYS = 14
 const SAIPOS_RETRY_DELAYS_MS: number[] = []
 
 export type SaiposSale = {
@@ -100,11 +100,12 @@ function diffDays(start: Date, end: Date) {
 
 export function getSaiposDefaultPeriod(): SaiposSalesPeriod {
   const today = new Date()
-  const start = addDays(today, -6)
+  const yesterday = addDays(today, -1)
+  const start = addDays(yesterday, -(MAX_SALES_DAYS - 1))
 
   return {
     start: toDateInputValue(start),
-    end: toDateInputValue(today),
+    end: toDateInputValue(yesterday),
   }
 }
 
@@ -114,6 +115,9 @@ export function normalizeSaiposPeriod(searchParams: Record<string, string | stri
   const rawEnd = Array.isArray(searchParams.end) ? searchParams.end[0] : searchParams.end
   let start = parseLocalDate(rawStart ?? "", parseLocalDate(defaultPeriod.start, new Date()))
   let end = parseLocalDate(rawEnd ?? "", parseLocalDate(defaultPeriod.end, new Date()))
+  const maxEnd = parseLocalDate(defaultPeriod.end, addDays(new Date(), -1))
+
+  if (end > maxEnd) end = maxEnd
 
   if (start > end) {
     ;[start, end] = [end, start]

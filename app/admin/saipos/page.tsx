@@ -3,7 +3,6 @@ import type { SaiposSyncRun } from "@prisma/client"
 import {
   AlertTriangle,
   BarChart3,
-  CalendarDays,
   CircleDollarSign,
   CreditCard,
   Eye,
@@ -13,12 +12,13 @@ import {
   Store,
   TrendingUp,
 } from "lucide-react"
-import { AdminDatePicker, AdminSelect } from "@/components/admin-form-fields"
+import { AdminDateRangePicker, AdminSelect } from "@/components/admin-form-fields"
 import { PrivatePageHeader } from "@/components/private-page-header"
 import { SaiposDistributionChart, SaiposRevenueChart } from "@/components/saipos-dashboard-charts"
 import { prisma } from "@/lib/prisma"
 import { normalizeSaiposPeriod } from "@/lib/saipos-data-api"
 import { getSaiposRecommendedSyncText } from "@/lib/saipos-sync"
+import { FilterSubmitButton } from "./filter-submit-button"
 
 type PageSearchParams = Record<string, string | string[] | undefined>
 type SaiposDashboardSale = Awaited<ReturnType<typeof getSaiposDashboardSales>>[number]
@@ -79,6 +79,24 @@ function toPeriodEnd(value: string) {
   return new Date(`${value}T23:59:59.999Z`)
 }
 
+function addUtcDays(date: Date, days: number) {
+  const next = new Date(date)
+  next.setUTCDate(next.getUTCDate() + days)
+  return next
+}
+
+function toDateInputValue(date: Date) {
+  const year = date.getUTCFullYear()
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0")
+  const day = String(date.getUTCDate()).padStart(2, "0")
+
+  return `${year}-${month}-${day}`
+}
+
+function getSaleDate(sale: SaiposDashboardSale) {
+  return sale.shiftDate ?? sale.createdAtSaipos
+}
+
 function buildHref(searchParams: PageSearchParams, updates: Record<string, string | null>) {
   const params = new URLSearchParams()
 
@@ -114,21 +132,30 @@ function getPaymentLabel(sale: SaiposDashboardSale) {
   return sale.paymentMethod?.trim() || "Não informado"
 }
 
-function buildDailyRevenue(sales: SaiposDashboardSale[]) {
+function buildDailyRevenue(sales: SaiposDashboardSale[], period: { start: string; end: string }) {
   const totals = sales.reduce<Record<string, { totalInCents: number; orders: number }>>((acc, sale) => {
-    const key = (sale.shiftDate ?? sale.createdAtSaipos).toISOString().slice(0, 10)
+    const key = getSaleDate(sale).toISOString().slice(0, 10)
     acc[key] ??= { totalInCents: 0, orders: 0 }
     acc[key].orders += 1
     acc[key].totalInCents += sale.totalAmountInCents
     return acc
   }, {})
 
-  return Object.entries(totals)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, item]) => ({
+  const points: Array<{ label: string; totalInCents: number; orders: number }> = []
+  let current = toPeriodStart(period.start)
+  const end = toPeriodStart(period.end)
+
+  while (current <= end) {
+    const date = current.toISOString().slice(0, 10)
+    const item = totals[date] ?? { totalInCents: 0, orders: 0 }
+    points.push({
       label: date.includes("-") ? date.split("-").reverse().slice(0, 2).join("/") : date,
       ...item,
-    }))
+    })
+    current = addUtcDays(current, 1)
+  }
+
+  return points
 }
 
 async function getSaiposDashboardSales({
@@ -140,14 +167,24 @@ async function getSaiposDashboardSales({
 }) {
   return prisma.saiposSale.findMany({
     where: {
-      createdAtSaipos: {
-        gte: toPeriodStart(period.start),
-        lte: toPeriodEnd(period.end),
-      },
+      OR: [
+        {
+          shiftDate: {
+            gte: toPeriodStart(period.start),
+            lte: toPeriodEnd(period.end),
+          },
+        },
+        {
+          shiftDate: null,
+          createdAtSaipos: {
+            gte: toPeriodStart(period.start),
+            lte: toPeriodEnd(period.end),
+          },
+        },
+      ],
       ...(selectedStore === "all" ? {} : { idStore: Number(selectedStore) }),
     },
     orderBy: { createdAtSaipos: "desc" },
-    take: 5000,
   })
 }
 
@@ -198,7 +235,9 @@ export default async function SaiposDashboardPage({
     .slice(0, 6)
   const saleTypes = topEntries(groupBy(validSales, (sale) => saleTypeLabels[sale.idSaleType] ?? "Outro"))
   const paymentTypes = topEntries(groupBy(validSales, getPaymentLabel))
-  const dailyRevenue = buildDailyRevenue(validSales)
+  const dailyRevenue = buildDailyRevenue(validSales, period)
+  const yesterday = addUtcDays(toPeriodStart(toDateInputValue(new Date())), -1)
+  const maxDate = toDateInputValue(yesterday)
 
   const stats = [
     {
@@ -265,9 +304,16 @@ export default async function SaiposDashboardPage({
       </PrivatePageHeader>
 
       <div className="mx-auto max-w-7xl px-4 py-10 md:py-14">
-        <form className="grid gap-4 rounded-2xl border border-border bg-graphite p-4 md:grid-cols-[1fr_1fr_1fr_auto] md:items-start md:p-5">
-          <AdminDatePicker name="start" label="Início" defaultValue={period.start} valueFormat="iso" />
-          <AdminDatePicker name="end" label="Fim" defaultValue={period.end} valueFormat="iso" />
+        <form className="grid gap-4 rounded-2xl border border-border bg-graphite p-4 md:grid-cols-[minmax(320px,2fr)_minmax(220px,1fr)_auto] md:items-start md:p-5">
+          <AdminDateRangePicker
+            label="Selecione o período (máx. 14 dias) "
+            startName="start"
+            endName="end"
+            startValue={period.start}
+            endValue={period.end}
+            maxDate={maxDate}
+            maxRangeDays={14}
+          />
           <AdminSelect name="store" label="Loja" defaultValue={selectedStore}>
             <option value="all">Todas as lojas</option>
               {storeOptions.map((store) => (
@@ -277,10 +323,7 @@ export default async function SaiposDashboardPage({
             ))}
           </AdminSelect>
           <input type="hidden" name="cards" value={selectedCards.join(",")} />
-          <button className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-lime px-5 text-xs font-black uppercase tracking-wider text-background md:mt-[26px]">
-            <CalendarDays className="h-4 w-4" />
-            Filtrar
-          </button>
+          <FilterSubmitButton />
         </form>
 
         <section className="mt-4 rounded-2xl border border-border bg-graphite p-4 md:p-5">

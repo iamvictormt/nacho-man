@@ -110,8 +110,9 @@ function revalidateOrderPaths() {
 const editableOrderStatuses: readonly OrderStatus[] = [
   OrderStatus.AWAITING_SERVICE,
   OrderStatus.AWAITING_PAYMENT,
-  OrderStatus.PAYMENT_CONFIRMED,
   OrderStatus.PICKING,
+  OrderStatus.INVOICED,
+  OrderStatus.READY_FOR_PICKUP,
   OrderStatus.SHIPPED,
   OrderStatus.DELIVERED,
 ]

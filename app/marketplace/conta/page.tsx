@@ -8,13 +8,23 @@ import { PrivatePageHeader } from "@/components/private-page-header"
 import { updateMyAccountAction, updateMyPasswordAction } from "./actions"
 import { formatOrderCode } from "@/lib/order-number"
 
-const activeOrderStatuses = ["AWAITING_SERVICE", "AWAITING_PAYMENT", "PAYMENT_CONFIRMED", "PICKING", "SHIPPED"] as const
+const activeOrderStatuses = [
+  "AWAITING_SERVICE",
+  "AWAITING_PAYMENT",
+  "PAYMENT_CONFIRMED",
+  "PICKING",
+  "INVOICED",
+  "READY_FOR_PICKUP",
+  "SHIPPED",
+] as const
 
 const statusLabels: Record<string, string> = {
   AWAITING_SERVICE: "Aguardando atendimento",
   AWAITING_PAYMENT: "Aguardando pagamento",
-  PAYMENT_CONFIRMED: "Pagamento confirmado",
+  PAYMENT_CONFIRMED: "Pedido faturado",
   PICKING: "Em separação",
+  INVOICED: "Pedido faturado",
+  READY_FOR_PICKUP: "Pronto para retirada",
   SHIPPED: "Enviado",
   DELIVERED: "Entregue",
   CANCELLED: "Cancelado",

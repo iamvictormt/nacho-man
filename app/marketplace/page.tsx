@@ -25,14 +25,24 @@ import { sortOrderItemsByCategory } from "@/lib/order-items"
 const statusLabels: Record<string, string> = {
   AWAITING_SERVICE: "Aguardando atendimento",
   AWAITING_PAYMENT: "Aguardando pagamento",
-  PAYMENT_CONFIRMED: "Pagamento confirmado",
+  PAYMENT_CONFIRMED: "Pedido faturado",
   PICKING: "Em separação",
+  INVOICED: "Pedido faturado",
+  READY_FOR_PICKUP: "Pronto para retirada",
   SHIPPED: "Enviado",
   DELIVERED: "Entregue",
   CANCELLED: "Cancelado",
 }
 
-const activeOrderStatuses = ["AWAITING_SERVICE", "AWAITING_PAYMENT", "PAYMENT_CONFIRMED", "PICKING", "SHIPPED"] as const
+const activeOrderStatuses = [
+  "AWAITING_SERVICE",
+  "AWAITING_PAYMENT",
+  "PAYMENT_CONFIRMED",
+  "PICKING",
+  "INVOICED",
+  "READY_FOR_PICKUP",
+  "SHIPPED",
+] as const
 
 function discountForRole(percent: number, franchiseeOnly: boolean, role: string) {
   return franchiseeOnly && role !== "FRANCHISEE" ? 0 : percent

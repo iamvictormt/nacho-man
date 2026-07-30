@@ -30,8 +30,10 @@ import { OrderStatusForm } from "./order-status-form"
 const statusLabels: Record<string, string> = {
   AWAITING_SERVICE: "Aguardando atendimento",
   AWAITING_PAYMENT: "Aguardando pagamento",
-  PAYMENT_CONFIRMED: "Pagamento confirmado",
+  PAYMENT_CONFIRMED: "Pedido faturado",
   PICKING: "Em separação",
+  INVOICED: "Pedido faturado",
+  READY_FOR_PICKUP: "Pronto para retirada",
   SHIPPED: "Enviado",
   DELIVERED: "Entregue",
   CANCELLED: "Cancelado",
@@ -44,13 +46,17 @@ const statusClasses: Record<string, string> = {
   PAYMENT_CONFIRMED: "border-lime/30 bg-lime/10 text-lime",
   PICKING:
     "border-cyan-700/25 bg-cyan-100 text-cyan-900 dark:border-sky-400/30 dark:bg-sky-400/10 dark:text-sky-300",
+  INVOICED: "border-lime/30 bg-lime/10 text-lime",
+  READY_FOR_PICKUP: "border-purple-medium/30 bg-purple-medium/10 text-purple-medium",
   SHIPPED:
     "border-blue-700/25 bg-blue-100 text-blue-900 dark:border-blue-400/30 dark:bg-blue-400/10 dark:text-blue-300",
   DELIVERED: "border-lime/30 bg-lime/10 text-lime",
   CANCELLED: "border-red-400/30 bg-red-500/10 text-red-300",
 }
 
-const editableStatusLabels = Object.entries(statusLabels).filter(([status]) => status !== "CANCELLED")
+const editableStatusLabels = Object.entries(statusLabels).filter(
+  ([status]) => status !== "CANCELLED" && status !== "PAYMENT_CONFIRMED"
+)
 const paymentMethods = ["PIX", "CARD", "BOLETO"] as const
 
 export default async function AdminOrdersPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
@@ -73,7 +79,9 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
       take: pagination.take,
     }),
     prisma.order.count({ where: { status: { in: ["AWAITING_SERVICE", "AWAITING_PAYMENT"] } } }),
-    prisma.order.count({ where: { status: { in: ["PAYMENT_CONFIRMED", "PICKING", "SHIPPED"] } } }),
+    prisma.order.count({
+      where: { status: { in: ["PAYMENT_CONFIRMED", "PICKING", "INVOICED", "READY_FOR_PICKUP", "SHIPPED"] } },
+    }),
     prisma.product.findMany({
       where: { active: true, category: { active: true } },
       include: { category: true },

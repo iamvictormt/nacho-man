@@ -3,6 +3,7 @@
 import * as React from "react"
 import { CalendarDays } from "lucide-react"
 import { ptBR } from "date-fns/locale"
+import type { DateRange } from "react-day-picker"
 import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
@@ -126,6 +127,16 @@ function formatIsoDateInput(date?: Date) {
   return `${date.getFullYear()}-${month}-${day}`
 }
 
+function addDays(date: Date, days: number) {
+  const next = new Date(date)
+  next.setDate(next.getDate() + days)
+  return next
+}
+
+function minDate(a: Date, b: Date) {
+  return a < b ? a : b
+}
+
 export function AdminField({ label, htmlFor, hint, error, required, className, children }: FieldShellProps) {
   return (
     <div data-admin-field className={cn("min-w-0 space-y-2.5", className)}>
@@ -218,6 +229,8 @@ export function AdminDatePicker({
   name,
   defaultValue,
   valueFormat = "br",
+  minDate,
+  maxDate,
 }: {
   label: string
   name: string
@@ -228,6 +241,8 @@ export function AdminDatePicker({
   id?: string
   defaultValue?: string | number | readonly string[]
   valueFormat?: "br" | "iso"
+  minDate?: string
+  maxDate?: string
 }) {
   const fieldId = id ?? name
   const [open, setOpen] = React.useState(false)
@@ -239,6 +254,8 @@ export function AdminDatePicker({
 
   const selected = parseDateInput(value)
   const formValue = valueFormat === "iso" ? formatIsoDateInput(selected) : value
+  const min = parseDateInput(minDate)
+  const max = parseDateInput(maxDate)
 
   return (
     <AdminField label={label} htmlFor={fieldId} hint={hint} error={error} required={required} className={className}>
@@ -266,11 +283,123 @@ export function AdminDatePicker({
             captionLayout="label"
             selected={selected}
             defaultMonth={selected}
+            disabled={(date) => Boolean((min && date < min) || (max && date > max))}
             onSelect={(date) => {
               if (!date) return
               setValue(formatDateInput(date))
               setOpen(false)
             }}
+          />
+        </PopoverContent>
+      </Popover>
+    </AdminField>
+  )
+}
+
+export function AdminDateRangePicker({
+  label,
+  hint,
+  error,
+  className,
+  required,
+  id,
+  startName,
+  endName,
+  startValue,
+  endValue,
+  maxDate,
+  maxRangeDays = 14,
+}: {
+  label: string
+  startName: string
+  endName: string
+  hint?: string
+  error?: string
+  className?: string
+  required?: boolean
+  id?: string
+  startValue?: string | number | readonly string[]
+  endValue?: string | number | readonly string[]
+  maxDate?: string
+  maxRangeDays?: number
+}) {
+  const fieldId = id ?? startName
+  const [open, setOpen] = React.useState(false)
+  const [range, setRange] = React.useState<DateRange | undefined>(() => {
+    const from = parseDateInput(startValue)
+    const to = parseDateInput(endValue)
+    return from || to ? { from, to } : undefined
+  })
+  const [selectingEnd, setSelectingEnd] = React.useState(false)
+
+  React.useEffect(() => {
+    const from = parseDateInput(startValue)
+    const to = parseDateInput(endValue)
+    setRange(from || to ? { from, to } : undefined)
+    setSelectingEnd(false)
+  }, [startValue, endValue])
+
+  const max = parseDateInput(maxDate)
+  const from = range?.from
+  const to = range?.to
+  const dynamicMin = from && selectingEnd ? addDays(from, -(maxRangeDays - 1)) : undefined
+  const dynamicMax = from && selectingEnd ? minDate(addDays(from, maxRangeDays - 1), max ?? addDays(from, maxRangeDays - 1)) : max
+  const displayValue =
+    from && to
+      ? `${formatDateInput(from)} - ${formatDateInput(to)}`
+      : from
+        ? `${formatDateInput(from)} - selecione o fim`
+        : "Selecione o período"
+  const calendarKey = `${from?.toISOString() ?? "empty"}-${to?.toISOString() ?? "open"}-${selectingEnd ? "selecting" : "idle"}`
+
+  function handleDayClick(day: Date, modifiers: { disabled?: boolean }) {
+    if (modifiers.disabled) return
+
+    if (!from || !selectingEnd) {
+      const start = max && day > max ? max : day
+      setRange({ from: start, to: undefined })
+      setSelectingEnd(true)
+      return
+    }
+
+    const nextRange = day < from ? { from: day, to: from } : { from, to: day }
+    setRange(nextRange)
+    setSelectingEnd(false)
+    setOpen(false)
+  }
+
+  return (
+    <AdminField label={label} htmlFor={fieldId} hint={hint} error={error} required={required} className={className}>
+      <input name={startName} type="hidden" value={formatIsoDateInput(from)} />
+      <input name={endName} type="hidden" value={formatIsoDateInput(to ?? from)} />
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            id={fieldId}
+            aria-invalid={Boolean(error)}
+            className={cn(
+              controlClassName,
+              "flex h-12 items-center justify-between gap-3 text-left shadow-none focus-visible:ring-0",
+              !from && "text-muted-foreground"
+            )}
+          >
+            <span className="min-w-0 truncate">{displayValue}</span>
+            <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" sideOffset={8} className="z-[90] w-auto rounded-xl border-border bg-popover p-0">
+          <Calendar
+            key={calendarKey}
+            mode="range"
+            locale={ptBR}
+            captionLayout="label"
+            selected={range}
+            defaultMonth={from}
+            disabled={(date) =>
+              Boolean((dynamicMin && date < dynamicMin) || (max && date > max) || (dynamicMax && date > dynamicMax))
+            }
+            onDayClick={handleDayClick}
           />
         </PopoverContent>
       </Popover>
