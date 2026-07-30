@@ -5,8 +5,6 @@ import {
   BarChart3,
   CircleDollarSign,
   CreditCard,
-  Eye,
-  EyeOff,
   ReceiptText,
   RefreshCw,
   Store,
@@ -30,16 +28,6 @@ const saleTypeLabels: Record<number, string> = {
   4: "Ficha",
 }
 
-const cardOptions = [
-  { key: "revenue", label: "Faturamento" },
-  { key: "orders", label: "Pedidos" },
-  { key: "ticket", label: "Ticket médio" },
-  { key: "stores", label: "Lojas ativas" },
-  { key: "canceled", label: "Cancelamentos" },
-] as const
-
-const defaultCards = cardOptions.map((card) => card.key)
-
 function formatMoneyFromAmount(value: number) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -58,17 +46,6 @@ function formatPercent(value: number) {
 function getSearchParam(searchParams: PageSearchParams, key: string) {
   const value = searchParams[key]
   return Array.isArray(value) ? value[0] : value
-}
-
-function getSelectedCards(searchParams: PageSearchParams) {
-  const cards = getSearchParam(searchParams, "cards")
-  if (!cards) return defaultCards
-
-  const selected = cards.split(",").filter((card): card is (typeof defaultCards)[number] =>
-    defaultCards.includes(card as (typeof defaultCards)[number])
-  )
-
-  return selected.length > 0 ? selected : defaultCards
 }
 
 function toPeriodStart(value: string) {
@@ -130,6 +107,40 @@ function isCanceled(sale: SaiposDashboardSale) {
 
 function getPaymentLabel(sale: SaiposDashboardSale) {
   return sale.paymentMethod?.trim() || "Não informado"
+}
+
+function getRawString(value: unknown, path: string[]) {
+  let current = value
+
+  for (const key of path) {
+    if (!current || typeof current !== "object" || !(key in current)) return null
+    current = (current as Record<string, unknown>)[key]
+  }
+
+  return typeof current === "string" && current.trim() ? current.trim() : null
+}
+
+function getStoreName(store: { idStore: number; partnerName?: string | null; raw?: unknown }) {
+  const rawName =
+    getRawString(store.raw, ["partner_sale", "desc_store_partner"]) ??
+    getRawString(store.raw, ["store", "name"]) ??
+    getRawString(store.raw, ["store", "desc_store"]) ??
+    getRawString(store.raw, ["desc_store"]) ??
+    getRawString(store.raw, ["store_name"]) ??
+    getRawString(store.raw, ["name_store"])
+
+  return store.partnerName?.trim() || rawName || `Loja #${store.idStore}`
+}
+
+function getKnownStoreNames(stores: Array<{ idStore: number; partnerName?: string | null; raw?: unknown }>) {
+  return stores.reduce<Map<number, string>>((names, store) => {
+    if (names.has(store.idStore)) return names
+
+    const name = getStoreName(store)
+    if (name !== `Loja #${store.idStore}`) names.set(store.idStore, name)
+
+    return names
+  }, new Map())
 }
 
 function buildDailyRevenue(sales: SaiposDashboardSale[], period: { start: string; end: string }) {
@@ -202,28 +213,37 @@ export default async function SaiposDashboardPage({
 }) {
   const resolvedSearchParams = (await searchParams) ?? {}
   const period = normalizeSaiposPeriod(resolvedSearchParams)
-  const selectedCards = getSelectedCards(resolvedSearchParams)
   const selectedStore = getSearchParam(resolvedSearchParams, "store") ?? "all"
-  const [allSales, stores, lastSync] = await Promise.all([
+  const [allSales, storeIds, storeNameRows, lastSync] = await Promise.all([
     getSaiposDashboardSales({ period, selectedStore }),
     prisma.saiposSale.findMany({
       distinct: ["idStore"],
       orderBy: { idStore: "asc" },
       select: { idStore: true },
     }),
+    prisma.saiposSale.findMany({
+      orderBy: { createdAtSaipos: "desc" },
+      select: { idStore: true, partnerName: true, raw: true },
+      take: 20000,
+    }),
     prisma.saiposSyncRun.findFirst({
       orderBy: { startedAt: "desc" },
     }),
   ])
-  const storeOptions = stores.map((store) => String(store.idStore))
+  const knownStoreNames = getKnownStoreNames(storeNameRows)
+  const storeOptions = storeIds.map((store) => ({
+    value: String(store.idStore),
+    label: knownStoreNames.get(store.idStore) ?? `Loja #${store.idStore}`,
+  }))
   const filteredSales = allSales
   const validSales = filteredSales.filter((sale) => !isCanceled(sale))
   const canceledSales = filteredSales.length - validSales.length
   const revenueInCents = validSales.reduce((total, sale) => total + sale.totalAmountInCents, 0)
   const revenue = revenueInCents / 100
   const averageTicket = validSales.length > 0 ? revenue / validSales.length : 0
+  const highestSale = validSales.reduce((max, sale) => Math.max(max, sale.totalAmountInCents), 0) / 100
   const storeTotals = validSales.reduce<Record<string, { orders: number; revenue: number }>>((acc, sale) => {
-    const key = `Loja #${sale.idStore}`
+    const key = knownStoreNames.get(sale.idStore) ?? getStoreName(sale)
     acc[key] ??= { orders: 0, revenue: 0 }
     acc[key].orders += 1
     acc[key].revenue += sale.totalAmountInCents / 100
@@ -238,6 +258,7 @@ export default async function SaiposDashboardPage({
   const dailyRevenue = buildDailyRevenue(validSales, period)
   const yesterday = addUtcDays(toPeriodStart(toDateInputValue(new Date())), -1)
   const maxDate = toDateInputValue(yesterday)
+  const isStoreFiltered = selectedStore !== "all"
 
   const stats = [
     {
@@ -265,10 +286,10 @@ export default async function SaiposDashboardPage({
       tone: "lime",
     },
     {
-      key: "stores",
-      label: "Lojas ativas",
-      value: String(new Set(validSales.map((sale) => sale.idStore)).size),
-      detail: selectedStore === "all" ? "Com vendas no período" : `Filtro Loja #${selectedStore}`,
+      key: isStoreFiltered ? "highest-sale" : "stores",
+      label: isStoreFiltered ? "Maior venda" : "Lojas ativas",
+      value: isStoreFiltered ? formatMoneyFromAmount(highestSale) : String(new Set(validSales.map((sale) => sale.idStore)).size),
+      detail: isStoreFiltered ? "Pedido válido no período" : "Com vendas no período",
       icon: Store,
       tone: "purple",
     },
@@ -280,7 +301,12 @@ export default async function SaiposDashboardPage({
       icon: AlertTriangle,
       tone: "amber",
     },
-  ].filter((stat) => selectedCards.includes(stat.key as (typeof defaultCards)[number]))
+  ]
+  const paymentRankingData = paymentTypes.map((payment) => ({
+    name: payment.name,
+    detail: `${payment.value} pedidos`,
+    value: formatPercent(validSales.length > 0 ? payment.value / validSales.length : 0),
+  }))
 
   return (
     <main>
@@ -317,48 +343,13 @@ export default async function SaiposDashboardPage({
           <AdminSelect name="store" label="Loja" defaultValue={selectedStore}>
             <option value="all">Todas as lojas</option>
               {storeOptions.map((store) => (
-                <option key={store} value={store}>
-                  Loja #{store}
+                <option key={store.value} value={store.value}>
+                  {store.label}
                 </option>
             ))}
           </AdminSelect>
-          <input type="hidden" name="cards" value={selectedCards.join(",")} />
           <FilterSubmitButton />
         </form>
-
-        <section className="mt-4 rounded-2xl border border-border bg-graphite p-4 md:p-5">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-medium">
-                Personalizar painel
-              </p>
-              <h2 className="mt-2 text-lg font-black uppercase tracking-[-0.03em]">Cards visíveis</h2>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {cardOptions.map((card) => {
-                const active = selectedCards.includes(card.key)
-                const nextCards = active
-                  ? selectedCards.filter((key) => key !== card.key)
-                  : [...selectedCards, card.key]
-
-                return (
-                  <Link
-                    key={card.key}
-                    href={buildHref(resolvedSearchParams, { cards: nextCards.join(",") })}
-                    className={`inline-flex min-h-10 items-center gap-2 rounded-full border px-4 text-[10px] font-black uppercase tracking-wider transition ${
-                      active
-                        ? "border-lime/30 bg-lime text-background"
-                        : "border-border text-muted-foreground hover:border-lime/30 hover:text-lime"
-                    }`}
-                  >
-                    {active ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-                    {card.label}
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-        </section>
 
         <SyncStatusCard lastSync={lastSync} />
 
@@ -396,38 +387,83 @@ export default async function SaiposDashboardPage({
           ))}
         </section>
 
-        <section className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(310px,.75fr)]">
-          <article className="rounded-2xl border border-border bg-graphite p-5 md:p-7">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-lime">Período selecionado</p>
-            <h2 className="mt-3 text-xl font-black uppercase tracking-[-0.03em]">Faturamento por dia</h2>
-            {dailyRevenue.length > 0 ? <SaiposRevenueChart data={dailyRevenue} /> : <EmptyState text="Sem vendas no período selecionado." />}
-          </article>
+        {isStoreFiltered ? (
+          <>
+            <section className="mt-5 grid gap-5 lg:grid-cols-2">
+              <article className="rounded-2xl border border-border bg-graphite p-5 md:p-7">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-medium">Canais</p>
+                <h2 className="mt-3 text-xl font-black uppercase tracking-[-0.03em]">Tipos de venda</h2>
+                {saleTypes.length > 0 ? (
+                  <SaiposDistributionChart data={saleTypes} />
+                ) : (
+                  <EmptyState text="Não há tipos de venda para exibir." />
+                )}
+                <Legend data={saleTypes} />
+              </article>
+              <RankingCard
+                title="Formas de pagamento"
+                subtitle="Pedidos válidos"
+                icon={CreditCard}
+                data={paymentRankingData}
+              />
+            </section>
 
-          <article className="rounded-2xl border border-border bg-graphite p-5 md:p-7">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-medium">Canais</p>
-            <h2 className="mt-3 text-xl font-black uppercase tracking-[-0.03em]">Tipos de venda</h2>
-            {saleTypes.length > 0 ? <SaiposDistributionChart data={saleTypes} /> : <EmptyState text="Não há tipos de venda para exibir." />}
-            <Legend data={saleTypes} />
-          </article>
-        </section>
+            <section className="mt-5">
+              <article className="rounded-2xl border border-border bg-graphite p-5 md:p-7">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-lime">Período selecionado</p>
+                <h2 className="mt-3 text-xl font-black uppercase tracking-[-0.03em]">Faturamento por dia</h2>
+                {dailyRevenue.length > 0 ? (
+                  <SaiposRevenueChart data={dailyRevenue} />
+                ) : (
+                  <EmptyState text="Sem vendas no período selecionado." />
+                )}
+              </article>
+            </section>
+          </>
+        ) : (
+          <>
+            <section className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(310px,.75fr)]">
+              <article className="rounded-2xl border border-border bg-graphite p-5 md:p-7">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-lime">Período selecionado</p>
+                <h2 className="mt-3 text-xl font-black uppercase tracking-[-0.03em]">Faturamento por dia</h2>
+                {dailyRevenue.length > 0 ? (
+                  <SaiposRevenueChart data={dailyRevenue} />
+                ) : (
+                  <EmptyState text="Sem vendas no período selecionado." />
+                )}
+              </article>
 
-        <section className="mt-5 grid gap-5 lg:grid-cols-2">
-          <RankingCard title="Ranking de lojas" subtitle="Por faturamento" data={topStores.map((store) => ({
-            name: store.name,
-            detail: `${store.orders} pedidos`,
-            value: formatMoneyFromAmount(store.revenue),
-          }))} />
-          <RankingCard
-            title="Formas de pagamento"
-            subtitle="Pedidos válidos"
-            icon={CreditCard}
-            data={paymentTypes.map((payment) => ({
-              name: payment.name,
-              detail: `${payment.value} pedidos`,
-              value: formatPercent(validSales.length > 0 ? payment.value / validSales.length : 0),
-            }))}
-          />
-        </section>
+              <article className="rounded-2xl border border-border bg-graphite p-5 md:p-7">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-medium">Canais</p>
+                <h2 className="mt-3 text-xl font-black uppercase tracking-[-0.03em]">Tipos de venda</h2>
+                {saleTypes.length > 0 ? (
+                  <SaiposDistributionChart data={saleTypes} />
+                ) : (
+                  <EmptyState text="Não há tipos de venda para exibir." />
+                )}
+                <Legend data={saleTypes} />
+              </article>
+            </section>
+
+            <section className="mt-5 grid gap-5 lg:grid-cols-2">
+              <RankingCard
+                title="Ranking de lojas"
+                subtitle="Por faturamento"
+                data={topStores.map((store) => ({
+                  name: store.name,
+                  detail: `${store.orders} pedidos`,
+                  value: formatMoneyFromAmount(store.revenue),
+                }))}
+              />
+              <RankingCard
+                title="Formas de pagamento"
+                subtitle="Pedidos válidos"
+                icon={CreditCard}
+                data={paymentRankingData}
+              />
+            </section>
+          </>
+        )}
       </div>
     </main>
   )
