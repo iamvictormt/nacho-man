@@ -498,10 +498,10 @@ function SyncStatusCard({ lastSync }: { lastSync: SaiposSyncRun | null }) {
   return (
     <section className="mt-5 rounded-2xl border border-lime/20 bg-lime/[0.06] p-5 text-sm leading-6 text-foreground">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
+        {/* <div>
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-lime">{statusLabel}</p>
           <p className="mt-2 text-muted-foreground">{getSaiposRecommendedSyncText()}</p>
-        </div>
+        </div> */}
         <div className="shrink-0 rounded-xl border border-border bg-background px-4 py-3 text-xs">
           <strong className="block text-foreground">
             {finishedAt ? dateFormatter.format(finishedAt) : "Sem sincronização concluída"}
