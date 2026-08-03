@@ -210,7 +210,7 @@ export default async function SaiposDashboardPage({ searchParams }: { searchPara
   const resolvedSearchParams = (await searchParams) ?? {}
   const period = normalizeSaiposPeriod(resolvedSearchParams)
   const selectedStore = getSearchParam(resolvedSearchParams, "store") ?? "all"
-  const [allSales, storeIds, storeNameRows, lastSync] = await Promise.all([
+  const [allSales, storeIds, storeNameRows] = await Promise.all([
     getSaiposDashboardSales({ period, selectedStore }),
     prisma.saiposSale.findMany({
       distinct: ["idStore"],
@@ -221,9 +221,6 @@ export default async function SaiposDashboardPage({ searchParams }: { searchPara
       orderBy: { createdAtSaipos: "desc" },
       select: { idStore: true, partnerName: true, raw: true },
       take: 20000,
-    }),
-    prisma.saiposSyncRun.findFirst({
-      orderBy: { startedAt: "desc" },
     }),
   ])
   const knownStoreNames = getKnownStoreNames(storeNameRows)
@@ -349,8 +346,6 @@ export default async function SaiposDashboardPage({ searchParams }: { searchPara
           <FilterSubmitButton />
         </form>
 
-        <SyncStatusCard lastSync={lastSync} />
-
         <section className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           {stats.map(({ label, value, detail, icon: Icon, tone }) => (
             <article key={label} className="relative overflow-hidden rounded-2xl border border-border bg-graphite p-5">
@@ -472,53 +467,6 @@ function EmptyState({ text }: { text: string }) {
     <div className="mt-5 rounded-xl border border-dashed border-border bg-background/40 px-5 py-10 text-center text-xs leading-5 text-muted-foreground">
       {text}
     </div>
-  )
-}
-
-function SyncStatusCard({ lastSync }: { lastSync: SaiposSyncRun | null }) {
-  const finishedAt = lastSync?.finishedAt
-  const statusLabel =
-    lastSync?.status === "SUCCESS"
-      ? "Atualizado"
-      : lastSync?.status === "SKIPPED"
-        ? "Ja estava atualizado"
-        : lastSync?.status === "PARTIAL"
-          ? "Atualização parcial"
-          : lastSync?.status === "FAILED"
-            ? "A última sincronização falhou"
-            : lastSync?.status === "RUNNING"
-              ? "Sincronizando"
-              : "Aguardando a primeira sincronização"
-  const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-    timeZone: "America/Sao_Paulo",
-  })
-
-  return (
-    <section className="mt-5 rounded-2xl border border-lime/20 bg-lime/[0.06] p-5 text-sm leading-6 text-foreground">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        {/* <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-lime">{statusLabel}</p>
-          <p className="mt-2 text-muted-foreground">{getSaiposRecommendedSyncText()}</p>
-        </div> */}
-        <div className="shrink-0 rounded-xl border border-border bg-background px-4 py-3 text-xs">
-          <strong className="block text-foreground">
-            {finishedAt ? dateFormatter.format(finishedAt) : "Sem sincronização concluída"}
-          </strong>
-          <span className="mt-1 block text-muted-foreground">
-            {lastSync
-              ? `${lastSync.recordsUpserted} registros gravados`
-              : "O painel será preenchido após o primeiro job"}
-          </span>
-        </div>
-      </div>
-      {lastSync?.errorMessage && (
-        <p className="mt-3 rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-xs text-amber-200">
-          {lastSync.errorMessage}
-        </p>
-      )}
-    </section>
   )
 }
 
