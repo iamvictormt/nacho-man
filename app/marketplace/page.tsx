@@ -134,7 +134,7 @@ export default async function MarketplacePage() {
           <div>
             <p className="text-xs font-black uppercase">{paymentDiscountSummary || "Pagamento pelo WhatsApp"}</p>
             <p className="mt-1 text-[10px] leading-4 text-muted-foreground">
-              Desconto aplicado automaticamente ao pedido.
+              Desconto aplicado automaticamente apenas sobre itens elegíveis.
             </p>
           </div>
         </div>

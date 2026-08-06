@@ -88,12 +88,16 @@ export function MarketplaceCartDrawer({
     (total, item) => total + (item.paymentDiscountEligibleInCents ?? item.unitPriceInCents * item.quantity),
     0
   )
+  const hasPaymentDiscountEligibleItems = paymentDiscountEligibleSubtotal > 0
+  const effectivePixDiscountPercent = hasPaymentDiscountEligibleItems ? pixDiscountPercent : 0
+  const effectiveCardDiscountPercent = hasPaymentDiscountEligibleItems ? cardDiscountPercent : 0
+  const effectiveBoletoDiscountPercent = hasPaymentDiscountEligibleItems ? boletoDiscountPercent : 0
   const activePaymentDiscountPercent =
     paymentMethod === "PIX"
-      ? pixDiscountPercent
+      ? effectivePixDiscountPercent
       : paymentMethod === "CARD"
-        ? cardDiscountPercent
-        : boletoDiscountPercent
+        ? effectiveCardDiscountPercent
+        : effectiveBoletoDiscountPercent
   const estimatedPixDiscount = couponPreview
     ? couponPreview.pixDiscountInCents
     : Math.round(paymentDiscountEligibleSubtotal * (activePaymentDiscountPercent / 100))
@@ -470,7 +474,7 @@ export function MarketplaceCartDrawer({
                       >
                         <span className="block text-xs font-black">PIX</span>
                         <span className="mt-1 block text-[10px] text-lime">
-                          {paymentDiscountLabel("PIX", pixDiscountPercent)}
+                          {paymentDiscountLabel("PIX", effectivePixDiscountPercent)}
                         </span>
                       </button>
                       <button
@@ -482,7 +486,7 @@ export function MarketplaceCartDrawer({
                       >
                         <span className="block text-xs font-black">CARTÃO</span>
                         <span className="mt-1 block text-[10px] text-muted-foreground">
-                          {paymentDiscountLabel("CARD", cardDiscountPercent)}
+                          {paymentDiscountLabel("CARD", effectiveCardDiscountPercent)}
                         </span>
                       </button>
                       {allowBoleto && (
@@ -495,7 +499,7 @@ export function MarketplaceCartDrawer({
                         >
                           <span className="block text-xs font-black">BOLETO</span>
                           <span className="mt-1 block text-[10px] text-muted-foreground">
-                            {paymentDiscountLabel("BOLETO", boletoDiscountPercent)}
+                            {paymentDiscountLabel("BOLETO", effectiveBoletoDiscountPercent)}
                           </span>
                         </button>
                       )}
