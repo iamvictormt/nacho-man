@@ -20,6 +20,63 @@ function getPaymentDiscountPercent(
   return settings.cardFranchiseeOnly && !franchisee ? 0 : settings.cardDiscountPercent
 }
 
+function getProportionalDiscount(discountInCents: number, eligibleBaseInCents: number, totalBaseInCents: number) {
+  if (discountInCents <= 0 || eligibleBaseInCents <= 0 || totalBaseInCents <= 0) return 0
+  return Math.min(eligibleBaseInCents, Math.round(discountInCents * (eligibleBaseInCents / totalBaseInCents)))
+}
+
+function getPaymentDiscountBaseInCents({
+  subtotalInCents,
+  promotionDiscountInCents,
+  couponDiscountInCents,
+  franchiseDiscountInCents,
+  paymentDiscountEligibleSubtotalInCents,
+  paymentDiscountEligiblePromotionDiscountInCents,
+}: {
+  subtotalInCents: number
+  promotionDiscountInCents: number
+  couponDiscountInCents: number
+  franchiseDiscountInCents: number
+  paymentDiscountEligibleSubtotalInCents: number
+  paymentDiscountEligiblePromotionDiscountInCents: number
+}) {
+  const afterPromotions = Math.max(0, subtotalInCents - promotionDiscountInCents)
+  const eligibleAfterPromotions = Math.max(
+    0,
+    paymentDiscountEligibleSubtotalInCents - paymentDiscountEligiblePromotionDiscountInCents
+  )
+  const eligibleCouponDiscountInCents = getProportionalDiscount(
+    couponDiscountInCents,
+    eligibleAfterPromotions,
+    afterPromotions
+  )
+  const afterCoupon = Math.max(0, afterPromotions - couponDiscountInCents)
+  const eligibleAfterCoupon = Math.max(0, eligibleAfterPromotions - eligibleCouponDiscountInCents)
+  const eligibleFranchiseDiscountInCents = getProportionalDiscount(
+    franchiseDiscountInCents,
+    eligibleAfterCoupon,
+    afterCoupon
+  )
+
+  return Math.max(0, eligibleAfterCoupon - eligibleFranchiseDiscountInCents)
+}
+
+function getSelectedOptions(value: Prisma.JsonValue | null) {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .map((option) => {
+      if (!option || typeof option !== "object") return null
+      const record = option as { productId?: unknown; quantity?: unknown }
+      const productId = record.productId
+      const quantity = record.quantity
+      return typeof productId === "string" && typeof quantity === "number" && quantity > 0
+        ? { productId, quantity }
+        : null
+    })
+    .filter((option): option is { productId: string; quantity: number } => Boolean(option))
+}
+
 async function recalculateOrderTotals(
   tx: Prisma.TransactionClient,
   orderId: string,
@@ -49,9 +106,51 @@ async function recalculateOrderTotals(
   if (!order) throw new Error("Pedido nao encontrado.")
   if (order.items.length === 0) throw new Error("O pedido precisa ter pelo menos um item.")
 
+  const selectedOptionsByItem = new Map(order.items.map((item) => [item.id, getSelectedOptions(item.selectedOptions)]))
+  const selectedProductIds = [
+    ...new Set([...selectedOptionsByItem.values()].flatMap((options) => options.map((option) => option.productId))),
+  ]
+  const selectedProducts = await tx.product.findMany({
+    where: { id: { in: selectedProductIds } },
+    select: { id: true, paymentDiscountEligible: true },
+  })
+  const selectedProductEligibility = new Map(
+    selectedProducts.map((product) => [product.id, product.paymentDiscountEligible])
+  )
+
   const subtotalInCents = order.items.reduce((total, item) => total + item.totalInCents, 0)
   const productPromotionDiscountInCents = order.items.reduce((total, item) => {
     if (!item.product) return total
+
+    const bestDiscount = item.product.promotions.reduce((best, promotion) => {
+      if (
+        promotion.scope !== PromotionScope.PRODUCT ||
+        (promotion.minimumQuantity && item.quantity < promotion.minimumQuantity)
+      ) {
+        return best
+      }
+
+      return Math.max(best, calculateDiscount(promotion.type, promotion.value, item.totalInCents))
+    }, 0)
+
+    return total + bestDiscount
+  }, 0)
+  const paymentDiscountEligibleSubtotalInCents = order.items.reduce((total, item) => {
+    if (item.product) return item.product.paymentDiscountEligible ? total + item.totalInCents : total
+
+    const selectedOptions = selectedOptionsByItem.get(item.id) ?? []
+    const selectedTotal = selectedOptions.reduce((sum, option) => sum + option.quantity, 0)
+    if (selectedTotal <= 0) return total
+
+    const eligibleUnits = selectedOptions.reduce(
+      (sum, option) => sum + (selectedProductEligibility.get(option.productId) ? option.quantity : 0),
+      0
+    )
+
+    return total + Math.round((item.totalInCents * eligibleUnits) / selectedTotal)
+  }, 0)
+  const paymentDiscountEligiblePromotionDiscountInCents = order.items.reduce((total, item) => {
+    if (!item.product?.paymentDiscountEligible) return total
 
     const bestDiscount = item.product.promotions.reduce((best, promotion) => {
       if (
@@ -79,7 +178,15 @@ async function recalculateOrderTotals(
     paymentSettings,
     Boolean(order.franchise)
   )
-  const pixDiscountInCents = Math.round(pixBase * (paymentDiscountPercent / 100))
+  const paymentDiscountBaseInCents = getPaymentDiscountBaseInCents({
+    subtotalInCents,
+    promotionDiscountInCents: productPromotionDiscountInCents,
+    couponDiscountInCents,
+    franchiseDiscountInCents,
+    paymentDiscountEligibleSubtotalInCents,
+    paymentDiscountEligiblePromotionDiscountInCents,
+  })
+  const pixDiscountInCents = Math.round(paymentDiscountBaseInCents * (paymentDiscountPercent / 100))
   const totalInCents = Math.max(0, pixBase - pixDiscountInCents)
 
   await tx.order.update({

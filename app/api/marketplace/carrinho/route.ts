@@ -85,6 +85,7 @@ async function getCartItems(user: MarketplaceUser) {
           unit: true,
           packageLabel: true,
           priceInCents: true,
+          paymentDiscountEligible: true,
           minimumQuantity: true,
           audience: true,
           active: true,
@@ -110,6 +111,7 @@ async function getCartItems(user: MarketplaceUser) {
                   id: true,
                   name: true,
                   image: true,
+                  paymentDiscountEligible: true,
                   active: true,
                   category: { select: { active: true } },
                 },
@@ -146,6 +148,7 @@ async function getCartItems(user: MarketplaceUser) {
         unit: product.unit,
         packageLabel: product.packageLabel,
         unitPriceInCents: product.priceInCents,
+        paymentDiscountEligibleInCents: product.paymentDiscountEligible ? product.priceInCents * quantity : 0,
         minimumQuantity: product.minimumQuantity,
         quantity,
       })
@@ -185,6 +188,10 @@ async function getCartItems(user: MarketplaceUser) {
         quantity: option.quantity,
       }
     })
+    const eligibleUnits = selectedOptions.reduce((total, option) => {
+      const product = optionMap.get(option.productId)
+      return total + (product?.paymentDiscountEligible ? option.quantity : 0)
+    }, 0)
 
     items.push({
       id: combo.id,
@@ -195,6 +202,7 @@ async function getCartItems(user: MarketplaceUser) {
       unit: "COMBO",
       packageLabel: normalizedOptions.map((option) => `${option.quantity}x ${option.name}`).join(" | "),
       unitPriceInCents: combo.priceInCents,
+      paymentDiscountEligibleInCents: Math.round((combo.priceInCents * Math.max(1, row.quantity) * eligibleUnits) / combo.totalUnits),
       minimumQuantity: 1,
       quantity: Math.max(1, Math.min(999, row.quantity)),
       selectedOptions: normalizedOptions,

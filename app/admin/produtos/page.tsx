@@ -273,6 +273,7 @@ function ProductForm({
     packageLabel: string
     minimumQuantity: number
     featured: boolean
+    paymentDiscountEligible: boolean
     category: { name: string }
   }
 }) {
@@ -372,6 +373,12 @@ function ProductForm({
         label="Destacar no catálogo"
         description="Exibe o produto com prioridade no catálogo selecionado."
         defaultChecked={product?.featured}
+      />
+      <AdminCheckbox
+        name="paymentDiscountEligible"
+        label="Aplicar desconto por forma de pagamento"
+        description="Quando desmarcado, este produto fica fora do desconto automático de PIX, cartão ou boleto."
+        defaultChecked={product?.paymentDiscountEligible ?? true}
       />
     </AdminActionForm>
   )

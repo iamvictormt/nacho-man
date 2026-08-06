@@ -225,6 +225,7 @@ model Product {
   stockQuantity        Int?
   active               Boolean               @default(true)
   featured             Boolean               @default(false)
+  paymentDiscountEligible Boolean             @default(true)
   categoryId           String
   category             Category              @relation(fields: [categoryId], references: [id])
   comboItems           ComboOption[]

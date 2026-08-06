@@ -286,7 +286,7 @@ function OrderManagement({
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime">Contato do pedido</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {ownerWhatsApp ? `Falar com ${ownerName}` : "Este pedido nÃ£o tem WhatsApp cadastrado."}
+            {ownerWhatsApp ? `Falar com ${ownerName}` : "Este pedido não tem WhatsApp cadastrado."}
           </p>
         </div>
         {ownerWhatsApp && (
@@ -355,7 +355,7 @@ function OrderManagement({
                     action={removeOrderItemAction}
                     fields={{ orderId: order.id, itemId: item.id }}
                     title="Remover item do pedido?"
-                    description={`O item ${item.name} serÃ¡ removido e os totais do pedido ${number} serÃ£o recalculados.`}
+                    description={`O item ${item.name} será removido e os totais do pedido ${number} serão recalculados.`}
                     label="Remover item"
                     successMessage="Item removido do pedido."
                   />

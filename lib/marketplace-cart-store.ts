@@ -12,6 +12,7 @@ export type MarketplaceCartItem = {
   unit: string
   packageLabel: string
   unitPriceInCents: number
+  paymentDiscountEligibleInCents?: number
   minimumQuantity: number
   quantity: number
   selectedOptions?: {

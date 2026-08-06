@@ -84,6 +84,10 @@ export function MarketplaceCartDrawer({
   if (!open) return null
 
   const subtotal = items.reduce((total, item) => total + item.unitPriceInCents * item.quantity, 0)
+  const paymentDiscountEligibleSubtotal = items.reduce(
+    (total, item) => total + (item.paymentDiscountEligibleInCents ?? item.unitPriceInCents * item.quantity),
+    0
+  )
   const activePaymentDiscountPercent =
     paymentMethod === "PIX"
       ? pixDiscountPercent
@@ -92,7 +96,7 @@ export function MarketplaceCartDrawer({
         : boletoDiscountPercent
   const estimatedPixDiscount = couponPreview
     ? couponPreview.pixDiscountInCents
-    : Math.round(subtotal * (activePaymentDiscountPercent / 100))
+    : Math.round(paymentDiscountEligibleSubtotal * (activePaymentDiscountPercent / 100))
   const estimatedTotal = couponPreview ? couponPreview.totalInCents : subtotal - estimatedPixDiscount
 
   function openWhatsApp(url: string) {
@@ -117,7 +121,12 @@ export function MarketplaceCartDrawer({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           coupon: normalizedCoupon,
-          subtotalInCents: subtotal,
+          items: items.map((item) => ({
+            id: item.id,
+            type: item.type,
+            quantity: item.quantity,
+            selectedOptions: item.selectedOptions,
+          })),
           paymentMethod,
         }),
       })

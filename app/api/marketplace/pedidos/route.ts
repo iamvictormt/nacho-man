@@ -18,25 +18,23 @@ import { getOrderFulfillmentInstruction } from "@/lib/order-fulfillment"
 
 export const runtime = "nodejs"
 
-const orderSchema = z.object({
-  items: z
+const orderItemRequestSchema = z.object({
+  id: z.string().min(1),
+  type: z.enum(["PRODUCT", "COMBO"]),
+  quantity: z.number().int().positive().max(999),
+  selectedOptions: z
     .array(
       z.object({
-        id: z.string().min(1),
-        type: z.enum(["PRODUCT", "COMBO"]),
+        productId: z.string().min(1),
+        name: z.string().min(1).max(200),
         quantity: z.number().int().positive().max(999),
-        selectedOptions: z
-          .array(
-            z.object({
-              productId: z.string().min(1),
-              name: z.string().min(1).max(200),
-              quantity: z.number().int().positive().max(999),
-            })
-          )
-          .optional(),
       })
     )
-    .min(1),
+    .optional(),
+})
+
+const orderSchema = z.object({
+  items: z.array(orderItemRequestSchema).min(1),
   paymentMethod: z.enum(["PIX", "CARD", "BOLETO"]),
   fulfillmentMethod: z.enum(["FACTORY_PICKUP", "SHIP_BY_CARRIER"]),
   coupon: z.string().max(50).optional(),
@@ -45,7 +43,7 @@ const orderSchema = z.object({
 
 const couponPreviewSchema = z.object({
   coupon: z.string().trim().min(1).max(50),
-  subtotalInCents: z.number().int().positive(),
+  items: z.array(orderItemRequestSchema).min(1),
   paymentMethod: z.enum(["PIX", "CARD", "BOLETO"]),
 })
 
@@ -62,6 +60,47 @@ function getPaymentDiscountPercent(
   if (method === "BOLETO") return settings.boletoFranchiseeOnly && !franchisee ? 0 : settings.boletoDiscountPercent
   if (method === "PIX") return settings.pixFranchiseeOnly && !franchisee ? 0 : settings.pixDiscountPercent
   return settings.cardFranchiseeOnly && !franchisee ? 0 : settings.cardDiscountPercent
+}
+
+function getProportionalDiscount(discountInCents: number, eligibleBaseInCents: number, totalBaseInCents: number) {
+  if (discountInCents <= 0 || eligibleBaseInCents <= 0 || totalBaseInCents <= 0) return 0
+  return Math.min(eligibleBaseInCents, Math.round(discountInCents * (eligibleBaseInCents / totalBaseInCents)))
+}
+
+function getPaymentDiscountBaseInCents({
+  subtotalInCents,
+  promotionDiscountInCents,
+  couponDiscountInCents,
+  franchiseDiscountInCents,
+  paymentDiscountEligibleSubtotalInCents,
+  paymentDiscountEligiblePromotionDiscountInCents,
+}: {
+  subtotalInCents: number
+  promotionDiscountInCents: number
+  couponDiscountInCents: number
+  franchiseDiscountInCents: number
+  paymentDiscountEligibleSubtotalInCents: number
+  paymentDiscountEligiblePromotionDiscountInCents: number
+}) {
+  const afterPromotions = Math.max(0, subtotalInCents - promotionDiscountInCents)
+  const eligibleAfterPromotions = Math.max(
+    0,
+    paymentDiscountEligibleSubtotalInCents - paymentDiscountEligiblePromotionDiscountInCents
+  )
+  const eligibleCouponDiscountInCents = getProportionalDiscount(
+    couponDiscountInCents,
+    eligibleAfterPromotions,
+    afterPromotions
+  )
+  const afterCoupon = Math.max(0, afterPromotions - couponDiscountInCents)
+  const eligibleAfterCoupon = Math.max(0, eligibleAfterPromotions - eligibleCouponDiscountInCents)
+  const eligibleFranchiseDiscountInCents = getProportionalDiscount(
+    franchiseDiscountInCents,
+    eligibleAfterCoupon,
+    afterCoupon
+  )
+
+  return Math.max(0, eligibleAfterCoupon - eligibleFranchiseDiscountInCents)
 }
 
 function canUseMarketplace(user: Awaited<ReturnType<typeof getCurrentUser>>) {
@@ -103,8 +142,102 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Boleto está disponível apenas para franqueados." }, { status: 403 })
   }
 
+  const productRequests = parsed.data.items.filter((item) => item.type === "PRODUCT")
+  const comboRequests = parsed.data.items.filter((item) => item.type === "COMBO")
+  const productIds = [...new Set(productRequests.map((item) => item.id))]
+  const comboIds = [...new Set(comboRequests.map((item) => item.id))]
   const now = new Date()
   const paymentSettings = await getPaymentDiscountSettings()
+  const productAudience = user!.role === "FRANCHISEE" ? "FRANCHISEE" : "PUBLIC"
+  const [products, combos] = await Promise.all([
+    prisma.product.findMany({
+      where: { id: { in: productIds }, audience: productAudience, active: true, category: { active: true } },
+      include: {
+        promotions: {
+          where: { active: true, startsAt: { lte: now }, endsAt: { gte: now } },
+        },
+      },
+    }),
+    prisma.combo.findMany({
+      where: {
+        id: { in: comboIds },
+        audience: productAudience,
+        active: true,
+        AND: [
+          { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
+          { OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
+        ],
+      },
+      include: { options: { include: { product: { select: { id: true, paymentDiscountEligible: true } } } } },
+    }),
+  ])
+
+  if (products.length !== productIds.length || combos.length !== comboIds.length) {
+    return NextResponse.json({ error: "Um ou mais produtos não estão disponíveis." }, { status: 400 })
+  }
+
+  const productMap = new Map(products.map((product) => [product.id, product]))
+  const comboMap = new Map(combos.map((combo) => [combo.id, combo]))
+  let subtotalInCents = 0
+  let promotionDiscountInCents = 0
+  let paymentDiscountEligibleSubtotalInCents = 0
+  let paymentDiscountEligiblePromotionDiscountInCents = 0
+
+  for (const requestedItem of productRequests) {
+    const product = productMap.get(requestedItem.id)!
+    if (requestedItem.quantity < product.minimumQuantity) {
+      return NextResponse.json(
+        { error: `A quantidade mínima de ${product.name} é ${product.minimumQuantity}.` },
+        { status: 400 }
+      )
+    }
+
+    const totalInCents = product.priceInCents * requestedItem.quantity
+    subtotalInCents += totalInCents
+
+    const bestPromotionDiscount = product.promotions.reduce((best, promotion) => {
+      if (
+        promotion.scope !== PromotionScope.PRODUCT ||
+        (promotion.minimumQuantity && requestedItem.quantity < promotion.minimumQuantity)
+      ) {
+        return best
+      }
+
+      return Math.max(best, calculateDiscount(promotion.type, promotion.value, totalInCents))
+    }, 0)
+    promotionDiscountInCents += bestPromotionDiscount
+
+    if (product.paymentDiscountEligible) {
+      paymentDiscountEligibleSubtotalInCents += totalInCents
+      paymentDiscountEligiblePromotionDiscountInCents += bestPromotionDiscount
+    }
+  }
+
+  for (const requestedItem of comboRequests) {
+    const combo = comboMap.get(requestedItem.id)!
+    const selectedOptions = requestedItem.selectedOptions ?? []
+    const optionMap = new Map(combo.options.map((option) => [option.productId, option.product]))
+    const selectedProductIds = new Set(selectedOptions.map((option) => option.productId))
+    const selectedTotal = selectedOptions.reduce((total, option) => total + option.quantity, 0)
+    const valid =
+      selectedTotal === combo.totalUnits &&
+      selectedProductIds.size === selectedOptions.length &&
+      selectedOptions.every((option) => optionMap.has(option.productId)) &&
+      combo.options.every((option) => selectedProductIds.has(option.productId))
+
+    if (!valid) {
+      return NextResponse.json({ error: `Seleção inválida para o combo ${combo.name}.` }, { status: 400 })
+    }
+
+    const totalInCents = combo.priceInCents * requestedItem.quantity
+    const eligibleUnits = selectedOptions.reduce((total, option) => {
+      const product = optionMap.get(option.productId)
+      return total + (product?.paymentDiscountEligible ? option.quantity : 0)
+    }, 0)
+    subtotalInCents += totalInCents
+    paymentDiscountEligibleSubtotalInCents += Math.round((totalInCents * eligibleUnits) / combo.totalUnits)
+  }
+
   const code = parsed.data.coupon.toUpperCase()
   const coupon = await prisma.coupon.findUnique({ where: { code } })
 
@@ -114,18 +247,27 @@ export async function PUT(request: Request) {
     coupon.startsAt > now ||
     coupon.endsAt < now ||
     (coupon.maximumUses !== null && coupon.uses >= coupon.maximumUses) ||
-    (coupon.minimumInCents !== null && parsed.data.subtotalInCents < coupon.minimumInCents)
+    (coupon.minimumInCents !== null && subtotalInCents < coupon.minimumInCents)
   ) {
     return NextResponse.json({ error: "Cupom inválido, expirado ou indisponível para este pedido." }, { status: 400 })
   }
 
-  const couponDiscountInCents = calculateDiscount(coupon.type, coupon.value, parsed.data.subtotalInCents)
-  const afterCoupon = Math.max(0, parsed.data.subtotalInCents - couponDiscountInCents)
+  const afterPromotions = Math.max(0, subtotalInCents - promotionDiscountInCents)
+  const couponDiscountInCents = calculateDiscount(coupon.type, coupon.value, afterPromotions)
+  const afterCoupon = Math.max(0, afterPromotions - couponDiscountInCents)
   const franchiseDiscountInCents =
     user?.role === "FRANCHISEE" && user.franchise ? Math.round(afterCoupon * (user.franchise.priceDiscount / 100)) : 0
   const pixBase = Math.max(0, afterCoupon - franchiseDiscountInCents)
   const paymentDiscountPercent = getPaymentDiscountPercent(parsed.data.paymentMethod, paymentSettings, user!.role)
-  const pixDiscountInCents = Math.round(pixBase * (paymentDiscountPercent / 100))
+  const paymentDiscountBaseInCents = getPaymentDiscountBaseInCents({
+    subtotalInCents,
+    promotionDiscountInCents,
+    couponDiscountInCents,
+    franchiseDiscountInCents,
+    paymentDiscountEligibleSubtotalInCents,
+    paymentDiscountEligiblePromotionDiscountInCents,
+  })
+  const pixDiscountInCents = Math.round(paymentDiscountBaseInCents * (paymentDiscountPercent / 100))
 
   return NextResponse.json({
     code,
@@ -178,7 +320,7 @@ export async function POST(request: Request) {
           { OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
         ],
       },
-      include: { options: { include: { product: { select: { id: true, name: true } } } } },
+      include: { options: { include: { product: { select: { id: true, name: true, paymentDiscountEligible: true } } } } },
     }),
   ])
 
@@ -190,6 +332,8 @@ export async function POST(request: Request) {
   const comboMap = new Map(combos.map((combo) => [combo.id, combo]))
   let subtotalInCents = 0
   let promotionDiscountInCents = 0
+  let paymentDiscountEligibleSubtotalInCents = 0
+  let paymentDiscountEligiblePromotionDiscountInCents = 0
 
   const invalidMinimum = productRequests.find((requestedItem) => {
     const product = productMap.get(requestedItem.id)
@@ -198,7 +342,7 @@ export async function POST(request: Request) {
   if (invalidMinimum) {
     const product = productMap.get(invalidMinimum.id)!
     return NextResponse.json(
-      { error: `A quantidade minima de ${product.name} e ${product.minimumQuantity}.` },
+      { error: `A quantidade mínima de ${product.name} é ${product.minimumQuantity}.` },
       { status: 400 }
     )
   }
@@ -220,6 +364,10 @@ export async function POST(request: Request) {
     }, 0)
 
     promotionDiscountInCents += bestPromotionDiscount
+    if (product.paymentDiscountEligible) {
+      paymentDiscountEligibleSubtotalInCents += totalInCents
+      paymentDiscountEligiblePromotionDiscountInCents += bestPromotionDiscount
+    }
 
     return {
       productId: product.id,
@@ -271,7 +419,12 @@ export async function POST(request: Request) {
       }
     })
     const totalInCents = combo.priceInCents * requestedItem.quantity
+    const eligibleUnits = selectedOptions.reduce((total, option) => {
+      const product = optionMap.get(option.productId)
+      return total + (product?.paymentDiscountEligible ? option.quantity : 0)
+    }, 0)
     subtotalInCents += totalInCents
+    paymentDiscountEligibleSubtotalInCents += Math.round((totalInCents * eligibleUnits) / combo.totalUnits)
     return {
       comboId: combo.id,
       name: combo.name,
@@ -314,7 +467,15 @@ export async function POST(request: Request) {
     user!.role === "FRANCHISEE" && user!.franchise ? Math.round(afterCoupon * (user!.franchise.priceDiscount / 100)) : 0
   const pixBase = Math.max(0, afterCoupon - franchiseDiscountInCents)
   const paymentDiscountPercent = getPaymentDiscountPercent(parsed.data.paymentMethod, paymentSettings, user!.role)
-  const pixDiscountInCents = Math.round(pixBase * (paymentDiscountPercent / 100))
+  const paymentDiscountBaseInCents = getPaymentDiscountBaseInCents({
+    subtotalInCents,
+    promotionDiscountInCents,
+    couponDiscountInCents,
+    franchiseDiscountInCents,
+    paymentDiscountEligibleSubtotalInCents,
+    paymentDiscountEligiblePromotionDiscountInCents,
+  })
+  const pixDiscountInCents = Math.round(paymentDiscountBaseInCents * (paymentDiscountPercent / 100))
   const totalInCents = Math.max(0, pixBase - pixDiscountInCents)
 
   const order = await prisma.$transaction(async (transaction) => {

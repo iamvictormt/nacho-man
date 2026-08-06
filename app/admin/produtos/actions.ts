@@ -65,6 +65,7 @@ export async function createProductAction(formData: FormData) {
       packageLabel,
       minimumQuantity: Math.max(1, Number(formData.get("minimumQuantity") ?? 1)),
       featured: formData.get("featured") === "on",
+      paymentDiscountEligible: formData.get("paymentDiscountEligible") === "on",
       categoryId: category.id,
     },
   })
@@ -120,6 +121,7 @@ export async function updateProductAction(formData: FormData) {
       packageLabel,
       minimumQuantity: Math.max(1, Number(formData.get("minimumQuantity") ?? 1)),
       featured: formData.get("featured") === "on",
+      paymentDiscountEligible: formData.get("paymentDiscountEligible") === "on",
       categoryId: category.id,
     },
   })
