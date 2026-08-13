@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import {
   ArrowLeft,
   CheckCircle2,
+  Clock,
   LoaderCircle,
   MessageCircle,
   Minus,
@@ -18,7 +19,11 @@ import { useLockBodyScroll } from "@/hooks/use-lock-body-scroll"
 import { useMarketplaceCart } from "@/lib/marketplace-cart-store"
 import { formatMoneyFromCents } from "@/lib/money"
 import { getPaymentMethodLabel, type MarketplacePaymentMethod } from "@/lib/payment-method"
-import { getOrderFulfillmentLabel, type OrderFulfillmentMethod } from "@/lib/order-fulfillment"
+import {
+  getFactoryPickupEstimateMessage,
+  getOrderFulfillmentLabel,
+  type OrderFulfillmentMethod,
+} from "@/lib/order-fulfillment"
 
 type CheckoutResponse = {
   whatsappUrl?: string
@@ -98,6 +103,7 @@ export function MarketplaceCartDrawer({
       : paymentMethod === "CARD"
         ? effectiveCardDiscountPercent
         : effectiveBoletoDiscountPercent
+  const pickupEstimateMessage = getFactoryPickupEstimateMessage()
   const estimatedPixDiscount = couponPreview
     ? couponPreview.pixDiscountInCents
     : Math.round(paymentDiscountEligibleSubtotal * (activePaymentDiscountPercent / 100))
@@ -274,6 +280,11 @@ export function MarketplaceCartDrawer({
           <p className="mt-3 max-w-xs text-sm leading-6 text-muted-foreground">
             Recebemos seu pedido. A mensagem do WhatsApp está pronta e você pode abrir novamente quando precisar.
           </p>
+          {fulfillmentMethod === "FACTORY_PICKUP" && (
+            <p className="mt-4 max-w-sm rounded-xl border border-lime/25 bg-lime/10 px-4 py-3 text-xs font-bold leading-5 text-lime">
+              {pickupEstimateMessage}
+            </p>
+          )}
           {whatsappFallbackUrl && (
             <a
               href={whatsappFallbackUrl}
@@ -542,6 +553,12 @@ export function MarketplaceCartDrawer({
                         <span className="mt-1 block text-[10px] text-muted-foreground">Retirar na fábrica</span>
                       </button>
                     </div>
+                    {fulfillmentMethod === "FACTORY_PICKUP" && (
+                      <div className="mt-3 flex gap-3 rounded-xl border border-lime/25 bg-lime/10 p-4 text-xs leading-5 text-lime">
+                        <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+                        <p className="font-bold">{pickupEstimateMessage}</p>
+                      </div>
+                    )}
                   </section>
 
                   <section className="space-y-5">
@@ -620,6 +637,12 @@ export function MarketplaceCartDrawer({
                       {getOrderFulfillmentLabel(fulfillmentMethod)}
                     </span>
                   </div>
+                  {fulfillmentMethod === "FACTORY_PICKUP" && (
+                    <div className="mt-4 flex gap-3 rounded-xl border border-lime/25 bg-lime/10 p-4 text-xs leading-5 text-lime">
+                      <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+                      <p className="font-bold">{pickupEstimateMessage}</p>
+                    </div>
+                  )}
                   {couponPreview && (
                     <div className="mt-3 flex justify-between gap-4">
                       <span className="text-muted-foreground">Cupom</span>

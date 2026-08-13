@@ -14,7 +14,7 @@ import {
   type MarketplacePaymentMethod,
 } from "@/lib/payment-method"
 import { formatOrderCode } from "@/lib/order-number"
-import { getOrderFulfillmentInstruction } from "@/lib/order-fulfillment"
+import { getFactoryPickupEstimateMessage, getOrderFulfillmentInstruction } from "@/lib/order-fulfillment"
 
 export const runtime = "nodejs"
 
@@ -535,7 +535,11 @@ export async function POST(request: Request) {
     .filter(Boolean)
     .join("\n")
   const messageSettings = await getOrderMessageSettings()
-  const fulfillmentText = getOrderFulfillmentInstruction(order.fulfillmentMethod)
+  const pickupEstimateText =
+    order.fulfillmentMethod === "FACTORY_PICKUP" ? getFactoryPickupEstimateMessage(order.createdAt) : ""
+  const fulfillmentText = [getOrderFulfillmentInstruction(order.fulfillmentMethod), pickupEstimateText]
+    .filter(Boolean)
+    .join("\n")
   const notesLine = parsed.data.notes ? `Observações: ${parsed.data.notes}` : ""
   const observationLines = [
     messageSettings.whatsappTemplate.includes("{entrega}") ? null : `Entrega: ${fulfillmentText}`,
@@ -560,6 +564,7 @@ export async function POST(request: Request) {
     customerName: user!.name,
     franchiseName: user!.franchise?.tradeName ?? "Cliente Nacho Man",
     orderNumber,
+    orderCreatedAt: order.createdAt,
     status: order.status,
     paymentMethod: order.paymentMethod,
     fulfillmentMethod: order.fulfillmentMethod,

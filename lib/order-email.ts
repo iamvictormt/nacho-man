@@ -4,7 +4,7 @@ import { formatMoneyFromCents } from "@/lib/money"
 import { sendMail } from "@/lib/email"
 import { getOrderMessageSettings } from "@/lib/site-settings"
 import { getPaymentDiscountLabel, getPaymentMethodLabel } from "@/lib/payment-method"
-import { getOrderFulfillmentLabel } from "@/lib/order-fulfillment"
+import { getFactoryPickupEstimateMessage, getOrderFulfillmentLabel } from "@/lib/order-fulfillment"
 
 const statusLabels: Record<string, string> = {
   DRAFT: "Rascunho",
@@ -38,6 +38,7 @@ type OrderConfirmationEmailInput = {
   customerName: string
   franchiseName: string
   orderNumber: string
+  orderCreatedAt?: Date
   status: string
   paymentMethod: "PIX" | "CARD" | "BOLETO" | string
   fulfillmentMethod: "FACTORY_PICKUP" | "SHIP_BY_CARRIER" | string
@@ -82,6 +83,10 @@ function buildOrderConfirmationHtml(input: OrderConfirmationEmailInput, introMes
   const statusLabel = statusLabels[input.status] ?? input.status
   const paymentLabel = getPaymentMethodLabel(input.paymentMethod)
   const fulfillmentLabel = getOrderFulfillmentLabel(input.fulfillmentMethod)
+  const pickupEstimate =
+    input.fulfillmentMethod === "FACTORY_PICKUP"
+      ? getFactoryPickupEstimateMessage(input.orderCreatedAt ?? new Date())
+      : ""
   const paymentDiscountLabel = getPaymentDiscountLabel(input.paymentMethod)
   const discountRows = [
     input.promotionDiscountInCents > 0
@@ -152,6 +157,11 @@ function buildOrderConfirmationHtml(input: OrderConfirmationEmailInput, introMes
 
                 <p style="margin:0 0 18px;padding:14px;border:1px solid #2a2a2a;border-radius:12px;background:#111111;color:#d1d5db;font-size:13px;">
                   <strong style="color:#ffffff;">Entrega:</strong> ${escapeHtml(fulfillmentLabel)}
+                  ${
+                    pickupEstimate
+                      ? `<span style="display:block;margin-top:8px;color:#d6ff2f;font-weight:800;line-height:1.5;">${escapeHtml(pickupEstimate)}</span>`
+                      : ""
+                  }
                 </p>
 
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
@@ -188,6 +198,10 @@ function buildOrderConfirmationHtml(input: OrderConfirmationEmailInput, introMes
 
 function buildOrderConfirmationText(input: OrderConfirmationEmailInput, introMessage: string) {
   const paymentDiscountLabel = getPaymentDiscountLabel(input.paymentMethod)
+  const pickupEstimate =
+    input.fulfillmentMethod === "FACTORY_PICKUP"
+      ? getFactoryPickupEstimateMessage(input.orderCreatedAt ?? new Date())
+      : ""
   const lines = [
     introMessage,
     "",
@@ -196,6 +210,7 @@ function buildOrderConfirmationText(input: OrderConfirmationEmailInput, introMes
     `Status atual: ${statusLabels[input.status] ?? input.status}`,
     `Pagamento: ${getPaymentMethodLabel(input.paymentMethod)}`,
     `Entrega: ${getOrderFulfillmentLabel(input.fulfillmentMethod)}`,
+    pickupEstimate,
     "",
     ...input.items.map((item) => {
       const selectedOptions = formatSelectedOptions(item.selectedOptions)
