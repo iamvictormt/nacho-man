@@ -14,7 +14,13 @@ import {
   type MarketplacePaymentMethod,
 } from "@/lib/payment-method"
 import { formatOrderCode } from "@/lib/order-number"
-import { getFactoryPickupEstimateMessage, getOrderFulfillmentInstruction } from "@/lib/order-fulfillment"
+import {
+  formatFactoryPickupScheduleAt,
+  getFactoryPickupEstimateMessage,
+  getOrderFulfillmentInstruction,
+  isFactoryPickupScheduleAllowed,
+  parseFactoryPickupScheduleValue,
+} from "@/lib/order-fulfillment"
 
 export const runtime = "nodejs"
 
@@ -37,6 +43,7 @@ const orderSchema = z.object({
   items: z.array(orderItemRequestSchema).min(1),
   paymentMethod: z.enum(["PIX", "CARD", "BOLETO"]),
   fulfillmentMethod: z.enum(["FACTORY_PICKUP", "SHIP_BY_CARRIER"]),
+  scheduledPickupAt: z.string().max(16).optional(),
   coupon: z.string().max(50).optional(),
   notes: z.string().max(1000).optional(),
 })
@@ -291,6 +298,19 @@ export async function POST(request: Request) {
   if (parsed.data.paymentMethod === "BOLETO" && user!.role !== "FRANCHISEE") {
     return NextResponse.json({ error: "Boleto está disponível apenas para franqueados." }, { status: 403 })
   }
+  if (parsed.data.fulfillmentMethod === "FACTORY_PICKUP" && !parsed.data.scheduledPickupAt) {
+    return NextResponse.json({ error: "Escolha o dia e horário para retirada." }, { status: 400 })
+  }
+  if (
+    parsed.data.fulfillmentMethod === "FACTORY_PICKUP" &&
+    parsed.data.scheduledPickupAt &&
+    !isFactoryPickupScheduleAllowed(parsed.data.scheduledPickupAt)
+  ) {
+    return NextResponse.json(
+      { error: "Escolha um horário de retirada dentro da agenda disponível." },
+      { status: 400 }
+    )
+  }
 
   const productRequests = parsed.data.items.filter((item) => item.type === "PRODUCT")
   const comboRequests = parsed.data.items.filter((item) => item.type === "COMBO")
@@ -477,6 +497,10 @@ export async function POST(request: Request) {
   })
   const pixDiscountInCents = Math.round(paymentDiscountBaseInCents * (paymentDiscountPercent / 100))
   const totalInCents = Math.max(0, pixBase - pixDiscountInCents)
+  const scheduledPickupAt =
+    parsed.data.fulfillmentMethod === "FACTORY_PICKUP" && parsed.data.scheduledPickupAt
+      ? parseFactoryPickupScheduleValue(parsed.data.scheduledPickupAt)
+      : null
 
   const order = await prisma.$transaction(async (transaction) => {
     if (coupon) {
@@ -492,6 +516,7 @@ export async function POST(request: Request) {
         userId: user!.id,
         paymentMethod: parsed.data.paymentMethod as PaymentMethod,
         fulfillmentMethod: parsed.data.fulfillmentMethod,
+        scheduledPickupAt,
         couponId: coupon?.id,
         subtotalInCents,
         promotionDiscountInCents: promotionDiscountInCents + franchiseDiscountInCents,
@@ -536,7 +561,11 @@ export async function POST(request: Request) {
     .join("\n")
   const messageSettings = await getOrderMessageSettings()
   const pickupEstimateText =
-    order.fulfillmentMethod === "FACTORY_PICKUP" ? getFactoryPickupEstimateMessage(order.createdAt) : ""
+    order.fulfillmentMethod === "FACTORY_PICKUP"
+      ? order.scheduledPickupAt
+        ? `Retirada agendada para ${formatFactoryPickupScheduleAt(order.scheduledPickupAt)}`
+        : getFactoryPickupEstimateMessage(order.createdAt)
+      : ""
   const fulfillmentText = [getOrderFulfillmentInstruction(order.fulfillmentMethod), pickupEstimateText]
     .filter(Boolean)
     .join("\n")
@@ -565,6 +594,7 @@ export async function POST(request: Request) {
     franchiseName: user!.franchise?.tradeName ?? "Cliente Nacho Man",
     orderNumber,
     orderCreatedAt: order.createdAt,
+    scheduledPickupAt: order.scheduledPickupAt,
     status: order.status,
     paymentMethod: order.paymentMethod,
     fulfillmentMethod: order.fulfillmentMethod,

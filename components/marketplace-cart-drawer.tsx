@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import {
   ArrowLeft,
+  CalendarDays,
   CheckCircle2,
   Clock,
   LoaderCircle,
@@ -19,9 +20,17 @@ import { useLockBodyScroll } from "@/hooks/use-lock-body-scroll"
 import { useMarketplaceCart } from "@/lib/marketplace-cart-store"
 import { formatMoneyFromCents } from "@/lib/money"
 import { getPaymentMethodLabel, type MarketplacePaymentMethod } from "@/lib/payment-method"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
+  formatFactoryPickupScheduleAt,
+  formatFactoryPickupScheduleValue,
+  getFactoryPickupAvailableAt,
+  getFactoryPickupDateOptions,
   getFactoryPickupEstimateMessage,
+  getFactoryPickupTimeOptions,
+  isFactoryPickupScheduleAllowed,
   getOrderFulfillmentLabel,
+  parseFactoryPickupScheduleValue,
   type OrderFulfillmentMethod,
 } from "@/lib/order-fulfillment"
 
@@ -60,6 +69,8 @@ export function MarketplaceCartDrawer({
     useMarketplaceCart()
   const [paymentMethod, setPaymentMethod] = useState<MarketplacePaymentMethod>("PIX")
   const [fulfillmentMethod, setFulfillmentMethod] = useState<OrderFulfillmentMethod>("SHIP_BY_CARRIER")
+  const [pickupDate, setPickupDate] = useState(() => formatFactoryPickupScheduleValue(getFactoryPickupAvailableAt()).slice(0, 10))
+  const [pickupTime, setPickupTime] = useState(() => formatFactoryPickupScheduleValue(getFactoryPickupAvailableAt()).slice(11))
   const [coupon, setCoupon] = useState("")
   const [notes, setNotes] = useState("")
   const [loading, setLoading] = useState(false)
@@ -76,6 +87,11 @@ export function MarketplaceCartDrawer({
   useEffect(() => {
     if (open) void load()
   }, [load, open])
+
+  useEffect(() => {
+    if (!open || fulfillmentMethod !== "FACTORY_PICKUP") return
+    resetPickupSchedule()
+  }, [fulfillmentMethod, open])
 
   useEffect(() => {
     if (open) return
@@ -104,6 +120,11 @@ export function MarketplaceCartDrawer({
         ? effectiveCardDiscountPercent
         : effectiveBoletoDiscountPercent
   const pickupEstimateMessage = getFactoryPickupEstimateMessage()
+  const scheduledPickupAt = `${pickupDate}T${pickupTime}`
+  const selectedPickupDate = parseFactoryPickupScheduleValue(scheduledPickupAt) ?? getFactoryPickupAvailableAt()
+  const pickupDateOptions = getFactoryPickupDateOptions()
+  const pickupTimeOptions = getFactoryPickupTimeOptions(pickupDate)
+  const selectedPickupMessage = `Retirada agendada para ${formatFactoryPickupScheduleAt(selectedPickupDate)}.`
   const estimatedPixDiscount = couponPreview
     ? couponPreview.pixDiscountInCents
     : Math.round(paymentDiscountEligibleSubtotal * (activePaymentDiscountPercent / 100))
@@ -168,8 +189,24 @@ export function MarketplaceCartDrawer({
     setReviewing(false)
   }
 
+  function resetPickupSchedule() {
+    const firstAvailable = formatFactoryPickupScheduleValue(getFactoryPickupAvailableAt())
+    setPickupDate(firstAvailable.slice(0, 10))
+    setPickupTime(firstAvailable.slice(11))
+  }
+
+  function changePickupDate(date: string) {
+    setPickupDate(date)
+    setPickupTime(getFactoryPickupTimeOptions(date).find((option) => !option.disabled)?.value ?? "08:00")
+    setReviewing(false)
+  }
+
   function startReview() {
     if (items.length === 0) return
+    if (fulfillmentMethod === "FACTORY_PICKUP" && !isFactoryPickupScheduleAllowed(scheduledPickupAt)) {
+      setError("Escolha um dia e horário disponível para retirada.")
+      return
+    }
     setError("")
     setReviewing(true)
   }
@@ -194,6 +231,7 @@ export function MarketplaceCartDrawer({
           })),
           paymentMethod,
           fulfillmentMethod,
+          scheduledPickupAt: fulfillmentMethod === "FACTORY_PICKUP" ? scheduledPickupAt : undefined,
           coupon: couponPreview?.code ?? "",
           notes: notes.trim(),
         }),
@@ -282,7 +320,7 @@ export function MarketplaceCartDrawer({
           </p>
           {fulfillmentMethod === "FACTORY_PICKUP" && (
             <p className="mt-4 max-w-sm rounded-xl border border-lime/25 bg-lime/10 px-4 py-3 text-xs font-bold leading-5 text-lime">
-              {pickupEstimateMessage}
+              {selectedPickupMessage}
             </p>
           )}
           {whatsappFallbackUrl && (
@@ -542,6 +580,7 @@ export function MarketplaceCartDrawer({
                         type="button"
                         onClick={() => {
                           setFulfillmentMethod("FACTORY_PICKUP")
+                          resetPickupSchedule()
                           setReviewing(false)
                         }}
                         className={`min-h-[78px] rounded-xl border p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-lime/40 hover:shadow-[0_10px_28px_rgba(0,0,0,0.18)] active:scale-[0.98] ${
@@ -554,9 +593,77 @@ export function MarketplaceCartDrawer({
                       </button>
                     </div>
                     {fulfillmentMethod === "FACTORY_PICKUP" && (
-                      <div className="mt-3 flex gap-3 rounded-xl border border-lime/25 bg-lime/10 p-4 text-xs leading-5 text-lime">
-                        <Clock className="mt-0.5 h-4 w-4 shrink-0" />
-                        <p className="font-bold">{pickupEstimateMessage}</p>
+                      <div className="mt-3 space-y-3 rounded-xl border border-lime/25 bg-background/45 p-4">
+                        <div className="flex gap-3 text-xs leading-5 text-lime">
+                          <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+                          <p className="font-bold">{pickupEstimateMessage}</p>
+                        </div>
+                        <div className="grid min-w-0 gap-3 min-[360px]:grid-cols-[minmax(0,1fr)_104px]">
+                          <div className="min-w-0 space-y-2">
+                            <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                              <CalendarDays className="h-3.5 w-3.5 text-lime" />
+                              Dia
+                            </span>
+                            <Select
+                              value={pickupDate}
+                              onValueChange={(value) => changePickupDate(value)}
+                            >
+                              <SelectTrigger className="h-12 w-full min-w-0 rounded-xl border-border bg-graphite px-4 text-left text-xs font-black text-foreground shadow-none transition hover:border-lime/40 focus:ring-lime/20 data-[state=open]:border-lime data-[state=open]:ring-2 data-[state=open]:ring-lime/20">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent
+                                align="start"
+                                className="z-[80] max-h-72 rounded-xl border-border bg-background p-1 text-foreground shadow-2xl"
+                              >
+                                {pickupDateOptions.map((option) => (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                    className="rounded-lg py-2.5 text-xs font-bold focus:bg-lime/10 focus:text-lime data-[state=checked]:text-lime"
+                                  >
+                                    <span className="sm:hidden">{option.shortLabel}</span>
+                                    <span className="hidden sm:inline">{option.label}</span>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="min-w-0 space-y-2">
+                            <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                              <Clock className="h-3.5 w-3.5 text-lime" />
+                              Horário
+                            </span>
+                            <Select
+                              value={pickupTime}
+                              onValueChange={(value) => {
+                                setPickupTime(value)
+                                setReviewing(false)
+                              }}
+                            >
+                              <SelectTrigger className="h-12 w-full min-w-0 rounded-xl border-border bg-graphite px-4 text-left text-xs font-black text-foreground shadow-none transition hover:border-lime/40 focus:ring-lime/20 data-[state=open]:border-lime data-[state=open]:ring-2 data-[state=open]:ring-lime/20">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent
+                                align="start"
+                                className="z-[80] max-h-72 rounded-xl border-border bg-background p-1 text-foreground shadow-2xl"
+                              >
+                                {pickupTimeOptions.map((option) => (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                    disabled={option.disabled}
+                                    className="rounded-lg py-2.5 text-xs font-bold focus:bg-lime/10 focus:text-lime data-[state=checked]:text-lime data-[disabled]:opacity-35"
+                                  >
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <p className="text-[10px] font-bold leading-4 text-muted-foreground">
+                          {selectedPickupMessage} Para outro horário mais tarde, escolha na agenda.
+                        </p>
                       </div>
                     )}
                   </section>
@@ -640,7 +747,7 @@ export function MarketplaceCartDrawer({
                   {fulfillmentMethod === "FACTORY_PICKUP" && (
                     <div className="mt-4 flex gap-3 rounded-xl border border-lime/25 bg-lime/10 p-4 text-xs leading-5 text-lime">
                       <Clock className="mt-0.5 h-4 w-4 shrink-0" />
-                      <p className="font-bold">{pickupEstimateMessage}</p>
+                      <p className="font-bold">{selectedPickupMessage}</p>
                     </div>
                   )}
                   {couponPreview && (

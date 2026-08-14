@@ -19,7 +19,11 @@ import { formatOrderCode } from "@/lib/order-number"
 import { getOrderItemCategoryName, sortOrderItemsByCategory } from "@/lib/order-items"
 import { getOrderMessageSettings, getStoreWhatsAppNumber } from "@/lib/site-settings"
 import { buildWhatsAppUrl } from "@/lib/whatsapp"
-import { getOrderFulfillmentInstruction, getOrderFulfillmentLabel } from "@/lib/order-fulfillment"
+import {
+  formatFactoryPickupScheduleAt,
+  getOrderFulfillmentInstruction,
+  getOrderFulfillmentLabel,
+} from "@/lib/order-fulfillment"
 import { formatBrazilDateTime } from "@/lib/date-format"
 
 const statusLabels: Record<string, string> = {
@@ -170,6 +174,7 @@ function OrderCard({
     pixDiscountInCents: number
     totalInCents: number
     notes: string | null
+    scheduledPickupAt: Date | null
     createdAt: Date
     coupon: {
       code: string
@@ -255,6 +260,11 @@ function OrderCard({
             <Truck className="h-4 w-4 text-purple-medium" />
             {getOrderFulfillmentLabel(order.fulfillmentMethod)}
           </p>
+          {order.scheduledPickupAt && (
+            <p className="mt-2 text-xs font-bold leading-5 text-lime md:text-right">
+              {formatFactoryPickupScheduleAt(order.scheduledPickupAt)}
+            </p>
+          )}
         </div>
       </div>
 
@@ -349,6 +359,7 @@ function buildOrderWhatsAppMessage({
     pixDiscountInCents: number
     totalInCents: number
     notes: string | null
+    scheduledPickupAt: Date | null
     coupon: { code: string } | null
     items: {
       name: string
@@ -388,7 +399,13 @@ function buildOrderWhatsAppMessage({
   ]
     .filter(Boolean)
     .join("\n")
-  const fulfillmentText = getOrderFulfillmentInstruction(order.fulfillmentMethod)
+  const pickupScheduleText =
+    order.fulfillmentMethod === "FACTORY_PICKUP" && order.scheduledPickupAt
+      ? `Retirada agendada para ${formatFactoryPickupScheduleAt(order.scheduledPickupAt)}`
+      : ""
+  const fulfillmentText = [getOrderFulfillmentInstruction(order.fulfillmentMethod), pickupScheduleText]
+    .filter(Boolean)
+    .join("\n")
   const notesLine = order.notes ? `Observações: ${order.notes}` : ""
   const observationLines = [template.includes("{entrega}") ? null : `Entrega: ${fulfillmentText}`, notesLine]
     .filter(Boolean)

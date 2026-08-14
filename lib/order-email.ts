@@ -4,7 +4,7 @@ import { formatMoneyFromCents } from "@/lib/money"
 import { sendMail } from "@/lib/email"
 import { getOrderMessageSettings } from "@/lib/site-settings"
 import { getPaymentDiscountLabel, getPaymentMethodLabel } from "@/lib/payment-method"
-import { getFactoryPickupEstimateMessage, getOrderFulfillmentLabel } from "@/lib/order-fulfillment"
+import { formatFactoryPickupScheduleAt, getFactoryPickupEstimateMessage, getOrderFulfillmentLabel } from "@/lib/order-fulfillment"
 
 const statusLabels: Record<string, string> = {
   DRAFT: "Rascunho",
@@ -39,6 +39,7 @@ type OrderConfirmationEmailInput = {
   franchiseName: string
   orderNumber: string
   orderCreatedAt?: Date
+  scheduledPickupAt?: Date | null
   status: string
   paymentMethod: "PIX" | "CARD" | "BOLETO" | string
   fulfillmentMethod: "FACTORY_PICKUP" | "SHIP_BY_CARRIER" | string
@@ -85,7 +86,9 @@ function buildOrderConfirmationHtml(input: OrderConfirmationEmailInput, introMes
   const fulfillmentLabel = getOrderFulfillmentLabel(input.fulfillmentMethod)
   const pickupEstimate =
     input.fulfillmentMethod === "FACTORY_PICKUP"
-      ? getFactoryPickupEstimateMessage(input.orderCreatedAt ?? new Date())
+      ? input.scheduledPickupAt
+        ? `Retirada agendada para ${formatFactoryPickupScheduleAt(input.scheduledPickupAt)}`
+        : getFactoryPickupEstimateMessage(input.orderCreatedAt ?? new Date())
       : ""
   const paymentDiscountLabel = getPaymentDiscountLabel(input.paymentMethod)
   const discountRows = [
@@ -200,7 +203,9 @@ function buildOrderConfirmationText(input: OrderConfirmationEmailInput, introMes
   const paymentDiscountLabel = getPaymentDiscountLabel(input.paymentMethod)
   const pickupEstimate =
     input.fulfillmentMethod === "FACTORY_PICKUP"
-      ? getFactoryPickupEstimateMessage(input.orderCreatedAt ?? new Date())
+      ? input.scheduledPickupAt
+        ? `Retirada agendada para ${formatFactoryPickupScheduleAt(input.scheduledPickupAt)}`
+        : getFactoryPickupEstimateMessage(input.orderCreatedAt ?? new Date())
       : ""
   const lines = [
     introMessage,

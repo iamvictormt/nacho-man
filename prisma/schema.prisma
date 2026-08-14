@@ -349,6 +349,7 @@ model Order {
   status                   OrderStatus            @default(AWAITING_SERVICE)
   paymentMethod            PaymentMethod
   fulfillmentMethod        OrderFulfillmentMethod @default(SHIP_BY_CARRIER)
+  scheduledPickupAt        DateTime?
   couponId                 String?
   coupon                   Coupon?                @relation(fields: [couponId], references: [id])
   subtotalInCents          Int

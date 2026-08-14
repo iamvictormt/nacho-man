@@ -23,7 +23,7 @@ import { getPaymentDiscountLabel, getPaymentMethodLabel } from "@/lib/payment-me
 import { formatOrderCode } from "@/lib/order-number"
 import { getOrderItemCategoryName, sortOrderItemsByCategory } from "@/lib/order-items"
 import { buildWhatsAppUrl } from "@/lib/whatsapp"
-import { getOrderFulfillmentLabel, orderFulfillmentMethods } from "@/lib/order-fulfillment"
+import { formatFactoryPickupScheduleAt, getOrderFulfillmentLabel, orderFulfillmentMethods } from "@/lib/order-fulfillment"
 import { formatBrazilDateTime } from "@/lib/date-format"
 import { OrderStatusForm } from "./order-status-form"
 
@@ -145,6 +145,11 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
                       <CalendarDays className="h-3.5 w-3.5 text-purple-medium" />
                       {formatBrazilDateTime(order.createdAt)}
                     </p>
+                    {order.scheduledPickupAt && (
+                      <p className="mt-1 text-[10px] font-bold leading-4 text-lime">
+                        Retirada {formatFactoryPickupScheduleAt(order.scheduledPickupAt)}
+                      </p>
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="text-[9px] font-black uppercase text-muted-foreground xl:hidden">Itens</p>
@@ -229,6 +234,7 @@ function OrderManagement({
     pixDiscountInCents: number
     totalInCents: number
     notes: string | null
+    scheduledPickupAt: Date | null
     franchiseId: string | null
     franchise: {
       tradeName: string
@@ -445,6 +451,11 @@ function OrderManagement({
                   ))}
                 </AdminSelect>
               </AdminActionForm>
+              {order.scheduledPickupAt && (
+                <div className="rounded-xl border border-lime/25 bg-lime/10 p-4 text-xs font-bold leading-5 text-lime">
+                  Retirada agendada para {formatFactoryPickupScheduleAt(order.scheduledPickupAt)}
+                </div>
+              )}
             </div>
           </div>
           {order.status !== "CANCELLED" && (
@@ -492,6 +503,11 @@ function OrderManagement({
             <Truck className="h-4 w-4 text-purple-medium" />
             {getOrderFulfillmentLabel(order.fulfillmentMethod)}
           </p>
+          {order.scheduledPickupAt && (
+            <p className="mt-2 text-[10px] font-bold leading-4 text-lime">
+              {formatFactoryPickupScheduleAt(order.scheduledPickupAt)}
+            </p>
+          )}
         </div>
       </section>
       {order.status === "CANCELLED" && (
