@@ -10,10 +10,12 @@ RUN apt-get update \
 
 FROM base AS deps
 COPY package.json package-lock.json ./
+COPY prisma ./prisma
 RUN npm ci
 
 FROM deps AS builder
 COPY . .
+ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres?schema=public"
 RUN npm run build
 
 FROM base AS runner

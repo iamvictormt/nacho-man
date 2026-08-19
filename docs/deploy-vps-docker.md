@@ -1,6 +1,6 @@
 # Deploy em VPS com Docker
 
-Este projeto e um app Next.js com Prisma e PostgreSQL. O setup abaixo sobe o app e um Postgres local na VPS.
+Este projeto e um app Next.js com Prisma e PostgreSQL 17. O setup abaixo sobe o app e um Postgres local na VPS.
 
 ## 1. Preparar a VPS
 
