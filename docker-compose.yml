@@ -1,0 +1,59 @@
+services:
+  app:
+    build:
+      context: .
+      target: runner
+    image: nacho-man:latest
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-nachoman}:${POSTGRES_PASSWORD:?configure POSTGRES_PASSWORD em .env.production}@db:5432/${POSTGRES_DB:-nachoman}?schema=public
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  db:
+    image: postgres:16-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nachoman}
+      POSTGRES_USER: ${POSTGRES_USER:-nachoman}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?configure POSTGRES_PASSWORD em .env.production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nachoman} -d ${POSTGRES_DB:-nachoman}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    profiles:
+      - tools
+    build:
+      context: .
+      target: tools
+    env_file:
+      - .env.production
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-nachoman}:${POSTGRES_PASSWORD:?configure POSTGRES_PASSWORD em .env.production}@db:5432/${POSTGRES_DB:-nachoman}?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["npx", "prisma", "db", "push"]
+
+volumes:
+  postgres_data:

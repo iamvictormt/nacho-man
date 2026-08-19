@@ -1,0 +1,16 @@
+.git
+.next
+.vercel
+node_modules
+npm-debug.log*
+Dockerfile
+docker-compose*.yml
+.env
+.env.*
+!.env.example
+!.env.production.example
+output
+tmp
+docs
+backups
+tsconfig.tsbuildinfo
