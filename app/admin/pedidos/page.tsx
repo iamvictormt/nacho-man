@@ -1,5 +1,4 @@
 import { CalendarDays, CreditCard, MessageCircle, PackageCheck, ReceiptText, Truck, WalletCards } from "lucide-react"
-import Link from "next/link"
 import type { OrderStatus, PaymentMethod, Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
@@ -32,6 +31,7 @@ import {
 } from "@/lib/order-fulfillment"
 import { formatBrazilDateTime } from "@/lib/date-format"
 import { OrderStatusForm } from "./order-status-form"
+import { OrderStatusFilterChips } from "./order-status-filter-chips"
 
 const statusLabels: Record<string, string> = {
   AWAITING_SERVICE: "Aguardando atendimento",
@@ -122,9 +122,9 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
 
       <div className="mt-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <OrderStatusFilterChips
-          searchParams={resolvedSearchParams}
           selectedStatus={statusFilter}
           statusCounts={statusCounts}
+          statusOptions={Object.entries(statusLabels).map(([value, label]) => ({ value: value as OrderStatus, label }))}
           total={statusFilterTotal}
         />
         <AdminSearch containerId="orders-list" placeholder="Buscar número, unidade ou status..." queryParam="q" />
@@ -613,86 +613,6 @@ function Summary({ value, label, accent = "lime" }: { value: number; label: stri
         {label}
       </p>
     </div>
-  )
-}
-
-function OrderStatusFilterChips({
-  searchParams,
-  selectedStatus,
-  statusCounts,
-  total,
-}: {
-  searchParams?: SearchParams
-  selectedStatus: OrderStatus | null
-  statusCounts: Record<string, number>
-  total: number
-}) {
-  const visibleStatuses = Object.entries(statusLabels).filter(
-    ([status]) => (statusCounts[status] ?? 0) > 0 || selectedStatus === status
-  )
-
-  return (
-    <nav className="flex flex-wrap gap-2" aria-label="Filtrar pedidos por status atual">
-      <OrderStatusFilterLink
-        active={!selectedStatus}
-        href={adminOrderStatusHref(searchParams, null)}
-        label="Todos"
-        count={total}
-      />
-      {visibleStatuses.map(([status, label]) => (
-        <OrderStatusFilterLink
-          key={status}
-          active={selectedStatus === status}
-          href={adminOrderStatusHref(searchParams, status)}
-          label={label}
-          count={statusCounts[status] ?? 0}
-        />
-      ))}
-    </nav>
-  )
-}
-
-function adminOrderStatusHref(searchParams: SearchParams | undefined, status: string | null) {
-  const params = new URLSearchParams()
-
-  for (const [key, value] of Object.entries(searchParams ?? {})) {
-    if (key === "page" || key === "status" || value === undefined) continue
-    if (Array.isArray(value)) value.forEach((item) => params.append(key, item))
-    else params.set(key, value)
-  }
-
-  if (status) params.set("status", status)
-  const query = params.toString()
-
-  return query ? `/admin/pedidos?${query}` : "/admin/pedidos"
-}
-
-function OrderStatusFilterLink({
-  active,
-  href,
-  label,
-  count,
-}: {
-  active: boolean
-  href: string
-  label: string
-  count: number
-}) {
-  return (
-    <Link
-      href={href}
-      scroll={false}
-      className={`inline-flex h-10 items-center gap-2 rounded-full border px-4 text-[10px] font-black uppercase tracking-wider transition ${
-        active
-          ? "border-lime bg-lime text-background"
-          : "border-border bg-graphite text-muted-foreground hover:border-lime/40 hover:text-lime"
-      }`}
-    >
-      {label}
-      <span className={`rounded-full px-2 py-0.5 text-[9px] ${active ? "bg-background/15" : "bg-background"}`}>
-        {count}
-      </span>
-    </Link>
   )
 }
 

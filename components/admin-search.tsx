@@ -29,9 +29,9 @@ export function AdminSearch({
     if (!queryParam) return
 
     const timeout = window.setTimeout(() => {
-      const nextParams = new URLSearchParams(searchParams.toString())
+      const nextParams = new URLSearchParams(window.location.search)
       const normalizedValue = value.trim()
-      const currentValue = searchParams.get(queryParam) ?? ""
+      const currentValue = nextParams.get(queryParam) ?? ""
 
       if (normalizedValue === currentValue) return
 
