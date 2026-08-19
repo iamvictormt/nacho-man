@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { adaptMarketplaceProduct } from "@/lib/marketplace-product-adapter"
 import type { Prisma } from "@prisma/client"
 
-export const revalidate = 3600
+export const dynamic = "force-dynamic"
 
 const publicProductSelect = {
   id: true,

@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { absoluteUrl } from "@/lib/seo"
 import type { Prisma } from "@prisma/client"
 
-export const revalidate = 3600
+export const dynamic = "force-dynamic"
 
 const productMetadataSelect = {
   id: true,

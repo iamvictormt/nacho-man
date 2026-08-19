@@ -12,7 +12,7 @@ import { getStoreWhatsAppNumber } from "@/lib/site-settings"
 import { buildWhatsAppUrl } from "@/lib/whatsapp"
 import type { Prisma } from "@prisma/client"
 
-export const revalidate = 3600
+export const dynamic = "force-dynamic"
 
 const featuredProductSelect = {
   id: true,
