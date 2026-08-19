@@ -13,6 +13,7 @@ export function AdminInlineActionForm({
   label,
   successMessage,
   alignWithField = false,
+  className,
   buttonClassName,
 }: {
   action: (formData: FormData) => Promise<void>
@@ -20,6 +21,7 @@ export function AdminInlineActionForm({
   label: string
   successMessage: string
   alignWithField?: boolean
+  className?: string
   buttonClassName?: string
 }) {
   const [pending, setPending] = useState(false)
@@ -45,7 +47,7 @@ export function AdminInlineActionForm({
   return (
     <form
       action={run}
-      className={cn("flex w-full gap-2 min-[420px]:w-auto", alignWithField ? "items-start" : "items-end")}
+      className={cn("flex w-full gap-2 min-[420px]:w-auto", alignWithField ? "items-start" : "items-end", className)}
     >
       <fieldset disabled={pending} className="contents">
         {children}

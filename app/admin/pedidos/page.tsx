@@ -1,4 +1,5 @@
 import { CalendarDays, CreditCard, MessageCircle, PackageCheck, ReceiptText, Truck, WalletCards } from "lucide-react"
+import Link from "next/link"
 import type { OrderStatus, PaymentMethod, Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
@@ -17,13 +18,18 @@ import {
   removeOrderItemAction,
   updateOrderFulfillmentMethodAction,
   updateOrderItemQuantityAction,
+  updateOrderPaymentMethodAction,
   updateOrderStatusAction,
 } from "./actions"
 import { getPaymentDiscountLabel, getPaymentMethodLabel } from "@/lib/payment-method"
 import { formatOrderCode } from "@/lib/order-number"
 import { getOrderItemCategoryName, sortOrderItemsByCategory } from "@/lib/order-items"
 import { buildWhatsAppUrl } from "@/lib/whatsapp"
-import { formatFactoryPickupScheduleAt, getOrderFulfillmentLabel, orderFulfillmentMethods } from "@/lib/order-fulfillment"
+import {
+  formatFactoryPickupScheduleAt,
+  getOrderFulfillmentLabel,
+  orderFulfillmentMethods,
+} from "@/lib/order-fulfillment"
 import { formatBrazilDateTime } from "@/lib/date-format"
 import { OrderStatusForm } from "./order-status-form"
 
@@ -44,8 +50,7 @@ const statusClasses: Record<string, string> = {
   AWAITING_PAYMENT:
     "border-orange-700/25 bg-orange-100 text-orange-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300",
   PAYMENT_CONFIRMED: "border-lime/30 bg-lime/10 text-lime",
-  PICKING:
-    "border-cyan-700/25 bg-cyan-100 text-cyan-900 dark:border-sky-400/30 dark:bg-sky-400/10 dark:text-sky-300",
+  PICKING: "border-cyan-700/25 bg-cyan-100 text-cyan-900 dark:border-sky-400/30 dark:bg-sky-400/10 dark:text-sky-300",
   INVOICED: "border-lime/30 bg-lime/10 text-lime",
   READY_FOR_PICKUP: "border-purple-medium/30 bg-purple-medium/10 text-purple-medium",
   SHIPPED:
@@ -59,14 +64,20 @@ const editableStatusLabels = Object.entries(statusLabels).filter(
 )
 const paymentMethods = ["PIX", "CARD", "BOLETO"] as const
 
+function getOrderStatusFilter(searchParams?: SearchParams) {
+  const status = getSearchQuery(searchParams, "status") as OrderStatus
+  return Object.keys(statusLabels).includes(status) ? status : null
+}
+
 export default async function AdminOrdersPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const resolvedSearchParams = await searchParams
   const page = getCurrentPage(resolvedSearchParams)
   const query = getSearchQuery(resolvedSearchParams)
-  const orderWhere = getOrderWhere(query)
+  const statusFilter = getOrderStatusFilter(resolvedSearchParams)
+  const orderWhere = getOrderWhere(query, statusFilter)
   const totalOrders = await prisma.order.count({ where: orderWhere })
   const pagination = getPagination(page, totalOrders, 10)
-  const [orders, awaiting, inProgress, availableProducts] = await Promise.all([
+  const [orders, awaiting, inProgress, availableProducts, statusRows] = await Promise.all([
     prisma.order.findMany({
       where: orderWhere,
       include: {
@@ -87,7 +98,10 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
       include: { category: true },
       orderBy: [{ category: { sortOrder: "asc" } }, { category: { name: "asc" } }, { name: "asc" }],
     }),
+    prisma.order.groupBy({ by: ["status"], _count: { _all: true } }),
   ])
+  const statusCounts = Object.fromEntries(statusRows.map((row) => [row.status, row._count._all]))
+  const statusFilterTotal = statusRows.reduce((total, row) => total + row._count._all, 0)
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-12 md:py-16">
@@ -106,7 +120,13 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
         </div>
       </div>
 
-      <div className="mt-8 flex justify-end">
+      <div className="mt-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <OrderStatusFilterChips
+          searchParams={resolvedSearchParams}
+          selectedStatus={statusFilter}
+          statusCounts={statusCounts}
+          total={statusFilterTotal}
+        />
         <AdminSearch containerId="orders-list" placeholder="Buscar número, unidade ou status..." queryParam="q" />
       </div>
 
@@ -313,35 +333,42 @@ function OrderManagement({
           {order.items.map((item) => (
             <div
               key={item.id}
-              className="grid gap-3 px-4 py-3.5 min-[520px]:grid-cols-[minmax(0,1fr)_auto] min-[520px]:items-center"
+              className="grid gap-4 px-4 py-4 transition hover:bg-background/45 min-[720px]:grid-cols-[minmax(0,1fr)_minmax(220px,auto)] min-[720px]:items-center"
             >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="truncate text-xs font-black uppercase">{item.name}</p>
+                  <span className="rounded-full border border-purple-medium/25 bg-purple-medium/10 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-purple-medium">
+                    {getOrderItemCategoryName(item) ?? "Combo"}
+                  </span>
+                  {typeof item.product?.stockQuantity === "number" && item.product.stockQuantity > 0 && (
+                    <span className="rounded-full border border-border bg-background px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+                      Estoque {item.product.stockQuantity}
+                    </span>
+                  )}
                   {item.product?.stockQuantity === 0 && (
-                    <span className="rounded-full border border-red-400/25 bg-red-500/10 px-2 py-1 text-[8px] font-black uppercase text-red-300">
+                    <span className="rounded-full border border-red-400/25 bg-red-500/10 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-red-300">
                       Sem estoque
                     </span>
                   )}
                 </div>
-                <p className="mt-1 text-[9px] font-black uppercase tracking-wider text-purple-medium">
-                  {getOrderItemCategoryName(item) ?? "Combo"}
-                  {typeof item.product?.stockQuantity === "number" ? ` · Estoque ${item.product.stockQuantity}` : ""}
-                </p>
-                <p className="mt-1 text-[10px] text-muted-foreground">
-                  {item.quantity} {item.unit} × {formatMoneyFromCents(item.unitPriceInCents)}
-                </p>
+                <p className="mt-3 text-sm font-black uppercase leading-5 text-foreground">{item.name}</p>
+                <div className="mt-3 flex flex-wrap items-end gap-x-4 gap-y-1">
+                  <p className="text-lg font-black leading-none text-lime">{formatMoneyFromCents(item.totalInCents)}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                    {item.quantity} {item.unit} x {formatMoneyFromCents(item.unitPriceInCents)}
+                  </p>
+                </div>
                 <SelectedOptionsList value={item.selectedOptions} />
               </div>
-              <div className="flex flex-col gap-2 min-[520px]:items-end">
-                <p className="shrink-0 text-sm font-black text-lime">{formatMoneyFromCents(item.totalInCents)}</p>
+              <div className="w-full rounded-xl border border-border bg-background/55 p-3 min-[720px]:w-[236px]">
                 {order.status !== "CANCELLED" && (
                   <AdminInlineActionForm
                     action={updateOrderItemQuantityAction}
                     label="Salvar qtd"
                     successMessage="Quantidade atualizada."
                     alignWithField
-                    buttonClassName="h-12 min-w-32 px-5 text-[10px] hover:bg-lime hover:shadow-[0_0_24px_rgba(239,255,13,.25)]"
+                    className="w-full min-[420px]:w-full"
+                    buttonClassName="h-12 min-w-0 flex-1 px-4 text-[10px] hover:bg-lime hover:shadow-[0_0_24px_rgba(239,255,13,.25)] min-[420px]:w-auto"
                   >
                     <input type="hidden" name="orderId" value={order.id} />
                     <input type="hidden" name="itemId" value={item.id} />
@@ -352,19 +379,22 @@ function OrderManagement({
                       min={1}
                       max={999}
                       defaultValue={item.quantity}
-                      className="w-18"
+                      className="w-16"
                     />
                   </AdminInlineActionForm>
                 )}
                 {canRemoveItems && (
-                  <DeleteActionDialog
-                    action={removeOrderItemAction}
-                    fields={{ orderId: order.id, itemId: item.id }}
-                    title="Remover item do pedido?"
-                    description={`O item ${item.name} será removido e os totais do pedido ${number} serão recalculados.`}
-                    label="Remover item"
-                    successMessage="Item removido do pedido."
-                  />
+                  <div className={order.status !== "CANCELLED" ? "mt-2" : ""}>
+                    <DeleteActionDialog
+                      action={removeOrderItemAction}
+                      fields={{ orderId: order.id, itemId: item.id }}
+                      title="Remover item do pedido?"
+                      description={`O item ${item.name} será removido e os totais do pedido ${number} serão recalculados.`}
+                      label="Remover item"
+                      successMessage="Item removido do pedido."
+                      triggerClassName="min-h-10 w-full justify-center border-red-400/20 bg-red-500/[0.03] text-[8px] min-[420px]:w-full"
+                    />
+                  </div>
                 )}
               </div>
             </div>
@@ -425,6 +455,24 @@ function OrderManagement({
                   {editableStatusLabels.map(([value, label]) => (
                     <option key={value} value={value}>
                       {label}
+                    </option>
+                  ))}
+                </AdminSelect>
+              </AdminActionForm>
+              <AdminActionForm
+                action={updateOrderPaymentMethodAction}
+                submitLabel="SALVAR PAGAMENTO"
+                successMessage="Forma de pagamento atualizada."
+                modalId={modalId}
+                className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px] sm:items-start"
+                submitClassName="mt-0 h-12 w-full"
+                alignSubmitWithField
+              >
+                <input type="hidden" name="orderId" value={order.id} />
+                <AdminSelect name="paymentMethod" label="Forma de pagamento" defaultValue={order.paymentMethod}>
+                  {paymentMethods.map((method) => (
+                    <option key={method} value={method}>
+                      {getPaymentMethodLabel(method)}
                     </option>
                   ))}
                 </AdminSelect>
@@ -567,6 +615,87 @@ function Summary({ value, label, accent = "lime" }: { value: number; label: stri
     </div>
   )
 }
+
+function OrderStatusFilterChips({
+  searchParams,
+  selectedStatus,
+  statusCounts,
+  total,
+}: {
+  searchParams?: SearchParams
+  selectedStatus: OrderStatus | null
+  statusCounts: Record<string, number>
+  total: number
+}) {
+  const visibleStatuses = Object.entries(statusLabels).filter(
+    ([status]) => (statusCounts[status] ?? 0) > 0 || selectedStatus === status
+  )
+
+  return (
+    <nav className="flex flex-wrap gap-2" aria-label="Filtrar pedidos por status atual">
+      <OrderStatusFilterLink
+        active={!selectedStatus}
+        href={adminOrderStatusHref(searchParams, null)}
+        label="Todos"
+        count={total}
+      />
+      {visibleStatuses.map(([status, label]) => (
+        <OrderStatusFilterLink
+          key={status}
+          active={selectedStatus === status}
+          href={adminOrderStatusHref(searchParams, status)}
+          label={label}
+          count={statusCounts[status] ?? 0}
+        />
+      ))}
+    </nav>
+  )
+}
+
+function adminOrderStatusHref(searchParams: SearchParams | undefined, status: string | null) {
+  const params = new URLSearchParams()
+
+  for (const [key, value] of Object.entries(searchParams ?? {})) {
+    if (key === "page" || key === "status" || value === undefined) continue
+    if (Array.isArray(value)) value.forEach((item) => params.append(key, item))
+    else params.set(key, value)
+  }
+
+  if (status) params.set("status", status)
+  const query = params.toString()
+
+  return query ? `/admin/pedidos?${query}` : "/admin/pedidos"
+}
+
+function OrderStatusFilterLink({
+  active,
+  href,
+  label,
+  count,
+}: {
+  active: boolean
+  href: string
+  label: string
+  count: number
+}) {
+  return (
+    <Link
+      href={href}
+      scroll={false}
+      className={`inline-flex h-10 items-center gap-2 rounded-full border px-4 text-[10px] font-black uppercase tracking-wider transition ${
+        active
+          ? "border-lime bg-lime text-background"
+          : "border-border bg-graphite text-muted-foreground hover:border-lime/40 hover:text-lime"
+      }`}
+    >
+      {label}
+      <span className={`rounded-full px-2 py-0.5 text-[9px] ${active ? "bg-background/15" : "bg-background"}`}>
+        {count}
+      </span>
+    </Link>
+  )
+}
+
 function SummaryLine({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex justify-between text-muted-foreground">
@@ -579,8 +708,9 @@ function SummaryLine({ label, value }: { label: string; value: number }) {
   )
 }
 
-function getOrderWhere(query: string): Prisma.OrderWhereInput {
-  if (!query) return {}
+function getOrderWhere(query: string, statusFilter: OrderStatus | null): Prisma.OrderWhereInput {
+  const statusWhere: Prisma.OrderWhereInput | null = statusFilter ? { status: statusFilter } : null
+  if (!query) return statusWhere ?? {}
 
   const normalizedQuery = query
     .normalize("NFD")
@@ -609,7 +739,8 @@ function getOrderWhere(query: string): Prisma.OrderWhereInput {
   if (statusMatches.length > 0) filters.push({ status: { in: statusMatches } })
   if (paymentMatches.length > 0) filters.push({ paymentMethod: { in: paymentMatches } })
 
-  return { OR: filters }
+  const queryWhere: Prisma.OrderWhereInput = { OR: filters }
+  return statusWhere ? { AND: [statusWhere, queryWhere] } : queryWhere
 }
 
 function getOrderOwnerWhatsApp(order: {

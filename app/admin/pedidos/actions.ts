@@ -1,6 +1,6 @@
 "use server"
 
-import { OrderFulfillmentMethod, OrderStatus, PromotionScope, type Prisma } from "@prisma/client"
+import { OrderFulfillmentMethod, OrderStatus, PaymentMethod, PromotionScope, type Prisma } from "@prisma/client"
 import { revalidatePath } from "next/cache"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
@@ -274,6 +274,39 @@ export async function updateOrderFulfillmentMethodAction(formData: FormData) {
         },
       },
     },
+  })
+
+  revalidateOrderPaths()
+}
+
+export async function updateOrderPaymentMethodAction(formData: FormData) {
+  await requireAdmin()
+  const orderId = String(formData.get("orderId") ?? "")
+  const paymentMethod = String(formData.get("paymentMethod") ?? "") as PaymentMethod
+
+  if (!orderId || !Object.values(PaymentMethod).includes(paymentMethod)) return
+
+  const paymentSettings = await getPaymentDiscountSettings()
+
+  await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({
+      where: { id: orderId },
+      select: { id: true, status: true, paymentMethod: true },
+    })
+    if (!order) throw new Error("Pedido nao encontrado.")
+    if (order.status === "CANCELLED") throw new Error("Nao e possivel alterar um pedido cancelado.")
+    if (order.paymentMethod === paymentMethod) return
+
+    await tx.order.update({
+      where: { id: order.id },
+      data: { paymentMethod },
+    })
+    await recalculateOrderTotals(
+      tx,
+      order.id,
+      paymentSettings,
+      `Forma de pagamento alterada pelo admin: ${order.paymentMethod} para ${paymentMethod}.`
+    )
   })
 
   revalidateOrderPaths()

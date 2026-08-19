@@ -13,6 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { cn } from "@/lib/utils"
 
 export function DeleteActionDialog({
   action,
@@ -21,6 +22,7 @@ export function DeleteActionDialog({
   description,
   label = "Excluir",
   successMessage,
+  triggerClassName,
 }: {
   action: (formData: FormData) => Promise<void>
   fields: Record<string, string>
@@ -28,6 +30,7 @@ export function DeleteActionDialog({
   description: string
   label?: string
   successMessage: string
+  triggerClassName?: string
 }) {
   const [open, setOpen] = useState(false)
   const [pending, setPending] = useState(false)
@@ -56,7 +59,10 @@ export function DeleteActionDialog({
       <AlertDialogTrigger asChild>
         <button
           disabled={pending}
-          className="flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-red-400/25 px-4 text-[9px] font-black uppercase text-red-300 transition hover:bg-red-500/10 disabled:cursor-wait disabled:opacity-60 min-[420px]:w-auto"
+          className={cn(
+            "flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-red-400/25 px-4 text-[9px] font-black uppercase text-red-300 transition hover:bg-red-500/10 disabled:cursor-wait disabled:opacity-60 min-[420px]:w-auto",
+            triggerClassName
+          )}
         >
           <Trash2 className="h-3.5 w-3.5" /> {label}
         </button>
