@@ -12,6 +12,7 @@
     "format:check": "prettier . --check",
     "saipos:schema:apply": "node scripts/apply-saipos-bi-schema.mjs",
     "saipos:sync:daily": "node scripts/sync-saipos-current-month.mjs --yesterday",
+    "saipos:sync:backfill-today": "node scripts/sync-saipos-current-month.mjs --from-day=7 --only-on=2026-08-21",
     "saipos:sync:month": "node scripts/sync-saipos-current-month.mjs",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",

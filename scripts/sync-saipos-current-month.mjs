@@ -92,10 +92,38 @@ function getYesterdayRange() {
   }
 }
 
+function getTodayString() {
+  const today = getBrazilDateParts(new Date())
+  return formatDate(new Date(Date.UTC(today.year, today.month - 1, today.day)))
+}
+
+function getCurrentMonthRangeFromDay(day) {
+  const today = getBrazilDateParts(new Date())
+  const todayUtc = new Date(Date.UTC(today.year, today.month - 1, today.day))
+  const end = addDays(todayUtc, -1)
+  const start = new Date(Date.UTC(today.year, today.month - 1, day))
+
+  return {
+    start: formatDate(start),
+    end: formatDate(end),
+  }
+}
+
 function getConfig() {
   const args = readArgs()
   const positionals = args.get("_positionals")
-  const range = args.has("yesterday") ? getYesterdayRange() : getDefaultRange()
+  const fromDay = args.has("from-day") ? Number(args.get("from-day")) : null
+
+  if (fromDay !== null && (!Number.isInteger(fromDay) || fromDay < 1 || fromDay > 31)) {
+    throw new Error("Informe --from-day com um dia entre 1 e 31.")
+  }
+
+  const range =
+    fromDay !== null
+      ? getCurrentMonthRangeFromDay(fromDay)
+      : args.has("yesterday")
+        ? getYesterdayRange()
+        : getDefaultRange()
   const baseUrl = (args.get("base-url") ?? process.env.SAIPOS_SYNC_BASE_URL ?? `http://localhost:${process.env.APP_PORT ?? 3000}`).replace(/\/$/, "")
   const secret = process.env.SAIPOS_SYNC_SECRET ?? process.env.CRON_SECRET
 
@@ -113,6 +141,7 @@ function getConfig() {
     retryDelayMs: Number(args.get("retry-delay-ms") ?? DEFAULT_RETRY_DELAY_MS),
     dayDelayMs: Number(args.get("day-delay-ms") ?? DEFAULT_DAY_DELAY_MS),
     dryRun: args.has("dry-run"),
+    onlyOn: args.get("only-on"),
   }
 }
 
@@ -168,6 +197,13 @@ async function syncDayWithRetry(config, day) {
 
 async function main() {
   const config = getConfig()
+  const today = getTodayString()
+
+  if (config.onlyOn && config.onlyOn !== today) {
+    console.log(`SKIPPED: script pontual configurado para ${config.onlyOn}; hoje no Brasil é ${today}.`)
+    return
+  }
+
   const start = parseDate(config.start)
   const end = parseDate(config.end)
   const results = []
