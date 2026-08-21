@@ -8,6 +8,7 @@ datasource db {
 }
 
 enum UserRole {
+  ADMIN_MASTER
   ADMIN
   FRANCHISEE
   USER
@@ -71,6 +72,7 @@ model User {
   passwordHash         String
   mustChangePassword   Boolean               @default(false)
   role                 UserRole
+  canAccessIndicators  Boolean               @default(false)
   active               Boolean               @default(true)
   franchiseId          String?               @unique
   franchise            Franchise?            @relation(fields: [franchiseId], references: [id])
@@ -104,30 +106,168 @@ model SiteSetting {
 }
 
 model SaiposSale {
-  id                      String    @id @default(cuid())
+  id                      String                    @id @default(cuid())
   idStore                 Int
   idSale                  BigInt
   idSaleType              Int
   createdAtSaipos         DateTime
   updatedAtSaipos         DateTime?
   shiftDate               DateTime?
-  canceled                Boolean   @default(false)
-  totalAmountInCents      Int       @default(0)
-  totalDiscountInCents    Int       @default(0)
-  totalIncreaseInCents    Int       @default(0)
-  totalAmountItemsInCents Int       @default(0)
+  canceled                Boolean                   @default(false)
+  totalAmountInCents      Int                       @default(0)
+  totalDiscountInCents    Int                       @default(0)
+  totalIncreaseInCents    Int                       @default(0)
+  totalAmountItemsInCents Int                       @default(0)
   paymentMethod           String?
   partnerName             String?
   partnerStatus           String?
   raw                     Json
-  syncedAt                DateTime  @default(now())
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
+  items                   SaiposSaleItem[]
+  payments                SaiposSalePayment[]
+  statusHistories         SaiposSaleStatusHistory[]
+  syncedAt                DateTime                  @default(now())
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
 
   @@unique([idStore, idSale])
   @@index([createdAtSaipos])
   @@index([shiftDate])
   @@index([idStore, createdAtSaipos])
+}
+
+model SaiposSalePayment {
+  id                   String     @id @default(cuid())
+  idStore              Int
+  idSale               BigInt
+  paymentIndex         Int
+  paymentAmountInCents Int        @default(0)
+  paymentType          String?
+  changeForInCents     Int        @default(0)
+  createdAtSaipos      DateTime?
+  raw                  Json
+  sale                 SaiposSale @relation(fields: [idStore, idSale], references: [idStore, idSale], onDelete: Cascade)
+  syncedAt             DateTime   @default(now())
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  @@unique([idStore, idSale, paymentIndex])
+  @@index([idStore, idSale])
+  @@index([paymentType])
+  @@index([createdAtSaipos])
+}
+
+model SaiposSaleItem {
+  id               String     @id @default(cuid())
+  idStore          Int
+  idSale           BigInt
+  idSaleItem       BigInt
+  idStoreItem      Int?
+  idStoreVariation Int?
+  descSaleItem     String
+  quantity         Float      @default(0)
+  unitPriceInCents Int        @default(0)
+  deleted          Boolean    @default(false)
+  status           Int?
+  createdAtSaipos  DateTime?
+  updatedAtSaipos  DateTime?
+  doneAt           DateTime?
+  choices          Json?
+  raw              Json
+  sale             SaiposSale @relation(fields: [idStore, idSale], references: [idStore, idSale], onDelete: Cascade)
+  syncedAt         DateTime   @default(now())
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@unique([idStore, idSaleItem])
+  @@index([idStore, idSale])
+  @@index([idStoreItem])
+  @@index([createdAtSaipos])
+}
+
+model SaiposSaleStatusHistory {
+  id                    String     @id @default(cuid())
+  idStore               Int
+  idSale                BigInt
+  idSaleStatusHistory   BigInt
+  statusOrder           Int?
+  statusDescription     String?
+  durationTimeSeconds   Int?
+  cancellationReason    String?
+  userId                Int?
+  userName              String?
+  userEmail             String?
+  userType              Int?
+  authorizedByUserId    Int?
+  authorizedByUserName  String?
+  authorizedByUserEmail String?
+  authorizedByUserType  Int?
+  createdAtSaipos       DateTime?
+  raw                   Json
+  sale                  SaiposSale @relation(fields: [idStore, idSale], references: [idStore, idSale], onDelete: Cascade)
+  syncedAt              DateTime   @default(now())
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+
+  @@unique([idStore, idSaleStatusHistory])
+  @@index([idStore, idSale])
+  @@index([statusDescription])
+  @@index([createdAtSaipos])
+}
+
+model SaiposProductReference {
+  id                String    @id @default(cuid())
+  productKey        String    @unique
+  idStore           Int
+  idStoreItem       Int?
+  idStoreVariation  Int?
+  integrationCode   String?
+  name              String
+  firstSeenAtSaipos DateTime?
+  lastSeenAtSaipos  DateTime?
+  lastSoldAtSaipos  DateTime?
+  raw               Json?
+  syncedAt          DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([idStore])
+  @@index([idStore, idStoreItem])
+  @@index([integrationCode])
+  @@index([name])
+}
+
+model SaiposFinancialTransaction {
+  id                           String    @id @default(cuid())
+  idStore                      Int
+  idStoreFinTransaction        BigInt
+  amountInCents                Int       @default(0)
+  paid                         Boolean   @default(false)
+  recurring                    Boolean   @default(false)
+  conciliated                  Boolean   @default(false)
+  installment                  Int?
+  totalInstallments            Int?
+  providerTradeName            String?
+  bankAccountDescription       String?
+  paymentMethodDescription     String?
+  transactionDescription       String?
+  financialCategoryDescription String?
+  date                         DateTime?
+  paymentDate                  DateTime?
+  issuanceDate                 DateTime?
+  createdAtSaipos              DateTime?
+  updatedAtSaipos              DateTime?
+  children                     Json?
+  raw                          Json
+  syncedAt                     DateTime  @default(now())
+  createdAt                    DateTime  @default(now())
+  updatedAt                    DateTime  @updatedAt
+
+  @@unique([idStore, idStoreFinTransaction])
+  @@index([idStore])
+  @@index([date])
+  @@index([paymentDate])
+  @@index([paid])
+  @@index([financialCategoryDescription])
 }
 
 model SaiposSyncRun {
@@ -206,34 +346,34 @@ model Category {
 }
 
 model Product {
-  id                   String                @id @default(cuid())
-  name                 String
-  slug                 String                @unique
-  description          String?
-  features             String?
-  applications         String?
-  storageInfo          String?
-  usageInfo            String?
-  yieldInfo            String?
-  image                String?
-  sku                  String?               @unique
-  priceInCents         Int
-  unit                 ProductUnit
-  audience             ProductAudience       @default(FRANCHISEE)
-  packageLabel         String
-  minimumQuantity      Int                   @default(1)
-  stockQuantity        Int?
-  active               Boolean               @default(true)
-  featured             Boolean               @default(false)
-  paymentDiscountEligible Boolean             @default(true)
-  categoryId           String
-  category             Category              @relation(fields: [categoryId], references: [id])
-  comboItems           ComboOption[]
-  orderItems           OrderItem[]
-  marketplaceCartItems MarketplaceCartItem[]
-  promotions           Promotion[]
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
+  id                      String                @id @default(cuid())
+  name                    String
+  slug                    String                @unique
+  description             String?
+  features                String?
+  applications            String?
+  storageInfo             String?
+  usageInfo               String?
+  yieldInfo               String?
+  image                   String?
+  sku                     String?               @unique
+  priceInCents            Int
+  unit                    ProductUnit
+  audience                ProductAudience       @default(FRANCHISEE)
+  packageLabel            String
+  minimumQuantity         Int                   @default(1)
+  stockQuantity           Int?
+  active                  Boolean               @default(true)
+  featured                Boolean               @default(false)
+  paymentDiscountEligible Boolean               @default(true)
+  categoryId              String
+  category                Category              @relation(fields: [categoryId], references: [id])
+  comboItems              ComboOption[]
+  orderItems              OrderItem[]
+  marketplaceCartItems    MarketplaceCartItem[]
+  promotions              Promotion[]
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
 
   @@index([categoryId])
   @@index([active, featured])

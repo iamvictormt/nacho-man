@@ -6,6 +6,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { createSession, deleteSession } from "@/lib/session"
 import { sendMail } from "@/lib/email"
+import { isAdminRole } from "@/lib/auth"
 
 export type LoginState = {
   error?: string
@@ -92,7 +93,7 @@ export async function loginAction(_state: LoginState, formData: FormData): Promi
     rememberMe
   )
 
-  redirect(user.mustChangePassword ? "/alterar-senha" : user.role === "ADMIN" ? "/admin" : "/marketplace")
+  redirect(user.mustChangePassword ? "/alterar-senha" : isAdminRole(user.role) ? "/admin" : "/marketplace")
 }
 
 export async function registerAction(_state: RegisterState, formData: FormData): Promise<RegisterState> {

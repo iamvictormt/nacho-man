@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { Prisma, type ProductAudience } from "@prisma/client"
 import { z } from "zod"
-import { getCurrentUser } from "@/lib/auth"
+import { getCurrentUser, isAdminRole } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
 export const runtime = "nodejs"
@@ -35,7 +35,10 @@ type MarketplaceUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>
 
 function canUseMarketplace(user: Awaited<ReturnType<typeof getCurrentUser>>): user is MarketplaceUser {
   return Boolean(
-    user && !user.mustChangePassword && user.role !== "ADMIN" && (user.role !== "FRANCHISEE" || user.franchise?.active)
+    user &&
+    !user.mustChangePassword &&
+    !isAdminRole(user.role) &&
+    (user.role !== "FRANCHISEE" || user.franchise?.active)
   )
 }
 
@@ -202,7 +205,9 @@ async function getCartItems(user: MarketplaceUser) {
       unit: "COMBO",
       packageLabel: normalizedOptions.map((option) => `${option.quantity}x ${option.name}`).join(" | "),
       unitPriceInCents: combo.priceInCents,
-      paymentDiscountEligibleInCents: Math.round((combo.priceInCents * Math.max(1, row.quantity) * eligibleUnits) / combo.totalUnits),
+      paymentDiscountEligibleInCents: Math.round(
+        (combo.priceInCents * Math.max(1, row.quantity) * eligibleUnits) / combo.totalUnits
+      ),
       minimumQuantity: 1,
       quantity: Math.max(1, Math.min(999, row.quantity)),
       selectedOptions: normalizedOptions,

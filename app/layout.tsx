@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Montserrat } from "next/font/google"
+import Script from "next/script"
 import { Analytics } from "@vercel/analytics/next"
 import { SiteChrome } from "@/components/site-chrome"
 import { Toaster } from "@/components/ui/toaster"
@@ -127,8 +128,10 @@ export default async function RootLayout({
       <body className={`${montserrat.className} font-sans antialiased`}>
         <SiteChrome whatsappNumber={whatsappNumber}>{children}</SiteChrome>
         <Toaster />
-        <script
+        <Script
+          id="organization-json-ld"
           type="application/ld+json"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLdWithSettings) }}
         />
         {process.env.NODE_ENV === "production" && <Analytics />}

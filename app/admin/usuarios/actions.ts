@@ -5,7 +5,7 @@ import { randomInt } from "crypto"
 import { hash } from "bcryptjs"
 import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
-import { requireAdmin } from "@/lib/auth"
+import { requireAdmin, requireMasterAdmin } from "@/lib/auth"
 
 function getUniqueConstraintMessage(error: unknown) {
   if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") return null
@@ -47,6 +47,120 @@ export async function toggleCommonUserAction(formData: FormData) {
 
   revalidatePath("/admin")
   revalidatePath("/admin/usuarios")
+}
+
+export async function createAdminUserAction(formData: FormData) {
+  await requireMasterAdmin()
+
+  const name = String(formData.get("name") ?? "").trim()
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase()
+  const password = String(formData.get("password") ?? "")
+  const role = String(formData.get("role") ?? "ADMIN") === "ADMIN_MASTER" ? "ADMIN_MASTER" : "ADMIN"
+  const canAccessIndicators = role === "ADMIN_MASTER" || formData.get("canAccessIndicators") === "on"
+
+  if (!name) throw new Error("Informe o nome do admin.")
+  if (!email) throw new Error("Informe o e-mail do admin.")
+  if (password.length < 8) throw new Error("Informe uma senha temporária com pelo menos 8 caracteres.")
+
+  try {
+    await prisma.user.create({
+      data: {
+        name,
+        email,
+        passwordHash: await hash(password, 12),
+        role,
+        canAccessIndicators,
+        mustChangePassword: true,
+      },
+    })
+  } catch (error) {
+    throw new Error(getUniqueConstraintMessage(error) ?? "Não foi possível criar o admin.", { cause: error })
+  }
+
+  revalidateUserPaths()
+}
+
+export async function updateAdminUserAction(formData: FormData) {
+  const currentUser = await requireMasterAdmin()
+
+  const id = String(formData.get("id") ?? "")
+  const name = String(formData.get("name") ?? "").trim()
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase()
+  const requestedRole = String(formData.get("role") ?? "ADMIN") === "ADMIN_MASTER" ? "ADMIN_MASTER" : "ADMIN"
+  const canAccessIndicators = requestedRole === "ADMIN_MASTER" || formData.get("canAccessIndicators") === "on"
+
+  if (!id) throw new Error("Admin não encontrado.")
+  if (!name) throw new Error("Informe o nome do admin.")
+  if (!email) throw new Error("Informe o e-mail do admin.")
+
+  const admin = await prisma.user.findFirst({
+    where: { id, role: { in: ["ADMIN", "ADMIN_MASTER"] } },
+    select: { id: true, role: true },
+  })
+  if (!admin) throw new Error("Admin não encontrado.")
+  if (id === currentUser.id && requestedRole !== "ADMIN_MASTER") {
+    throw new Error("Você não pode remover o próprio acesso master.")
+  }
+
+  const existingUser = await prisma.user.findFirst({
+    where: { email, id: { not: id } },
+    select: { id: true },
+  })
+  if (existingUser) throw new Error("E-mail já cadastrado.")
+
+  await prisma.user.update({
+    where: { id },
+    data: {
+      name,
+      email,
+      role: requestedRole,
+      canAccessIndicators,
+    },
+  })
+
+  revalidateUserPaths()
+  revalidatePath("/indicadores")
+}
+
+export async function toggleAdminUserAction(formData: FormData) {
+  const currentUser = await requireMasterAdmin()
+
+  const id = String(formData.get("id") ?? "")
+  const active = String(formData.get("active")) === "true"
+  if (!id) throw new Error("Admin não encontrado.")
+  if (id === currentUser.id) throw new Error("Você não pode desativar o próprio usuário.")
+
+  const result = await prisma.user.updateMany({
+    where: { id, role: { in: ["ADMIN", "ADMIN_MASTER"] } },
+    data: { active: !active },
+  })
+  if (result.count === 0) throw new Error("Admin não encontrado.")
+
+  revalidateUserPaths()
+  revalidatePath("/indicadores")
+}
+
+export async function deleteAdminUserAction(formData: FormData) {
+  const currentUser = await requireMasterAdmin()
+
+  const id = String(formData.get("id") ?? "")
+  if (!id) throw new Error("Admin não encontrado.")
+  if (id === currentUser.id) throw new Error("Você não pode excluir o próprio usuário.")
+
+  const user = await prisma.user.findFirst({
+    where: { id, role: { in: ["ADMIN", "ADMIN_MASTER"] } },
+    select: { id: true },
+  })
+  if (!user) throw new Error("Admin não encontrado.")
+
+  await prisma.user.delete({ where: { id } })
+
+  revalidateUserPaths()
+  revalidatePath("/indicadores")
 }
 
 export async function updateCommonUserAction(formData: FormData) {
@@ -258,7 +372,9 @@ export async function resetUserTemporaryPasswordAction(
     where: { id },
     select: { role: true },
   })
-  if (!user || user.role === "ADMIN") return { error: "Não é possível resetar a senha deste usuário." }
+  if (!user || user.role === "ADMIN" || user.role === "ADMIN_MASTER") {
+    return { error: "Não é possível resetar a senha deste usuário." }
+  }
 
   const temporaryPassword = generateTemporaryPassword()
 
@@ -332,7 +448,7 @@ export async function deleteUserAction(formData: FormData) {
       _count: { select: { orders: true } },
     },
   })
-  if (!user || user.role === "ADMIN") throw new Error("Usuário não encontrado.")
+  if (!user || user.role === "ADMIN" || user.role === "ADMIN_MASTER") throw new Error("Usuário não encontrado.")
 
   if (user.role === "USER") {
     if (user._count.orders > 0) {

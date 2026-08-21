@@ -15,7 +15,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <PrivateShell
       area="admin"
       userName={user.name}
+      userEmail={user.email}
       userRole={user.role}
+      canAccessIndicators={user.role === "ADMIN_MASTER" || user.canAccessIndicators}
       organizationName="Nacho Factory"
       whatsappNumber={whatsappNumber}
       pendingFranchiseeUsersCount={pendingFranchiseeUsersCount}

@@ -1,7 +1,19 @@
 import Link from "next/link"
-import { ArrowRight, CheckCircle2, Clock3, Mail, MapPinned, Store, UsersRound } from "lucide-react"
-import type { Prisma } from "@prisma/client"
+import {
+  ArrowRight,
+  BarChart3,
+  CheckCircle2,
+  Clock3,
+  KeyRound,
+  Mail,
+  MapPinned,
+  ShieldCheck,
+  Store,
+  UsersRound,
+} from "lucide-react"
+import type { Prisma, UserRole } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/auth"
 import { getCurrentPage, getPagination, getSearchQuery, type SearchParams } from "@/lib/pagination"
 import { AdminActionForm } from "@/components/admin-action-form"
 import { AdminDataLabel, AdminDataList, AdminDataRow } from "@/components/admin-data-list"
@@ -9,14 +21,20 @@ import { AdminFieldGrid, AdminInput } from "@/components/admin-form-fields"
 import { AdminInlineActionForm } from "@/components/admin-inline-action-form"
 import { AdminLocationFields } from "@/components/admin-location-fields"
 import { AdminManageModal } from "@/components/admin-manage-modal"
+import { AdminModal } from "@/components/admin-modal"
 import { AdminSearch } from "@/components/admin-search"
 import { DeleteActionDialog } from "@/components/delete-action-dialog"
 import { PaginationControls } from "@/components/pagination-controls"
+import { AdminRoleFields } from "./admin-role-fields"
 import {
+  createAdminUserAction,
+  deleteAdminUserAction,
   deleteUserAction,
   rejectFranchiseeUserAction,
+  toggleAdminUserAction,
   toggleCommonUserAction,
   toggleFranchiseeUserAction,
+  updateAdminUserAction,
   updateCommonUserAction,
   updateFranchiseeUserAction,
 } from "./actions"
@@ -27,107 +45,158 @@ type UsersPageProps = {
 }
 
 export default async function UsersPage({ searchParams }: UsersPageProps) {
+  const currentUser = await requireAdmin()
+  const canManageAdmins = currentUser.role === "ADMIN_MASTER"
   const resolvedSearchParams = await searchParams
-  const view = getView(resolvedSearchParams)
+  const view = getView(resolvedSearchParams, canManageAdmins)
   const page = getCurrentPage(resolvedSearchParams)
   const query = getSearchQuery(resolvedSearchParams)
-  const userWhere: Prisma.UserWhereInput =
-    view === "clientes"
-      ? {
-          role: "USER",
-          ...(query
-            ? {
-                OR: [
-                  { name: { contains: query, mode: "insensitive" } },
-                  { email: { contains: query, mode: "insensitive" } },
-                  { businessProfile: { tradeName: { contains: query, mode: "insensitive" } } },
-                  { businessProfile: { legalName: { contains: query, mode: "insensitive" } } },
-                  { businessProfile: { document: { contains: query, mode: "insensitive" } } },
-                  { businessProfile: { email: { contains: query, mode: "insensitive" } } },
-                  { businessProfile: { city: { contains: query, mode: "insensitive" } } },
-                  { businessProfile: { state: { contains: query, mode: "insensitive" } } },
-                ],
-              }
-            : {}),
-        }
-      : {
-          role: "FRANCHISEE",
-          ...(query
-            ? {
-                OR: [
-                  { name: { contains: query, mode: "insensitive" } },
-                  { email: { contains: query, mode: "insensitive" } },
-                  { franchise: { tradeName: { contains: query, mode: "insensitive" } } },
-                  { franchise: { document: { contains: query, mode: "insensitive" } } },
-                  { franchise: { whatsapp: { contains: query, mode: "insensitive" } } },
-                  { franchise: { addresses: { some: { city: { contains: query, mode: "insensitive" } } } } },
-                  { franchise: { addresses: { some: { state: { contains: query, mode: "insensitive" } } } } },
-                ],
-              }
-            : {}),
-        }
+  let userWhere: Prisma.UserWhereInput
 
-  const [franchiseeTotal, pendingFranchisees, activeFranchisees, commonTotal, activeCommonUsers, inactiveCommonUsers] =
-    await Promise.all([
-      prisma.user.count({ where: { role: "FRANCHISEE" } }),
-      prisma.user.count({ where: { role: "FRANCHISEE", active: false } }),
-      prisma.user.count({ where: { role: "FRANCHISEE", active: true } }),
-      prisma.user.count({ where: { role: "USER" } }),
-      prisma.user.count({ where: { role: "USER", active: true } }),
-      prisma.user.count({ where: { role: "USER", active: false } }),
-    ])
+  if (view === "admins") {
+    userWhere = {
+      role: { in: ["ADMIN", "ADMIN_MASTER"] },
+      ...(query
+        ? {
+            OR: [
+              { name: { contains: query, mode: "insensitive" } },
+              { email: { contains: query, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    }
+  } else if (view === "clientes") {
+    userWhere = {
+      role: "USER",
+      ...(query
+        ? {
+            OR: [
+              { name: { contains: query, mode: "insensitive" } },
+              { email: { contains: query, mode: "insensitive" } },
+              { businessProfile: { tradeName: { contains: query, mode: "insensitive" } } },
+              { businessProfile: { legalName: { contains: query, mode: "insensitive" } } },
+              { businessProfile: { document: { contains: query, mode: "insensitive" } } },
+              { businessProfile: { email: { contains: query, mode: "insensitive" } } },
+              { businessProfile: { city: { contains: query, mode: "insensitive" } } },
+              { businessProfile: { state: { contains: query, mode: "insensitive" } } },
+            ],
+          }
+        : {}),
+    }
+  } else {
+    userWhere = {
+      role: "FRANCHISEE",
+      ...(query
+        ? {
+            OR: [
+              { name: { contains: query, mode: "insensitive" } },
+              { email: { contains: query, mode: "insensitive" } },
+              { franchise: { tradeName: { contains: query, mode: "insensitive" } } },
+              { franchise: { document: { contains: query, mode: "insensitive" } } },
+              { franchise: { whatsapp: { contains: query, mode: "insensitive" } } },
+              { franchise: { addresses: { some: { city: { contains: query, mode: "insensitive" } } } } },
+              { franchise: { addresses: { some: { state: { contains: query, mode: "insensitive" } } } } },
+            ],
+          }
+        : {}),
+    }
+  }
+
+  const [
+    franchiseeTotal,
+    pendingFranchisees,
+    activeFranchisees,
+    commonTotal,
+    activeCommonUsers,
+    inactiveCommonUsers,
+    adminTotal,
+    masterAdminTotal,
+    indicatorsAdminTotal,
+  ] = await Promise.all([
+    prisma.user.count({ where: { role: "FRANCHISEE" } }),
+    prisma.user.count({ where: { role: "FRANCHISEE", active: false } }),
+    prisma.user.count({ where: { role: "FRANCHISEE", active: true } }),
+    prisma.user.count({ where: { role: "USER" } }),
+    prisma.user.count({ where: { role: "USER", active: true } }),
+    prisma.user.count({ where: { role: "USER", active: false } }),
+    prisma.user.count({ where: { role: { in: ["ADMIN", "ADMIN_MASTER"] } } }),
+    prisma.user.count({ where: { role: "ADMIN_MASTER" } }),
+    prisma.user.count({
+      where: {
+        role: { in: ["ADMIN", "ADMIN_MASTER"] },
+        OR: [{ role: "ADMIN_MASTER" }, { canAccessIndicators: true }],
+      },
+    }),
+  ])
 
   const filteredUsers = await prisma.user.count({ where: userWhere })
   const pagination = getPagination(page, filteredUsers)
-  const [commonUsers, franchiseeUsers] =
+  const adminUsers =
+    view === "admins"
+      ? await prisma.user.findMany({
+          where: userWhere,
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            canAccessIndicators: true,
+            active: true,
+            mustChangePassword: true,
+            createdAt: true,
+          },
+          orderBy: [{ role: "desc" }, { active: "desc" }, { createdAt: "desc" }],
+          skip: pagination.skip,
+          take: pagination.take,
+        })
+      : []
+  const commonUsers =
     view === "clientes"
-      ? [
-          await prisma.user.findMany({
-            where: userWhere,
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              active: true,
-              mustChangePassword: true,
-              createdAt: true,
-              businessProfile: true,
-              _count: { select: { orders: true } },
-            },
-            orderBy: [{ active: "desc" }, { createdAt: "desc" }],
-            skip: pagination.skip,
-            take: pagination.take,
-          }),
-          [],
-        ]
-      : [
-          [],
-          await prisma.user.findMany({
-            where: userWhere,
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              active: true,
-              mustChangePassword: true,
-              createdAt: true,
-              franchise: {
-                select: {
-                  tradeName: true,
-                  document: true,
-                  whatsapp: true,
-                  active: true,
-                  addresses: { select: { city: true, state: true }, take: 1 },
-                  _count: { select: { orders: true } },
-                },
+      ? await prisma.user.findMany({
+          where: userWhere,
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            active: true,
+            mustChangePassword: true,
+            createdAt: true,
+            businessProfile: true,
+            _count: { select: { orders: true } },
+          },
+          orderBy: [{ active: "desc" }, { createdAt: "desc" }],
+          skip: pagination.skip,
+          take: pagination.take,
+        })
+      : []
+  const franchiseeUsers =
+    view === "franqueados"
+      ? await prisma.user.findMany({
+          where: userWhere,
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            active: true,
+            mustChangePassword: true,
+            createdAt: true,
+            franchise: {
+              select: {
+                tradeName: true,
+                document: true,
+                whatsapp: true,
+                active: true,
+                addresses: { select: { city: true, state: true }, take: 1 },
+                _count: { select: { orders: true } },
               },
-              _count: { select: { orders: true } },
             },
-            orderBy: [{ active: "asc" }, { createdAt: "desc" }],
-            skip: pagination.skip,
-            take: pagination.take,
-          }),
-        ]
+            _count: { select: { orders: true } },
+          },
+          orderBy: [{ active: "asc" }, { createdAt: "desc" }],
+          skip: pagination.skip,
+          take: pagination.take,
+        })
+      : []
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-12 md:py-16">
@@ -140,9 +209,21 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
             pedidos.
           </p>
         </div>
+        {canManageAdmins && (
+          <AdminModal
+            id="create-admin-user"
+            triggerLabel="Novo admin"
+            triggerClassName="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-lime px-5 text-[10px] font-black uppercase tracking-wider text-background"
+            title="Novo admin"
+            description="Crie um acesso administrativo e defina se ele pode visualizar indicadores."
+            size="sm"
+          >
+            <AdminCreateForm modalId="create-admin-user" />
+          </AdminModal>
+        )}
       </div>
 
-      <section className="mt-8 grid gap-4 md:grid-cols-2">
+      <section className={`mt-8 grid gap-4 ${canManageAdmins ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
         <UserTypeCard
           href="/admin/usuarios?tipo=franqueados"
           active={view === "franqueados"}
@@ -159,10 +240,31 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
           description="Clientes comuns que compram no marketplace sem vínculo com unidade franqueada."
           detail={`${commonTotal} clientes · ${activeCommonUsers} ativos`}
         />
+        {canManageAdmins && (
+          <UserTypeCard
+            href="/admin/usuarios?tipo=admins"
+            active={view === "admins"}
+            icon={ShieldCheck}
+            title="Admins"
+            description="Admins comuns operam o painel. Masters também gerenciam outros admins e permissões."
+            detail={`${adminTotal} admins · ${indicatorsAdminTotal} com indicadores`}
+          />
+        )}
       </section>
 
       <section className="mt-8 grid gap-4 sm:grid-cols-3">
-        {view === "franqueados" ? (
+        {view === "admins" ? (
+          <>
+            <StatCard label="Admins" value={adminTotal} detail="acessos administrativos" icon={ShieldCheck} />
+            <StatCard label="Masters" value={masterAdminTotal} detail="podem delegar acessos" icon={KeyRound} />
+            <StatCard
+              label="Indicadores"
+              value={indicatorsAdminTotal}
+              detail="podem acessar dashboards"
+              icon={BarChart3}
+            />
+          </>
+        ) : view === "franqueados" ? (
           <>
             <StatCard label="Franqueados" value={franchiseeTotal} detail="usuários cadastrados" icon={Store} />
             <StatCard label="Ativos" value={activeFranchisees} detail="com acesso liberado" icon={CheckCircle2} />
@@ -181,14 +283,20 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
         <AdminSearch
           containerId="users-grid"
           placeholder={
-            view === "franqueados" ? "Buscar franqueado, e-mail, unidade ou CNPJ..." : "Buscar cliente ou e-mail..."
+            view === "admins"
+              ? "Buscar admin ou e-mail..."
+              : view === "franqueados"
+                ? "Buscar franqueado, e-mail, unidade ou CNPJ..."
+                : "Buscar cliente ou e-mail..."
           }
           queryParam="q"
         />
       </div>
 
       <div id="users-grid" className="mt-6">
-        {view === "franqueados" ? (
+        {view === "admins" ? (
+          <AdminUsersList users={adminUsers} currentUserId={currentUser.id} />
+        ) : view === "franqueados" ? (
           <FranchiseUsersList users={franchiseeUsers} />
         ) : (
           <CommonUsersList users={commonUsers} />
@@ -202,6 +310,168 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
         searchParams={resolvedSearchParams}
       />
     </main>
+  )
+}
+
+type AdminUser = {
+  id: string
+  name: string
+  email: string
+  role: UserRole
+  canAccessIndicators: boolean
+  active: boolean
+  mustChangePassword: boolean
+  createdAt: Date
+}
+
+function AdminUsersList({ users, currentUserId }: { users: AdminUser[]; currentUserId: string }) {
+  return (
+    <AdminDataList
+      headers={["Admin", "Nível", "Indicadores", "Cadastro", "Status", "Ações"]}
+      template="minmax(210px,1.35fr) minmax(130px,.8fr) minmax(130px,.8fr) 120px 100px 72px"
+      isEmpty={users.length === 0}
+      emptyTitle="Nenhum admin cadastrado"
+      emptyDescription="Crie um admin para delegar acesso ao painel administrativo."
+    >
+      {users.map((user) => {
+        const isCurrentUser = user.id === currentUserId
+        const canAccessIndicators = user.role === "ADMIN_MASTER" || user.canAccessIndicators
+
+        return (
+          <AdminDataRow
+            key={user.id}
+            template="minmax(210px,1.35fr) minmax(130px,.8fr) minmax(130px,.8fr) 120px 100px 72px"
+            search={`${user.name} ${user.email} ${user.role}`}
+            inactive={!user.active}
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-lime/20 bg-lime/10 text-sm font-black text-lime">
+                {getInitials(user.name)}
+              </span>
+              <div className="min-w-0">
+                <h2 className="truncate text-sm font-black uppercase">{user.name}</h2>
+                <p className="mt-1 truncate text-[9px] text-muted-foreground">{user.email}</p>
+              </div>
+            </div>
+            <StatusPill
+              active={user.role === "ADMIN_MASTER"}
+              activeText="Master"
+              inactiveText="Admin"
+              inactiveClassName="border-purple-medium/25 bg-purple-medium/10 text-purple-medium"
+            />
+            <StatusPill active={canAccessIndicators} activeText="Liberado" inactiveText="Sem acesso" />
+            <div>
+              <AdminDataLabel>Cadastro</AdminDataLabel>
+              <p className="mt-1 text-xs font-bold xl:mt-0">{formatDate(user.createdAt)}</p>
+            </div>
+            <StatusPill active={user.active} activeText="Ativo" inactiveText="Inativo" />
+            <div className="xl:justify-self-end">
+              <AdminManageModal
+                id={`edit-admin-${user.id}`}
+                title="Editar admin"
+                description="Atualize dados, nível administrativo e acesso aos indicadores."
+                ariaLabel={`Editar admin ${user.name}`}
+                size="sm"
+              >
+                <AdminEditForm user={user} modalId={`edit-admin-${user.id}`} disableRoleChange={isCurrentUser} />
+                <div className="mt-5 flex flex-col gap-2 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-end">
+                  {isCurrentUser ? (
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Seu usuário master atual
+                    </span>
+                  ) : (
+                    <>
+                      <AdminInlineActionForm
+                        action={toggleAdminUserAction}
+                        label={user.active ? "DESATIVAR" : "ATIVAR"}
+                        successMessage={user.active ? "Admin desativado." : "Admin ativado."}
+                      >
+                        <input type="hidden" name="id" value={user.id} />
+                        <input type="hidden" name="active" value={String(user.active)} />
+                      </AdminInlineActionForm>
+                      <DeleteActionDialog
+                        action={deleteAdminUserAction}
+                        fields={{ id: user.id }}
+                        title="Excluir admin?"
+                        description="O acesso administrativo será removido definitivamente."
+                        label="Excluir"
+                        successMessage="Admin excluído."
+                      />
+                    </>
+                  )}
+                </div>
+              </AdminManageModal>
+            </div>
+          </AdminDataRow>
+        )
+      })}
+    </AdminDataList>
+  )
+}
+
+function AdminCreateForm({ modalId }: { modalId: string }) {
+  return (
+    <AdminActionForm
+      action={createAdminUserAction}
+      submitLabel="CRIAR ADMIN"
+      successMessage="Admin criado."
+      modalId={modalId}
+      className="space-y-5"
+    >
+      <AdminFieldGrid columns="equal">
+        <AdminInput name="name" label="Nome" required />
+        <AdminInput name="email" label="E-mail" mask="email" required />
+      </AdminFieldGrid>
+      <AdminInput
+        name="password"
+        label="Senha temporária"
+        type="password"
+        minLength={8}
+        required
+        hint="O admin será obrigado a trocar a senha no primeiro acesso."
+      />
+      <AdminRoleFields />
+    </AdminActionForm>
+  )
+}
+
+function AdminEditForm({
+  user,
+  modalId,
+  disableRoleChange,
+}: {
+  user: AdminUser
+  modalId: string
+  disableRoleChange: boolean
+}) {
+  const canAccessIndicators = user.role === "ADMIN_MASTER" || user.canAccessIndicators
+
+  return (
+    <AdminActionForm
+      action={updateAdminUserAction}
+      submitLabel="SALVAR ALTERAÇÕES"
+      successMessage="Admin atualizado."
+      modalId={modalId}
+      className="space-y-5"
+    >
+      <input type="hidden" name="id" value={user.id} />
+      {disableRoleChange && <input type="hidden" name="role" value="ADMIN_MASTER" />}
+      <AdminFieldGrid columns="equal">
+        <AdminInput name="name" label="Nome" defaultValue={user.name} required />
+        <AdminInput name="email" label="E-mail" mask="email" defaultValue={user.email} required />
+      </AdminFieldGrid>
+      <AdminRoleFields
+        defaultRole={user.role === "ADMIN_MASTER" ? "ADMIN_MASTER" : "ADMIN"}
+        defaultCanAccessIndicators={canAccessIndicators}
+        disabled={disableRoleChange}
+      />
+      <div className="grid gap-3 rounded-xl border border-border bg-graphite p-4 sm:grid-cols-2">
+        <DetailRow label="Cadastro" value={formatLongDate(user.createdAt)} />
+        <DetailRow label="Status" value={user.active ? "Ativo" : "Inativo"} />
+        <DetailRow label="Senha" value={user.mustChangePassword ? "Troca pendente" : "Sem troca pendente"} />
+        <DetailRow label="Indicadores" value={canAccessIndicators ? "Liberado" : "Sem acesso"} />
+      </div>
+    </AdminActionForm>
   )
 }
 
@@ -552,13 +822,7 @@ function CommonUserEditForm({
   )
 }
 
-function PasswordResetPanel({
-  userId,
-  mustChangePassword,
-}: {
-  userId: string
-  mustChangePassword: boolean
-}) {
+function PasswordResetPanel({ userId, mustChangePassword }: { userId: string; mustChangePassword: boolean }) {
   return (
     <section className="mt-5 rounded-xl border border-amber-400/20 bg-amber-400/10 p-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -650,16 +914,20 @@ function StatusPill({
   active,
   activeText,
   inactiveText,
+  inactiveClassName,
 }: {
   active: boolean
   activeText: string
   inactiveText: string
+  inactiveClassName?: string
 }) {
   return (
     <div>
       <span
         className={`inline-flex rounded-full border px-3 py-1.5 text-[9px] font-black uppercase ${
-          active ? "border-lime/25 bg-lime/10 text-lime" : "border-red-400/25 bg-red-500/10 text-red-300"
+          active
+            ? "border-lime/25 bg-lime/10 text-lime"
+            : (inactiveClassName ?? "border-red-400/25 bg-red-500/10 text-red-300")
         }`}
       >
         {active ? activeText : inactiveText}
@@ -677,8 +945,9 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   )
 }
 
-function getView(searchParams?: SearchParams) {
+function getView(searchParams: SearchParams | undefined, canManageAdmins: boolean) {
   const rawView = Array.isArray(searchParams?.tipo) ? searchParams?.tipo[0] : searchParams?.tipo
+  if (rawView === "admins" && canManageAdmins) return "admins"
   return rawView === "clientes" ? "clientes" : "franqueados"
 }
 

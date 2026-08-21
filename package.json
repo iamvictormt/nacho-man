@@ -10,9 +10,12 @@
     "lint": "eslint .",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
+    "saipos:schema:apply": "node scripts/apply-saipos-bi-schema.mjs",
+    "saipos:sync:daily": "node scripts/sync-saipos-current-month.mjs --yesterday",
+    "saipos:sync:month": "node scripts/sync-saipos-current-month.mjs",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:seed": "node prisma/seed.mjs"
+    "db:promote-admin": "node scripts/promote-admin-master.mjs"
   },
   "dependencies": {
     "@fontsource/montserrat": "^5.2.8",

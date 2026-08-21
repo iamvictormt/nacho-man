@@ -10,7 +10,8 @@ import { ThemeProvider } from "@/components/theme-provider"
 
 export function SiteChrome({ children, whatsappNumber }: { children: React.ReactNode; whatsappNumber: string }) {
   const pathname = usePathname()
-  const authenticatedArea = pathname.startsWith("/admin") || pathname.startsWith("/marketplace")
+  const authenticatedArea =
+    pathname.startsWith("/admin") || pathname.startsWith("/indicadores") || pathname.startsWith("/marketplace")
   const privateArea = pathname === "/login" || authenticatedArea
 
   if (privateArea) {

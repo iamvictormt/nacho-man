@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { PaymentMethod, PromotionScope } from "@prisma/client"
 import { z } from "zod"
-import { getCurrentUser } from "@/lib/auth"
+import { getCurrentUser, isAdminRole } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
 import { getOrderMessageSettings, getPaymentDiscountSettings, getStoreWhatsAppNumber } from "@/lib/site-settings"
@@ -112,7 +112,10 @@ function getPaymentDiscountBaseInCents({
 
 function canUseMarketplace(user: Awaited<ReturnType<typeof getCurrentUser>>) {
   return Boolean(
-    user && !user.mustChangePassword && user.role !== "ADMIN" && (user.role !== "FRANCHISEE" || user.franchise?.active)
+    user &&
+    !user.mustChangePassword &&
+    !isAdminRole(user.role) &&
+    (user.role !== "FRANCHISEE" || user.franchise?.active)
   )
 }
 
@@ -306,10 +309,7 @@ export async function POST(request: Request) {
     parsed.data.scheduledPickupAt &&
     !isFactoryPickupScheduleAllowed(parsed.data.scheduledPickupAt)
   ) {
-    return NextResponse.json(
-      { error: "Escolha um horário de retirada dentro da agenda disponível." },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: "Escolha um horário de retirada dentro da agenda disponível." }, { status: 400 })
   }
 
   const productRequests = parsed.data.items.filter((item) => item.type === "PRODUCT")
@@ -340,7 +340,9 @@ export async function POST(request: Request) {
           { OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
         ],
       },
-      include: { options: { include: { product: { select: { id: true, name: true, paymentDiscountEligible: true } } } } },
+      include: {
+        options: { include: { product: { select: { id: true, name: true, paymentDiscountEligible: true } } } },
+      },
     }),
   ])
 

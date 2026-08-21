@@ -1,11 +1,12 @@
 "use client"
 
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, XAxis, YAxis } from "recharts"
+import { Bar, CartesianGrid, Cell, ComposedChart, Line, Pie, PieChart, XAxis, YAxis } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 
 type RevenuePoint = {
   label: string
-  totalInCents: number
+  grossInCents: number
+  netInCents: number
   orders: number
 }
 
@@ -15,20 +16,28 @@ type DistributionPoint = {
 }
 
 const revenueConfig = {
-  totalInCents: {
-    label: "Faturamento",
-    color: "#efff0d",
+  grossInCents: {
+    label: "Bruto",
+    color: "var(--lime)",
+  },
+  netInCents: {
+    label: "Líquido",
+    color: "var(--purple-medium)",
+  },
+  orders: {
+    label: "Pedidos",
+    color: "var(--muted-foreground)",
   },
 } satisfies ChartConfig
 
 const distributionConfig = {
   value: {
     label: "Pedidos",
-    color: "#7c3faa",
+    color: "var(--purple-medium)",
   },
 } satisfies ChartConfig
 
-const colors = ["#efff0d", "#7c3faa", "#22c55e", "#38bdf8", "#f59e0b", "#f43f5e"]
+const colors = ["var(--lime)", "var(--purple-medium)", "var(--lime-dark)", "var(--muted-foreground)", "var(--foreground)", "var(--border)"]
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -51,30 +60,52 @@ function getRevenueBarSize(length: number) {
 export function SaiposRevenueChart({ data }: { data: RevenuePoint[] }) {
   return (
     <ChartContainer config={revenueConfig} className="h-[280px] w-full min-w-0 md:h-[330px]">
-      <BarChart data={data} margin={{ top: 12, right: 6, left: 8, bottom: 0 }}>
+      <ComposedChart data={data} margin={{ top: 12, right: 8, left: 8, bottom: 0 }}>
         <CartesianGrid vertical={false} strokeDasharray="4 5" />
         <XAxis dataKey="label" axisLine={false} tickLine={false} tickMargin={12} />
-        <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => formatAxisMoney(Number(value))} width={64} />
+        <YAxis yAxisId="money" axisLine={false} tickLine={false} tickFormatter={(value) => formatAxisMoney(Number(value))} width={64} />
+        <YAxis yAxisId="orders" orientation="right" axisLine={false} tickLine={false} hide />
         <ChartTooltip
           cursor={{ fill: "rgba(239,255,13,.08)" }}
           content={
             <ChartTooltipContent
               formatter={(value, _name, item) => (
                 <div className="flex min-w-44 items-center justify-between gap-4">
-                  <span className="text-muted-foreground">{item.payload.orders} pedidos</span>
-                  <span className="font-black text-foreground">{moneyFormatter.format(Number(value) / 100)}</span>
+                  <span className="text-muted-foreground">
+                    {item.dataKey === "orders" ? "Pedidos" : item.dataKey === "grossInCents" ? "Bruto" : "Líquido"}
+                  </span>
+                  <span className="font-black text-foreground">
+                    {item.dataKey === "orders" ? Number(value) : moneyFormatter.format(Number(value) / 100)}
+                  </span>
                 </div>
               )}
             />
           }
         />
         <Bar
-          dataKey="totalInCents"
-          fill="var(--color-totalInCents)"
+          yAxisId="money"
+          dataKey="grossInCents"
+          fill="var(--color-grossInCents)"
           radius={[7, 7, 0, 0]}
           barSize={getRevenueBarSize(data.length)}
         />
-      </BarChart>
+        <Bar
+          yAxisId="money"
+          dataKey="netInCents"
+          fill="var(--color-netInCents)"
+          radius={[7, 7, 0, 0]}
+          barSize={getRevenueBarSize(data.length)}
+        />
+        <Line
+          yAxisId="orders"
+          type="monotone"
+          dataKey="orders"
+          stroke="var(--color-orders)"
+          strokeWidth={3}
+          dot={{ r: 3, fill: "var(--muted-foreground)", strokeWidth: 0 }}
+          activeDot={{ r: 5 }}
+        />
+      </ComposedChart>
     </ChartContainer>
   )
 }

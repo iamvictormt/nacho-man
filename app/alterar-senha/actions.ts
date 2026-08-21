@@ -3,7 +3,7 @@
 import { hash } from "bcryptjs"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
-import { requirePasswordChangeUser } from "@/lib/auth"
+import { isAdminRole, requirePasswordChangeUser } from "@/lib/auth"
 
 export type ForcedPasswordChangeState = {
   error?: string
@@ -33,5 +33,5 @@ export async function changeForcedPasswordAction(
     },
   })
 
-  redirect(user.role === "ADMIN" ? "/admin" : "/marketplace")
+  redirect(isAdminRole(user.role) ? "/admin" : "/marketplace")
 }

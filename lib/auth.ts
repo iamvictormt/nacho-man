@@ -19,6 +19,7 @@ export const getCurrentUser = cache(async () => {
       name: true,
       email: true,
       role: true,
+      canAccessIndicators: true,
       mustChangePassword: true,
       franchiseId: true,
       franchise: {
@@ -39,16 +40,32 @@ export async function requireUser() {
   return user
 }
 
+export function isAdminRole(role: string) {
+  return role === "ADMIN" || role === "ADMIN_MASTER"
+}
+
 export async function requirePasswordChangeUser() {
   const user = await requireUser()
-  if (!user.mustChangePassword) redirect(user.role === "ADMIN" ? "/admin" : "/marketplace")
+  if (!user.mustChangePassword) redirect(isAdminRole(user.role) ? "/admin" : "/marketplace")
   return user
 }
 
 export async function requireAdmin() {
   const user = await requireUser()
   if (user.mustChangePassword) redirect("/alterar-senha")
-  if (user.role !== "ADMIN") redirect("/marketplace")
+  if (!isAdminRole(user.role)) redirect("/marketplace")
+  return user
+}
+
+export async function requireMasterAdmin() {
+  const user = await requireAdmin()
+  if (user.role !== "ADMIN_MASTER") redirect("/admin")
+  return user
+}
+
+export async function requireIndicatorsAccess() {
+  const user = await requireAdmin()
+  if (user.role !== "ADMIN_MASTER" && !user.canAccessIndicators) redirect("/admin")
   return user
 }
 
@@ -56,7 +73,7 @@ export async function requireFranchisee() {
   const user = await requireUser()
   if (user.mustChangePassword) redirect("/alterar-senha")
   if (user.role !== "FRANCHISEE" || !user.franchiseId || !user.franchise?.active) {
-    redirect(user.role === "ADMIN" ? "/admin" : "/login")
+    redirect(isAdminRole(user.role) ? "/admin" : "/login")
   }
   return user
 }
@@ -64,7 +81,7 @@ export async function requireFranchisee() {
 export async function requireMarketplaceUser() {
   const user = await requireUser()
   if (user.mustChangePassword) redirect("/alterar-senha")
-  if (user.role === "ADMIN") redirect("/admin")
+  if (isAdminRole(user.role)) redirect("/admin")
   if (user.role === "FRANCHISEE" && (!user.franchiseId || !user.franchise?.active)) {
     redirect("/login")
   }

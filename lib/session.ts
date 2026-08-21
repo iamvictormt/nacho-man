@@ -9,7 +9,7 @@ const REMEMBER_ME_SESSION_DURATION_SECONDS = 60 * 60 * 24 * 30
 
 export type SessionPayload = {
   userId: string
-  role: "ADMIN" | "FRANCHISEE" | "USER"
+  role: "ADMIN_MASTER" | "ADMIN" | "FRANCHISEE" | "USER"
   franchiseId?: string
   expiresAt: string
 }

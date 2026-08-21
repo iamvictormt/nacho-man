@@ -6,9 +6,9 @@ const SAIPOS_LIVE_LIMIT = 15
 const SAIPOS_SYNC_LIMIT = 300
 const SAIPOS_MAX_LIVE_PAGES = 1
 const SAIPOS_REQUEST_TIMEOUT_MS = 15000
-const SAIPOS_SYNC_REQUEST_TIMEOUT_MS = 60000
-const MAX_SALES_DAYS = 14
-const SAIPOS_RETRY_DELAYS_MS: number[] = []
+const SAIPOS_SYNC_REQUEST_TIMEOUT_MS = 120000
+const MAX_SALES_DAYS = 15
+const SAIPOS_RETRY_DELAYS_MS = [1000, 2500, 5000]
 
 export type SaiposSale = {
   id_store: number
@@ -33,9 +33,108 @@ export type SaiposSale = {
     partner_status?: string
   } | null
   payments?: Array<{
+    change_for?: number
+    created_at?: string
     payment_amount?: number
     desc_store_payment_type?: string
   }>
+}
+
+export type SaiposSalePayment = NonNullable<SaiposSale["payments"]>[number]
+
+export type SaiposSaleItemChoice = {
+  notes?: string | null
+  deleted?: "Y" | "N" | string | boolean
+  aditional_price?: number
+  id_sale_item_choice?: number
+  id_store_choice_item?: number
+  desc_sale_item_choice?: string
+  desc_store_choice_item?: string
+}
+
+export type SaiposSaleItem = {
+  notes?: string | null
+  status?: number
+  deleted?: "Y" | "N" | string | boolean
+  done_at?: string | null
+  quantity?: number
+  created_at?: string
+  updated_at?: string | null
+  deleted_at?: string | null
+  unit_price?: number
+  id_sale_to?: number | null
+  id_sale_from?: number | null
+  id_sale_item?: number
+  id_store_item?: number | null
+  desc_sale_item?: string
+  group_sequence?: number | null
+  id_store_waiter?: number | null
+  id_store_variation?: number | null
+  delete_authorized_by?: number | null
+  id_store_cancellation_reason?: number | null
+  integration_code?: string | number | null
+  choices?: SaiposSaleItemChoice[]
+}
+
+export type SaiposSaleItemsSale = {
+  id_store: number
+  id_sale: number
+  id_sale_type: number
+  created_at: string
+  updated_at?: string
+  shift_date?: string
+  items?: SaiposSaleItem[]
+}
+
+export type SaiposSaleStatusHistoryEvent = {
+  order?: number | null
+  created_at?: string | null
+  authorized_by?: SaiposSaleStatusHistoryUser | null
+  duration_time_seconds?: number | null
+  desc_store_sale_status?: string | null
+  id_sale_status_history?: number
+  desc_cancellation_reason?: string | null
+  user?: SaiposSaleStatusHistoryUser | null
+}
+
+export type SaiposSaleStatusHistoryUser = {
+  id_user?: number | null
+  full_name?: string | null
+  email?: string | null
+  user_type?: number | null
+}
+
+export type SaiposSaleStatusHistorySale = {
+  id_store: number
+  id_sale: number
+  id_sale_type?: number
+  created_at?: string
+  updated_at?: string
+  shift_date?: string
+  histories?: SaiposSaleStatusHistoryEvent[]
+}
+
+export type SaiposFinancialTransaction = {
+  id_store: number
+  id_store_fin_transaction?: number
+  amount?: number
+  paid?: "Y" | "N" | string | boolean
+  recurring?: "Y" | "N" | string | boolean
+  conciliated?: "Y" | "N" | string | boolean
+  installment?: number | null
+  total_installments?: number | null
+  provider_trade_name?: string | null
+  desc_store_bank_account?: string | null
+  desc_store_payment_method?: string | null
+  desc_store_fin_transaction?: string | null
+  desc_store_category_financial?: string | null
+  date?: string | null
+  payment_date?: string | null
+  issuance_date?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+  children?: unknown[] | null
+  notes?: string | null
 }
 
 export type SaiposSalesPeriod = {
@@ -44,7 +143,7 @@ export type SaiposSalesPeriod = {
 }
 
 type FetchSaiposPageOptions = {
-  dateColumn: "shift_date" | "created_at" | "updated_at"
+  dateColumn: string
   limit: number
   timeoutMs: number
 }
@@ -149,6 +248,11 @@ function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+function formatSaiposTimeoutMessage(timeoutMs: number) {
+  const seconds = Math.round(timeoutMs / 1000)
+  return `A Saipos não respondeu em até ${seconds} segundos.`
+}
+
 function isTransientSaiposError(status: number, message: string) {
   const normalized = message.toLowerCase()
 
@@ -163,12 +267,12 @@ function isTransientSaiposError(status: number, message: string) {
 function normalizeSaiposErrorMessage(message: string) {
   const normalized = message.toLowerCase()
 
-  if (normalized.includes("aborted") || normalized.includes("nao respondeu")) {
-    return "A Saipos nao respondeu em ate 15 segundos. Reduza o periodo ou tente novamente em um horario de menor movimento."
+  if (normalized.includes("aborted") || normalized.includes("não respondeu") || normalized.includes("nao respondeu")) {
+    return `${message} Reduza o período ou tente novamente em um horário de menor movimento.`
   }
 
   if (normalized.includes("connection pool") || normalized.includes("timed out") || normalized.includes("timeout")) {
-    return "A Saipos demorou para responder ou ficou sem conexao disponivel no banco interno dela. Tente novamente em alguns instantes ou reduza o periodo."
+    return "A Saipos demorou para responder ou ficou sem conexão disponível no banco interno dela. Tente novamente em alguns instantes ou reduza o período."
   }
 
   return message
@@ -208,7 +312,7 @@ async function fetchSaiposPageOnce<T>(
     })
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      throw new Error("A Saipos nao respondeu em ate 15 segundos.", { cause: error })
+      throw new Error(formatSaiposTimeoutMessage(options.timeoutMs), { cause: error })
     }
     throw error
   } finally {
@@ -241,7 +345,7 @@ async function fetchSaiposPage<T>(
     try {
       return await fetchSaiposPageOnce<T>(path, period, offset, options)
     } catch (error) {
-      lastError = error instanceof Error ? error : new Error("Nao foi possivel consultar a Saipos agora.")
+      lastError = error instanceof Error ? error : new Error("Não foi possível consultar a Saipos agora.")
       const status = "status" in lastError && typeof lastError.status === "number" ? lastError.status : 0
       const retry = isTransientSaiposError(status, lastError.message) && attempt < SAIPOS_RETRY_DELAYS_MS.length
 
@@ -250,7 +354,7 @@ async function fetchSaiposPage<T>(
     }
   }
 
-  throw lastError ?? new Error("Nao foi possivel consultar a Saipos agora.")
+  throw lastError ?? new Error("Não foi possível consultar a Saipos agora.")
 }
 
 export async function fetchSaiposSales(period: SaiposSalesPeriod): Promise<SaiposSalesResult> {
@@ -279,7 +383,7 @@ export async function fetchSaiposSales(period: SaiposSalesPeriod): Promise<Saipo
       message:
         error instanceof Error
           ? normalizeSaiposErrorMessage(error.message)
-          : "Nao foi possivel consultar a Saipos agora.",
+          : "Não foi possível consultar a Saipos agora.",
     }
   }
 }
@@ -290,7 +394,7 @@ export async function fetchSaiposSalesForSync({
   maxPages = 200,
 }: {
   period: SaiposSalesPeriod
-  dateColumn?: FetchSaiposPageOptions["dateColumn"]
+  dateColumn?: "shift_date" | "created_at" | "updated_at"
   maxPages?: number
 }) {
   const sales: SaiposSale[] = []
@@ -308,6 +412,84 @@ export async function fetchSaiposSalesForSync({
   }
 
   return { sales, truncated: true }
+}
+
+export async function fetchSaiposSaleItemsForSync({
+  period,
+  dateColumn = "shift_date",
+  maxPages = 200,
+}: {
+  period: SaiposSalesPeriod
+  dateColumn?: "shift_date" | "created_at" | "updated_at"
+  maxPages?: number
+}) {
+  const sales: SaiposSaleItemsSale[] = []
+
+  for (let pageNumber = 0; pageNumber < maxPages; pageNumber += 1) {
+    const offset = pageNumber * SAIPOS_SYNC_LIMIT
+    const page = await fetchSaiposPage<SaiposSaleItemsSale>("/sales_items", period, offset, {
+      dateColumn,
+      limit: SAIPOS_SYNC_LIMIT,
+      timeoutMs: SAIPOS_SYNC_REQUEST_TIMEOUT_MS,
+    })
+
+    sales.push(...page)
+    if (page.length < SAIPOS_SYNC_LIMIT) return { sales, truncated: false }
+  }
+
+  return { sales, truncated: true }
+}
+
+export async function fetchSaiposSaleStatusHistoriesForSync({
+  period,
+  dateColumn = "shift_date",
+  maxPages = 200,
+}: {
+  period: SaiposSalesPeriod
+  dateColumn?: "shift_date" | "created_at" | "updated_at"
+  maxPages?: number
+}) {
+  const sales: SaiposSaleStatusHistorySale[] = []
+
+  for (let pageNumber = 0; pageNumber < maxPages; pageNumber += 1) {
+    const offset = pageNumber * SAIPOS_SYNC_LIMIT
+    const page = await fetchSaiposPage<SaiposSaleStatusHistorySale>("/sales_status_histories", period, offset, {
+      dateColumn,
+      limit: SAIPOS_SYNC_LIMIT,
+      timeoutMs: SAIPOS_SYNC_REQUEST_TIMEOUT_MS,
+    })
+
+    sales.push(...page)
+    if (page.length < SAIPOS_SYNC_LIMIT) return { sales, truncated: false }
+  }
+
+  return { sales, truncated: true }
+}
+
+export async function fetchSaiposFinancialTransactionsForSync({
+  period,
+  dateColumn = "date",
+  maxPages = 200,
+}: {
+  period: SaiposSalesPeriod
+  dateColumn?: "date" | "created_at" | "updated_at" | "payment_date" | "issuance_date"
+  maxPages?: number
+}) {
+  const transactions: SaiposFinancialTransaction[] = []
+
+  for (let pageNumber = 0; pageNumber < maxPages; pageNumber += 1) {
+    const offset = pageNumber * SAIPOS_SYNC_LIMIT
+    const page = await fetchSaiposPage<SaiposFinancialTransaction>("/search_financial_transactions", period, offset, {
+      dateColumn,
+      limit: SAIPOS_SYNC_LIMIT,
+      timeoutMs: SAIPOS_SYNC_REQUEST_TIMEOUT_MS,
+    })
+
+    transactions.push(...page)
+    if (page.length < SAIPOS_SYNC_LIMIT) return { transactions, truncated: false }
+  }
+
+  return { transactions, truncated: true }
 }
 
 export function getSaiposSaleTotal(sale: SaiposSale) {

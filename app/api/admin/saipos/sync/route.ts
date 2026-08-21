@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server"
-import { getCurrentUser } from "@/lib/auth"
+import { getCurrentUser, isAdminRole } from "@/lib/auth"
 import { normalizeSaiposPeriod } from "@/lib/saipos-data-api"
 import { syncSaiposSales } from "@/lib/saipos-sync"
 
@@ -31,7 +31,7 @@ function getOptionalString(value: unknown) {
 
 async function runSyncRequest(request: NextRequest, body: Record<string, unknown>) {
   const user = await getCurrentUser()
-  const authorized = (user?.role === "ADMIN" && !user.mustChangePassword) || hasValidSyncSecret(request)
+  const authorized = (user && isAdminRole(user.role) && !user.mustChangePassword) || hasValidSyncSecret(request)
 
   if (!authorized) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 })

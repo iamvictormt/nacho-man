@@ -7,6 +7,7 @@ import {
   BarChart3,
   Factory,
   Gift,
+  KeyRound,
   LogOut,
   Mail,
   Menu,
@@ -21,7 +22,10 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react"
+import { updateAdminProfileAction } from "@/app/admin/profile-actions"
 import { logoutAction } from "@/app/login/actions"
+import { AdminActionForm } from "@/components/admin-action-form"
+import { AdminFieldGrid, AdminInput } from "@/components/admin-form-fields"
 import { LogoutSubmitButton } from "@/components/logout-submit-button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { buildWhatsAppUrl } from "@/lib/whatsapp"
@@ -36,6 +40,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuSeparator,
@@ -47,7 +59,9 @@ type PrivateShellProps = {
   children: React.ReactNode
   area: "admin" | "marketplace"
   userName: string
-  userRole?: "ADMIN" | "FRANCHISEE" | "USER"
+  userEmail?: string
+  userRole?: "ADMIN_MASTER" | "ADMIN" | "FRANCHISEE" | "USER"
+  canAccessIndicators?: boolean
   organizationName?: string
   whatsappNumber: string
   showMarketplaceCombos?: boolean
@@ -67,7 +81,9 @@ export function PrivateShell({
   children,
   area,
   userName,
+  userEmail,
   userRole,
+  canAccessIndicators = false,
   organizationName,
   whatsappNumber,
   showMarketplaceCombos = true,
@@ -75,9 +91,9 @@ export function PrivateShell({
 }: PrivateShellProps) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false)
   const admin = area === "admin"
-  const pendingFranchiseeUsersLabel =
-    pendingFranchiseeUsersCount > 99 ? "99+" : String(pendingFranchiseeUsersCount)
+  const pendingFranchiseeUsersLabel = pendingFranchiseeUsersCount > 99 ? "99+" : String(pendingFranchiseeUsersCount)
   const profileOrganization = organizationName ?? (admin ? "Nacho Factory" : "Cliente Nacho Man")
   const profileTitle = admin ? profileOrganization : userName
   const profileSubtitle = admin ? "Painel administrativo" : profileOrganization
@@ -91,7 +107,7 @@ export function PrivateShell({
   const links: PrivateShellLink[] = admin
     ? [
         { href: "/admin", label: "Visão geral", icon: Factory, exact: true },
-        { href: "/admin/saipos", label: "Indicadores", icon: BarChart3 },
+        ...(canAccessIndicators ? [{ href: "/indicadores", label: "Indicadores", icon: BarChart3 }] : []),
         { href: "/admin/produtos", label: "Produtos", icon: PackageSearch },
         { href: "/admin/combos", label: "Combos", icon: Gift },
         { href: "/admin/campanhas", label: "Promoções", icon: Tags },
@@ -110,6 +126,15 @@ export function PrivateShell({
   useEffect(() => {
     setMobileMenuOpen(false)
   }, [pathname])
+
+  useEffect(() => {
+    function closeProfileDialog(event: Event) {
+      if ((event as CustomEvent<string>).detail === "admin-profile-access") setProfileDialogOpen(false)
+    }
+
+    window.addEventListener("admin-modal-success", closeProfileDialog)
+    return () => window.removeEventListener("admin-modal-success", closeProfileDialog)
+  }, [])
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -188,6 +213,19 @@ export function PrivateShell({
                   </div>
                   <DropdownMenuSeparator className="bg-border" />
                   <ThemeToggle menu />
+                  {admin && userEmail && (
+                    <>
+                      <DropdownMenuSeparator className="bg-border" />
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[10px] font-black uppercase tracking-wider text-foreground/75 outline-none transition hover:bg-graphite hover:text-lime focus:bg-graphite focus:text-lime"
+                        onClick={() => setProfileDialogOpen(true)}
+                      >
+                        <KeyRound className="h-4 w-4" />
+                        Acesso e senha
+                      </button>
+                    </>
+                  )}
                   <DropdownMenuSeparator className="bg-border" />
                   <AlertDialogTrigger asChild>
                     <button
@@ -215,6 +253,64 @@ export function PrivateShell({
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+            {admin && userEmail && (
+              <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
+                <DialogContent
+                  showCloseButton={false}
+                  className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] overflow-y-auto border-border bg-background p-0 sm:max-w-lg"
+                >
+                  <DialogHeader className="border-b border-border px-5 py-5">
+                    <DialogTitle className="pr-8 text-lg font-black uppercase">Acesso e senha</DialogTitle>
+                    <DialogDescription>
+                      Atualize seu nome, e-mail de acesso ou troque sua senha usando a senha atual.
+                    </DialogDescription>
+                    <DialogClose asChild>
+                      <button
+                        type="button"
+                        className="absolute right-3 top-3 inline-flex h-10 items-center justify-center gap-2 rounded-full border border-border bg-graphite px-3 text-[9px] font-black uppercase tracking-wider text-foreground/70 transition hover:border-lime/40 hover:text-lime"
+                      >
+                        <X className="h-4 w-4" />
+                        <span className="hidden sm:inline">Fechar</span>
+                      </button>
+                    </DialogClose>
+                  </DialogHeader>
+                  <div className="px-5 pb-6 pt-5">
+                    <AdminActionForm
+                      action={updateAdminProfileAction}
+                      submitLabel="SALVAR ACESSO"
+                      successMessage="Acesso atualizado."
+                      modalId="admin-profile-access"
+                      className="space-y-5"
+                    >
+                      <AdminInput name="name" label="Nome" defaultValue={userName} required />
+                      <AdminInput
+                        name="email"
+                        label="E-mail de acesso"
+                        mask="email"
+                        defaultValue={userEmail}
+                        required
+                      />
+                      <AdminInput name="currentPassword" label="Senha atual" type="password" required />
+                      <AdminFieldGrid columns="equal">
+                        <AdminInput
+                          name="newPassword"
+                          label="Nova senha"
+                          type="password"
+                          minLength={8}
+                          hint="Deixe em branco para manter a senha atual."
+                        />
+                        <AdminInput
+                          name="confirmPassword"
+                          label="Confirmar nova senha"
+                          type="password"
+                          minLength={8}
+                        />
+                      </AdminFieldGrid>
+                    </AdminActionForm>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
         </div>
       </header>
