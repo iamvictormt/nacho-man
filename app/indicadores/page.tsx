@@ -1,7 +1,6 @@
 import Link from "next/link"
 import {
   AlertTriangle,
-  ArrowLeft,
   BadgePercent,
   BarChart3,
   CalendarDays,
@@ -216,10 +215,7 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
         <aside className="hidden border-border bg-graphite/95 backdrop-blur xl:fixed xl:inset-y-0 xl:left-0 xl:z-30 xl:block xl:w-[280px] xl:overflow-hidden xl:border-r">
           <div className="flex h-dvh min-h-0 flex-col gap-6 p-5">
             <div className="grid min-w-0 gap-4">
-              <Link
-                href="/admin"
-                className="flex min-w-0 items-center gap-3 rounded-2xl border border-border bg-background p-3 transition hover:border-lime/35"
-              >
+              <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-border bg-background p-3">
                 <img src="/nacho-man-logo.png" alt="Nacho Man" className="h-12 w-auto shrink-0" />
                 <span className="min-w-0">
                   <strong className="block text-xs uppercase text-lime">Indicadores</strong>
@@ -227,16 +223,7 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
                     Saipos BI
                   </span>
                 </span>
-              </Link>
-
-              <Link
-                href="/admin"
-                className="inline-flex min-h-11 w-full min-w-0 items-center justify-center gap-2 rounded-full border border-border px-4 text-[10px] font-black uppercase tracking-wider text-muted-foreground transition hover:border-lime/40 hover:text-lime"
-                aria-label="Voltar ao admin"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <span>Voltar ao admin</span>
-              </Link>
+              </div>
             </div>
 
             <nav className="grid gap-1">
@@ -466,7 +453,7 @@ function ExecutiveView({
           value={estimatedCmvRate === null ? "--%" : formatPercent(estimatedCmvRate)}
           detail={
             estimatedCmvRate === null
-              ? "Sem estoque CMV da Saipos"
+              ? "Endpoint de estoque Saipos sem dados"
               : estimatedCmv.source === "stock"
                 ? `${formatMoneyFromAmount(estimatedCmv.estimatedCostInCents / 100)} · ${estimatedCmv.movementCount} movimentos`
                 : `${formatMoneyFromAmount(estimatedCmv.estimatedCostInCents / 100)} estimado · ${formatPercent(estimatedCmv.revenueCoverage)} cobertura`
@@ -1046,7 +1033,6 @@ function ComparisonView({
   const revenueDelta = percentChange(summary.netInCents, comparisonSummary.netInCents)
   const orderDelta = percentChange(summary.orders, comparisonSummary.orders)
   const ticketDelta = percentChange(summary.averageTicketInCents, comparisonSummary.averageTicketInCents)
-  const cancellationDelta = percentChange(summary.cancellationRate, comparisonSummary.cancellationRate)
   const revenueDiff = summary.netInCents - comparisonSummary.netInCents
   const orderDiff = summary.orders - comparisonSummary.orders
   const ticketDiff = summary.averageTicketInCents - comparisonSummary.averageTicketInCents
@@ -1081,7 +1067,8 @@ function ComparisonView({
           label="Cancelamentos"
           value={formatPercent(summary.cancellationRate)}
           detail="Contra referência"
-          delta={cancellationDelta}
+          delta={cancellationDiff}
+          deltaDisplay={formatSignedPercentagePoints(cancellationDiff)}
           inverse
         />
       </div>
@@ -1247,39 +1234,59 @@ function FinanceView({
     summary.netInCents > 0 && estimatedCmv.estimatedCostInCents > 0
       ? estimatedCmv.estimatedCostInCents / summary.netInCents
       : null
+  const discountRate = summary.grossInCents > 0 ? summary.discountInCents / summary.grossInCents : 0
+  const paymentGapInCents = payments.capturedInCents - summary.netInCents
+  const paymentGapRate = summary.netInCents > 0 ? Math.abs(paymentGapInCents) / summary.netInCents : 0
+  const fiscalCoverage = summary.orders > 0 ? finance.fiscalOrders / summary.orders : 0
+  const grossMarginInCents =
+    estimatedCmv.estimatedCostInCents > 0 ? summary.netInCents - estimatedCmv.estimatedCostInCents : null
 
   return (
     <div className="mt-6 grid gap-4">
       <div className="grid gap-4 md:grid-cols-4">
-        <Kpi icon={CircleDollarSign} label="Vendas brutas" value={formatMoneyFromAmount(summary.grossInCents / 100)} />
+        <Kpi
+          icon={CircleDollarSign}
+          label="Faturamento líquido"
+          value={formatMoneyFromAmount(summary.netInCents / 100)}
+          detail={`${summary.orders} pedidos válidos`}
+        />
         <Kpi
           icon={BadgePercent}
           label="Descontos"
           value={formatMoneyFromAmount(summary.discountInCents / 100)}
-          detail={formatPercent(summary.grossInCents > 0 ? summary.discountInCents / summary.grossInCents : 0)}
+          detail={formatPercent(discountRate)}
           inverse
         />
         <Kpi
           icon={WalletCards}
           label="Pagamentos lidos"
           value={formatMoneyFromAmount(payments.capturedInCents / 100)}
+          detail={paymentGapRate <= 0.03 ? "Conciliação próxima" : `${formatMoneyFromAmount(paymentGapInCents / 100)} de diferença`}
         />
         <Kpi
           icon={ReceiptText}
           label="NFC-e emitidas"
           value={String(finance.fiscalOrders)}
-          detail={formatMoneyFromAmount(finance.fiscalAmountInCents / 100)}
+          detail={`${formatPercent(fiscalCoverage)} dos pedidos`}
         />
       </div>
-      <div className="grid items-start gap-4 xl:grid-cols-[.85fr_1.15fr]">
+
+      <div className="grid items-stretch gap-4 xl:grid-cols-[1.05fr_.95fr]">
         <Panel title="DRE comercial Saipos">
           <FinanceStatement summary={summary} estimatedCmv={estimatedCmv} />
         </Panel>
-        <Panel title="Pagamentos por valor">
-          <CompactRanking rows={payments.rows} money limit={6} />
+        <Panel title="Leitura financeira">
+          <FinancePulse
+            summary={summary}
+            finance={finance}
+            estimatedCmv={estimatedCmv}
+            paymentGapInCents={paymentGapInCents}
+            grossMarginInCents={grossMarginInCents}
+          />
         </Panel>
       </div>
-      <div className="grid items-start gap-4 xl:grid-cols-[.7fr_1.3fr]">
+
+      <div className="grid items-start gap-4 xl:grid-cols-[1.25fr_.75fr]">
         <Panel title="CMV estimado">
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="rounded-xl border border-lime/20 bg-lime/10 p-4">
@@ -1304,6 +1311,7 @@ function FinanceView({
               detail={estimatedCmv.source === "stock" ? "Marcados para entrar no CMV" : `${estimatedCmv.costCount} custos ativos`}
             />
           </div>
+          <CmvExplanation estimatedCmv={estimatedCmv} />
         </Panel>
         <Panel title="Ingredientes com maior custo">
           <CompactRanking
@@ -1313,6 +1321,28 @@ function FinanceView({
           />
         </Panel>
       </div>
+
+      <div className="grid items-start gap-4 xl:grid-cols-[1.1fr_.9fr]">
+        <Panel title="Pagamentos por valor">
+          <CompactRanking rows={payments.rows} money limit={7} />
+        </Panel>
+        <Panel title="Conciliação rápida">
+          <MetricList
+            rows={[
+              { label: "Faturamento líquido", value: formatMoneyFromAmount(summary.netInCents / 100), strong: true },
+              { label: "Pagamentos capturados", value: formatMoneyFromAmount(payments.capturedInCents / 100) },
+              {
+                label: "Diferença",
+                value: `${paymentGapInCents >= 0 ? "+" : "-"}${formatMoneyFromAmount(Math.abs(paymentGapInCents) / 100)}`,
+                strong: paymentGapRate <= 0.03,
+              },
+              { label: "Pagamentos divididos", value: String(payments.splitPaymentOrders) },
+              { label: "Cobertura fiscal", value: formatPercent(fiscalCoverage) },
+            ]}
+          />
+        </Panel>
+      </div>
+
       <div className="grid items-start gap-4 xl:grid-cols-3">
         <Panel title="Receita por canal">
           <CompactRanking rows={finance.partnerRevenue} money limit={6} />
@@ -1395,6 +1425,78 @@ function OperationalView({
           <DeliveryModeCards rows={operational.deliveryModes} total={operational.deliveryOrders} />
         </Panel>
       </div>
+    </div>
+  )
+}
+
+function FinancePulse({
+  summary,
+  finance,
+  estimatedCmv,
+  paymentGapInCents,
+  grossMarginInCents,
+}: {
+  summary: ReturnType<typeof summarizeSales>
+  finance: ReturnType<typeof buildCommercialFinanceInsights>
+  estimatedCmv: ReturnType<typeof buildEstimatedCmv>
+  paymentGapInCents: number
+  grossMarginInCents: number | null
+}) {
+  const paymentGapRate = summary.netInCents > 0 ? Math.abs(paymentGapInCents) / summary.netInCents : 0
+  const fiscalCoverage = summary.orders > 0 ? finance.fiscalOrders / summary.orders : 0
+  const cmvRate =
+    summary.netInCents > 0 && estimatedCmv.estimatedCostInCents > 0
+      ? estimatedCmv.estimatedCostInCents / summary.netInCents
+      : null
+  const cards = [
+    {
+      label: "Conciliação",
+      value: paymentGapRate <= 0.03 ? "OK" : "Revisar",
+      detail:
+        paymentGapRate <= 0.03
+          ? "Pagamentos próximos do faturamento líquido."
+          : `${formatMoneyFromAmount(Math.abs(paymentGapInCents) / 100)} de diferença entre vendas e pagamentos.`,
+      tone: paymentGapRate <= 0.03 ? "lime" : "amber",
+    },
+    {
+      label: "Fiscal",
+      value: formatPercent(fiscalCoverage),
+      detail: `${finance.fiscalOrders} NFC-e em ${summary.orders} pedidos válidos.`,
+      tone: fiscalCoverage >= 0.85 ? "lime" : "amber",
+    },
+    {
+      label: "CMV",
+      value: cmvRate === null ? "--%" : formatPercent(cmvRate),
+      detail:
+        cmvRate === null
+          ? "Aguardando retorno do estoque Saipos."
+          : `${estimatedCmv.movementCount} movimentos compõem o custo.`,
+      tone: cmvRate === null ? "amber" : "lime",
+    },
+    {
+      label: "Margem bruta",
+      value: grossMarginInCents === null ? "--" : formatMoneyFromAmount(grossMarginInCents / 100),
+      detail: grossMarginInCents === null ? "Disponível quando houver CMV." : "Faturamento líquido menos CMV estimado.",
+      tone: grossMarginInCents === null || grossMarginInCents >= 0 ? "lime" : "amber",
+    },
+  ]
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {cards.map((card) => (
+        <div
+          key={card.label}
+          className={`rounded-xl border p-4 ${
+            card.tone === "lime" ? "border-lime/20 bg-lime/5" : "border-amber-400/20 bg-amber-400/5"
+          }`}
+        >
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">{card.label}</p>
+          <strong className={`mt-2 block text-2xl leading-none ${card.tone === "lime" ? "text-lime" : "text-amber-300"}`}>
+            {card.value}
+          </strong>
+          <p className="mt-3 text-xs leading-5 text-muted-foreground">{card.detail}</p>
+        </div>
+      ))}
     </div>
   )
 }
@@ -1524,7 +1626,7 @@ function formatSignedMoneyFromCents(value: number) {
 
 function formatSignedPercentagePoints(value: number) {
   const sign = value > 0 ? "+" : value < 0 ? "-" : ""
-  return `${sign}${formatPercent(Math.abs(value), 2)} p.p.`
+  return `${sign}${formatPercent(Math.abs(value), 2).replace("%", "")} p.p.`
 }
 
 function formatMinutes(value: number) {
@@ -1547,6 +1649,7 @@ function FinanceStatement({
       : null
   const grossMarginInCents =
     estimatedCmv.estimatedCostInCents > 0 ? summary.netInCents - estimatedCmv.estimatedCostInCents : null
+  const compositionMax = Math.max(summary.grossInCents, summary.netInCents, 1)
 
   return (
     <div className="grid gap-4">
@@ -1558,6 +1661,43 @@ function FinanceStatement({
         <p className="mt-2 text-xs text-muted-foreground">
           {summary.orders} pedidos válidos · {formatMoneyFromAmount(summary.grossInCents / 100)} em vendas brutas
         </p>
+      </div>
+      <div className="grid gap-3">
+        <DreBar
+          label="Vendas brutas"
+          value={summary.grossInCents}
+          max={compositionMax}
+          tone="neutral"
+        />
+        <DreBar
+          label="Descontos"
+          value={summary.discountInCents}
+          max={compositionMax}
+          tone="danger"
+          suffix={formatPercent(discountShare)}
+        />
+        <DreBar
+          label="Cancelamentos"
+          value={summary.canceledInCents}
+          max={compositionMax}
+          tone="danger"
+          suffix={formatPercent(cancellationShare)}
+        />
+        <DreBar
+          label="Faturamento líquido"
+          value={summary.netInCents}
+          max={compositionMax}
+          tone="lime"
+        />
+        {estimatedCmv.estimatedCostInCents > 0 ? (
+          <DreBar
+            label="CMV estimado"
+            value={estimatedCmv.estimatedCostInCents}
+            max={compositionMax}
+            tone="amber"
+            suffix={cmvShare === null ? undefined : formatPercent(cmvShare)}
+          />
+        ) : null}
       </div>
       <MetricList
         rows={[
@@ -1585,6 +1725,75 @@ function FinanceStatement({
           },
         ]}
       />
+    </div>
+  )
+}
+
+function DreBar({
+  label,
+  value,
+  max,
+  tone,
+  suffix,
+}: {
+  label: string
+  value: number
+  max: number
+  tone: "lime" | "amber" | "danger" | "neutral"
+  suffix?: string
+}) {
+  const toneClass = {
+    lime: "bg-lime",
+    amber: "bg-amber-300",
+    danger: "bg-red-400",
+    neutral: "bg-muted-foreground",
+  }[tone]
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-3 text-xs">
+        <span className="text-muted-foreground">{label}</span>
+        <strong className={tone === "lime" ? "text-lime" : tone === "danger" ? "text-red-300" : "text-foreground"}>
+          {formatMoneyFromAmount(value / 100)}
+          {suffix ? <span className="ml-2 text-muted-foreground">{suffix}</span> : null}
+        </strong>
+      </div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-background">
+        <div className={`h-full rounded-full ${toneClass}`} style={{ width: `${Math.max(3, (value / max) * 100)}%` }} />
+      </div>
+    </div>
+  )
+}
+
+function CmvExplanation({ estimatedCmv }: { estimatedCmv: ReturnType<typeof buildEstimatedCmv> }) {
+  const hasStockData = estimatedCmv.estimatedCostInCents > 0
+
+  return (
+    <div className={`mt-4 rounded-xl border p-4 ${hasStockData ? "border-lime/20 bg-lime/5" : "border-amber-400/25 bg-amber-400/5"}`}>
+      <div className="flex items-start gap-3">
+        <span
+          className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${
+            hasStockData ? "border-lime/30 bg-lime/10 text-lime" : "border-amber-400/30 bg-amber-400/10 text-amber-300"
+          }`}
+        >
+          <AlertTriangle className="h-4 w-4" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-xs font-black uppercase tracking-[0.14em] text-foreground">
+            {hasStockData ? "CMV calculado pelo estoque Saipos" : "CMV por estoque ainda sem retorno da Saipos"}
+          </p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            {hasStockData
+              ? "O valor usa movimentações de ingrediente vinculadas a vendas e marcadas pela Saipos para entrar no CMV."
+              : "A integração já consulta o endpoint oficial de movimentação de estoque da Saipos, mas a própria documentação informa que ele está em manutenção e pode não retornar dados. Quando a Saipos liberar movimentos, o sync diário passa a preencher este indicador automaticamente."}
+          </p>
+          {!hasStockData ? (
+            <p className="mt-2 text-xs font-semibold text-muted-foreground">
+              Enquanto não houver movimentos de estoque, o painel mantém `--%` para não apresentar um CMV inventado.
+            </p>
+          ) : null}
+        </div>
+      </div>
     </div>
   )
 }
@@ -1846,6 +2055,7 @@ function Kpi({
   value,
   detail = "Período",
   delta,
+  deltaDisplay,
   inverse = false,
 }: {
   icon: LucideIcon
@@ -1853,6 +2063,7 @@ function Kpi({
   value: string
   detail?: string
   delta?: number | null
+  deltaDisplay?: string
   inverse?: boolean
 }) {
   const good = delta === undefined || delta === null || (inverse ? delta <= 0 : delta >= 0)
@@ -1870,7 +2081,7 @@ function Kpi({
       </div>
       {delta !== undefined ? (
         <p className={`mt-3 text-right text-xs font-black ${good ? "text-lime" : "text-red-400"}`}>
-          {formatSignedPercent(delta)}
+          {deltaDisplay ?? formatSignedPercent(delta)}
         </p>
       ) : null}
     </article>

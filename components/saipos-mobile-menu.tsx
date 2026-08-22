@@ -4,7 +4,6 @@ import * as React from "react"
 import Link from "next/link"
 import {
   AlertTriangle,
-  ArrowLeft,
   BarChart3,
   CalendarDays,
   Database,
@@ -60,7 +59,7 @@ export function SaiposMobileMenu({ tabs }: { tabs: SaiposMobileMenuTab[] }) {
   return (
     <>
       <div className="sticky top-0 z-40 border-b border-border bg-graphite/95 px-3 py-3 backdrop-blur xl:hidden">
-        <div className="grid grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] items-center gap-2">
+        <div className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-center gap-2">
           <button
             type="button"
             onClick={() => setOpen(true)}
@@ -81,13 +80,6 @@ export function SaiposMobileMenu({ tabs }: { tabs: SaiposMobileMenuTab[] }) {
             </span>
           </div>
 
-          <Link
-            href="/admin"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition hover:border-lime/40 hover:text-lime"
-            aria-label="Voltar ao admin"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
         </div>
       </div>
 
@@ -100,7 +92,7 @@ export function SaiposMobileMenu({ tabs }: { tabs: SaiposMobileMenuTab[] }) {
             aria-label="Fechar menu"
           />
 
-          <aside className="absolute inset-y-0 left-0 grid w-[min(330px,calc(100vw-2rem))] grid-rows-[auto_1fr_auto] border-r border-border bg-graphite shadow-[28px_0_80px_rgba(0,0,0,.45)]">
+          <aside className="absolute inset-y-0 left-0 grid w-[min(330px,calc(100vw-2rem))] grid-rows-[auto_1fr] border-r border-border bg-graphite shadow-[28px_0_80px_rgba(0,0,0,.45)]">
             <div className="border-b border-border p-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
@@ -144,17 +136,6 @@ export function SaiposMobileMenu({ tabs }: { tabs: SaiposMobileMenuTab[] }) {
                 })}
               </div>
             </nav>
-
-            <div className="border-t border-border p-4">
-              <Link
-                href="/admin"
-                onClick={() => setOpen(false)}
-                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-border px-4 text-[10px] font-black uppercase tracking-wider text-muted-foreground transition hover:border-lime/40 hover:text-lime"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Voltar ao admin
-              </Link>
-            </div>
           </aside>
         </div>
       ) : null}
