@@ -10,6 +10,10 @@ type RevenuePoint = {
   orders: number
 }
 
+type RevenueChartPoint = RevenuePoint & {
+  grossTrendInCents: number
+}
+
 type DistributionPoint = {
   name: string
   value: number
@@ -26,6 +30,10 @@ const revenueConfig = {
   },
   orders: {
     label: "Pedidos",
+    color: "var(--muted-foreground)",
+  },
+  grossTrendInCents: {
+    label: "Tendência",
     color: "var(--muted-foreground)",
   },
 } satisfies ChartConfig
@@ -58,29 +66,39 @@ function getRevenueBarSize(length: number) {
 }
 
 export function SaiposRevenueChart({ data }: { data: RevenuePoint[] }) {
+  const chartData: RevenueChartPoint[] = data.map((item) => ({
+    ...item,
+    grossTrendInCents: item.grossInCents,
+  }))
+
   return (
-    <ChartContainer config={revenueConfig} className="h-[280px] w-full min-w-0 md:h-[330px]">
-      <ComposedChart data={data} margin={{ top: 12, right: 8, left: 8, bottom: 0 }}>
+    <ChartContainer config={revenueConfig} className="h-[260px] w-full min-w-0 sm:h-[280px] md:h-[330px]">
+      <ComposedChart data={chartData} margin={{ top: 12, right: 4, left: 0, bottom: 0 }}>
         <CartesianGrid vertical={false} strokeDasharray="4 5" />
         <XAxis dataKey="label" axisLine={false} tickLine={false} tickMargin={12} />
-        <YAxis yAxisId="money" axisLine={false} tickLine={false} tickFormatter={(value) => formatAxisMoney(Number(value))} width={64} />
-        <YAxis yAxisId="orders" orientation="right" axisLine={false} tickLine={false} hide />
+        <YAxis yAxisId="money" axisLine={false} tickLine={false} tickFormatter={(value) => formatAxisMoney(Number(value))} width={54} />
         <ChartTooltip
           cursor={{ fill: "rgba(239,255,13,.08)" }}
-          content={
-            <ChartTooltipContent
-              formatter={(value, _name, item) => (
-                <div className="flex min-w-44 items-center justify-between gap-4">
-                  <span className="text-muted-foreground">
-                    {item.dataKey === "orders" ? "Pedidos" : item.dataKey === "grossInCents" ? "Bruto" : "Líquido"}
-                  </span>
-                  <span className="font-black text-foreground">
-                    {item.dataKey === "orders" ? Number(value) : moneyFormatter.format(Number(value) / 100)}
-                  </span>
-                </div>
-              )}
-            />
-          }
+          content={({ active, payload, label }) => {
+            const visibleItems = payload?.filter((item) => item.dataKey !== "grossTrendInCents") ?? []
+            if (!active || visibleItems.length === 0) return null
+
+            return (
+              <div className="grid min-w-40 gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs shadow-xl">
+                <strong className="font-black text-foreground">{label}</strong>
+                {visibleItems.map((item) => (
+                  <div key={String(item.dataKey)} className="flex items-center justify-between gap-4">
+                    <span className="text-muted-foreground">
+                      {item.dataKey === "grossInCents" ? "Bruto" : "Líquido"}
+                    </span>
+                    <span className="font-black text-foreground">
+                      {moneyFormatter.format(Number(item.value) / 100)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )
+          }}
         />
         <Bar
           yAxisId="money"
@@ -97,10 +115,11 @@ export function SaiposRevenueChart({ data }: { data: RevenuePoint[] }) {
           barSize={getRevenueBarSize(data.length)}
         />
         <Line
-          yAxisId="orders"
+          yAxisId="money"
           type="monotone"
-          dataKey="orders"
-          stroke="var(--color-orders)"
+          dataKey="grossTrendInCents"
+          tooltipType="none"
+          stroke="var(--color-grossTrendInCents)"
           strokeWidth={3}
           dot={{ r: 3, fill: "var(--muted-foreground)", strokeWidth: 0 }}
           activeDot={{ r: 5 }}
@@ -112,14 +131,14 @@ export function SaiposRevenueChart({ data }: { data: RevenuePoint[] }) {
 
 export function SaiposDistributionChart({ data }: { data: DistributionPoint[] }) {
   return (
-    <ChartContainer config={distributionConfig} className="h-[260px] w-full min-w-0">
+    <ChartContainer config={distributionConfig} className="h-[230px] w-full min-w-0 sm:h-[260px]">
       <PieChart>
         <ChartTooltip
           content={
             <ChartTooltipContent
               hideLabel
               formatter={(value, _name, item) => (
-                <div className="flex min-w-36 items-center justify-between gap-4">
+                <div className="flex min-w-32 items-center justify-between gap-4">
                   <span className="max-w-24 truncate text-muted-foreground">{item.payload.name}</span>
                   <span className="font-black text-foreground">{Number(value)}</span>
                 </div>

@@ -100,8 +100,13 @@ export function buildCommercialFinanceInsights(sales: SaiposDashboardSale[]) {
     partnerRevenue.set(partner, partnerRow)
 
     if (sale.totalDiscountInCents > 0) {
-      const reason =
-        getRawString(sale.raw, ["discount_coupon"]) ?? getRawString(sale.raw, ["discount_reason"]) ?? "Desconto sem motivo"
+      const coupon = getRawString(sale.raw, ["discount_coupon"])
+      const discountReason = getRawString(sale.raw, ["discount_reason"])
+      const reason = coupon
+        ? `Cupom: ${coupon}`
+        : discountReason
+          ? `Motivo: ${discountReason}`
+          : "Sem motivo informado pela Saipos"
       const current = discountReasons.get(reason) ?? { name: reason, value: 0, detail: "0 pedidos" }
       current.value += sale.totalDiscountInCents
       current.detail = `${Number(current.detail.split(" ")[0]) + 1} pedidos`

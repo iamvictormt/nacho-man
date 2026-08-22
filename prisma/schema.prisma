@@ -236,6 +236,47 @@ model SaiposProductReference {
   @@index([name])
 }
 
+model SaiposStockMovement {
+  id                        String    @id @default(cuid())
+  idStore                   Int
+  idStoreIngredMovement     BigInt
+  idStoreIngredient         BigInt?
+  idMovementType            Int?
+  dateMovement              DateTime?
+  createdAtSaipos           DateTime?
+  quantityText              String?
+  quantityNumber            Float?
+  quantityEntryText         String?
+  unitCostInCents           Int       @default(0)
+  movementCostInCents       Int       @default(0)
+  saleId                    BigInt?
+  saleNumber                Int?
+  notes                     String?
+  ingredientName            String?
+  ingredientGroupId         BigInt?
+  ingredientGroupName       String?
+  currentInventory          Float?
+  minimumStock              Float?
+  averageCostInCents        Int       @default(0)
+  averageCostMethod         String?
+  controlInventory          Boolean   @default(false)
+  includeInCmvCalc          Boolean   @default(false)
+  unitMeasure               String?
+  identificationNfItem      String?
+  identificationNfItemId    BigInt?
+  raw                       Json
+  syncedAt                  DateTime  @default(now())
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  @@unique([idStore, idStoreIngredMovement])
+  @@index([idStore])
+  @@index([dateMovement])
+  @@index([idStoreIngredient])
+  @@index([saleId])
+  @@index([includeInCmvCalc])
+}
+
 model SaiposFinancialTransaction {
   id                           String    @id @default(cuid())
   idStore                      Int

@@ -5,11 +5,11 @@ export function formatMoneyFromAmount(value: number) {
   }).format(value)
 }
 
-export function formatPercent(value: number) {
+export function formatPercent(value: number, fractionDigits = 1) {
   return new Intl.NumberFormat("pt-BR", {
     style: "percent",
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
   }).format(value)
 }
 
@@ -19,8 +19,8 @@ export function formatQuantity(value: number) {
   }).format(value)
 }
 
-export function formatSignedPercent(value: number | null) {
+export function formatSignedPercent(value: number | null, fractionDigits = 1) {
   if (value === null) return "Sem base"
   const prefix = value > 0 ? "+" : ""
-  return `${prefix}${formatPercent(value)}`
+  return `${prefix}${formatPercent(value, fractionDigits)}`
 }

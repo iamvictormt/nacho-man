@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronDown, SlidersHorizontal } from "lucide-react"
+import { ChevronDown, SlidersHorizontal, X } from "lucide-react"
 import { AdminSelect } from "@/components/admin-form-fields"
 import { SaiposPeriodPicker } from "@/components/saipos-period-picker"
 import { FilterSubmitButton } from "@/app/admin/saipos/filter-submit-button"
@@ -15,6 +15,7 @@ type SaiposDashboardFilterMenuProps = {
   periodInputs: Record<SaiposPeriodMode, string>
   comparisonPeriodInputs: Record<SaiposPeriodMode, string>
   maxDate: string
+  comparisonMaxDate?: string
   comparisonEnabled?: boolean
   lockedMode?: SaiposPeriodMode
 }
@@ -24,6 +25,24 @@ function getModeLabel(mode: SaiposPeriodMode) {
   if (mode === "week") return "Semana"
   if (mode === "month") return "Mês"
   return "Ano"
+}
+
+function isRadixPortalClick(target: EventTarget | null) {
+  if (!(target instanceof Element)) return false
+
+  return Boolean(
+    target.closest(
+      [
+        "[data-radix-popper-content-wrapper]",
+        "[data-radix-select-content]",
+        "[data-radix-select-viewport]",
+        "[data-radix-popover-content]",
+        "[data-saipos-period-picker-portal]",
+        "[role='listbox']",
+        "[role='option']",
+      ].join(",")
+    )
+  )
 }
 
 function PeriodModeField({
@@ -67,32 +86,78 @@ export function SaiposDashboardFilterMenu({
   periodInputs,
   comparisonPeriodInputs,
   maxDate,
+  comparisonMaxDate,
   comparisonEnabled = false,
   lockedMode,
 }: SaiposDashboardFilterMenuProps) {
   const [mode, setMode] = React.useState(lockedMode ?? selectedMode)
+  const [open, setOpen] = React.useState(false)
+  const menuRef = React.useRef<HTMLDetailsElement>(null)
   const effectiveMode = lockedMode ?? mode
 
   React.useEffect(() => {
     setMode(lockedMode ?? selectedMode)
   }, [lockedMode, selectedMode])
 
+  React.useEffect(() => {
+    if (!open) return
+
+    function handlePointerDown(event: PointerEvent) {
+      if (isRadixPortalClick(event.target)) return
+      if (!menuRef.current?.contains(event.target as Node)) setOpen(false)
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false)
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown)
+    document.addEventListener("keydown", handleKeyDown)
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown)
+      document.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [open])
+
   return (
-    <details className="group relative">
+    <details ref={menuRef} open={open} onToggle={(event) => setOpen(event.currentTarget.open)} className="group relative min-w-0 sm:flex-none">
       <summary
         role="button"
-        className="inline-flex min-h-12 cursor-pointer select-none list-none items-center gap-2 rounded-xl border border-border bg-graphite px-4 py-3 text-xs font-black uppercase text-foreground shadow-[0_10px_28px_rgba(0,0,0,.18)] transition hover:-translate-y-0.5 hover:border-lime/50 hover:bg-lime/10 hover:text-lime group-open:border-lime/60 group-open:bg-lime group-open:text-background [&::-webkit-details-marker]:hidden"
+        onClick={(event) => {
+          event.preventDefault()
+          setOpen((current) => !current)
+        }}
+        className="inline-flex min-h-12 w-full min-w-0 cursor-pointer select-none list-none items-center justify-center gap-2 overflow-hidden rounded-xl border border-border bg-graphite px-3 py-3 text-xs font-black uppercase text-foreground shadow-[0_10px_28px_rgba(0,0,0,.18)] transition hover:-translate-y-0.5 hover:border-lime/50 hover:bg-lime/10 hover:text-lime group-open:border-lime/60 group-open:bg-lime group-open:text-background sm:w-auto sm:px-4 [&::-webkit-details-marker]:hidden"
       >
-        <SlidersHorizontal className="h-4 w-4" />
-        Filtros
+        <SlidersHorizontal className="h-4 w-4 shrink-0" />
+        <span className="min-w-0 truncate">Filtros</span>
         <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
       </summary>
-      <form className="absolute right-0 top-14 z-50 grid w-[min(360px,calc(100vw-2rem))] gap-4 rounded-2xl border border-border bg-background p-4 shadow-2xl">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime">Contexto</p>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            {comparisonEnabled ? "Ajuste loja e períodos da comparação." : "Ajuste loja, escala e período analisado."}
-          </p>
+      {open ? (
+        <button
+          type="button"
+          className="fixed inset-0 z-[70] bg-background/75 backdrop-blur-sm"
+          onClick={() => setOpen(false)}
+          aria-label="Fechar filtros"
+        />
+      ) : null}
+      <form className="fixed left-1/2 top-1/2 z-[80] grid max-h-[min(720px,calc(100dvh-2rem))] w-[min(430px,calc(100vw-1.5rem))] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto overscroll-contain rounded-2xl border border-border bg-graphite p-4 shadow-[0_28px_90px_rgba(0,0,0,.55)] sm:p-5">
+        <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime">Filtros do painel</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              {comparisonEnabled ? "Ajuste loja e períodos da comparação." : "Ajuste loja, escala e período analisado."}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition hover:border-lime/40 hover:text-lime"
+            aria-label="Fechar filtros"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
         <input name="tab" type="hidden" value={activeTab} />
         <AdminSelect name="store" label="Unidade" defaultValue={selectedStore}>
@@ -119,7 +184,7 @@ export function SaiposDashboardFilterMenu({
           <SaiposPeriodPicker
             mode={effectiveMode}
             values={comparisonPeriodInputs}
-            maxDate={maxDate}
+            maxDate={comparisonMaxDate ?? maxDate}
             label="Comparação"
             fieldNames={{ day: "compareDay", week: "compareWeek", month: "compareMonth", year: "compareYear" }}
           />

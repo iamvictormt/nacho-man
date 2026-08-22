@@ -1,5 +1,6 @@
 import Link from "next/link"
 import {
+  AlertTriangle,
   ArrowLeft,
   BadgePercent,
   BarChart3,
@@ -8,7 +9,6 @@ import {
   ClipboardList,
   CreditCard,
   Database,
-  Download,
   LineChart,
   MapPin,
   PackageSearch,
@@ -23,11 +23,15 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import { SaiposDistributionChart, SaiposRevenueChart } from "@/components/saipos-dashboard-charts"
+import { SaiposDashboardContentShell } from "@/components/saipos-dashboard-content-shell"
 import { SaiposDashboardFilterMenu } from "@/components/saipos-dashboard-filter-menu"
+import { SaiposExportLink } from "@/components/saipos-export-link"
+import { SaiposMobileMenu } from "@/components/saipos-mobile-menu"
 import { requireIndicatorsAccess } from "@/lib/auth"
 import {
   buildAlerts,
   buildDailyRevenue,
+  buildEstimatedCmv,
   buildHref,
   buildProductMix,
   buildStoreRows,
@@ -40,7 +44,7 @@ import {
   saleTypeLabels,
   summarizeSales,
   topEntries,
-  type SaiposDashboardTone,
+  type SaiposDashboardAlert,
 } from "@/lib/saipos/dashboard-metrics"
 import {
   buildCommercialFinanceInsights,
@@ -53,6 +57,7 @@ import {
   getSaiposDashboardItems,
   getSaiposDashboardSales,
   getSaiposProductReferences,
+  getSaiposStockCmv,
   getSaiposStoreOptionsSource,
 } from "@/lib/saipos/dashboard-queries"
 import {
@@ -61,6 +66,7 @@ import {
   diffUtcDays,
   getComparisonAnchorDate,
   getPeriodMode,
+  getPreviousPeriodAnchorDate,
   getSearchParam,
   getSelectedAnchorDate,
   toBrazilDateInputValue,
@@ -68,16 +74,16 @@ import {
   toPeriodStart,
   toWeekInputValue,
   type PageSearchParams,
+  type SaiposPeriodMode,
 } from "@/lib/saipos/period"
 import { formatMoneyFromAmount, formatPercent, formatQuantity, formatSignedPercent } from "@/lib/saipos/formatters"
 
-type Tone = SaiposDashboardTone
 type DashboardTab =
   | "resumo"
   | "vendas"
+  | "alertas"
   | "ticket"
   | "financeiro"
-  | "folha"
   | "operacional"
   | "produtos"
   | "semanal"
@@ -86,10 +92,10 @@ type DashboardTab =
 
 const tabs: Array<{ id: DashboardTab; label: string; icon: LucideIcon; active: boolean }> = [
   { id: "resumo", label: "Resumo Executivo", icon: BarChart3, active: true },
+  { id: "alertas", label: "Alertas", icon: AlertTriangle, active: true },
   { id: "vendas", label: "Vendas e Clientes", icon: Users, active: true },
   { id: "ticket", label: "Ticket Médio", icon: TrendingUp, active: true },
   { id: "financeiro", label: "Financeiro & CMV", icon: WalletCards, active: true },
-  { id: "folha", label: "Folha de Pagamento", icon: BadgePercent, active: false },
   { id: "operacional", label: "Operacional", icon: Utensils, active: true },
   { id: "produtos", label: "Mix de Produtos", icon: PackageSearch, active: true },
   { id: "semanal", label: "Comparativo Semanal", icon: CalendarDays, active: true },
@@ -106,11 +112,21 @@ function buildIndicatorsHref(searchParams: PageSearchParams, updates: Record<str
   return buildHref(searchParams, updates).replace("/admin/saipos", "/indicadores")
 }
 
+function buildExportHref(searchParams: PageSearchParams) {
+  const params = new URLSearchParams()
+
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (typeof value === "string") params.set(key, value)
+  }
+
+  const query = params.toString()
+  return query ? `/api/indicadores/export?${query}` : "/api/indicadores/export"
+}
+
 export default async function IndicatorsPage({ searchParams }: { searchParams?: Promise<PageSearchParams> }) {
   const user = await requireIndicatorsAccess()
   const resolvedSearchParams = (await searchParams) ?? {}
   const yesterday = addUtcDays(toPeriodStart(toBrazilDateInputValue(new Date())), -1)
-  const dayBeforeYesterday = addUtcDays(yesterday, -1)
   const maxDate = toDateInputValue(yesterday)
   const selectedStore = getSearchParam(resolvedSearchParams, "store") ?? "all"
   const activeTab = getTab(resolvedSearchParams)
@@ -118,12 +134,18 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
   const selectedMode =
     activeTab === "semanal" ? "week" : activeTab === "mensal" ? "month" : getPeriodMode(resolvedSearchParams)
   const selectedDate = getSelectedAnchorDate(selectedMode, resolvedSearchParams, yesterday)
-  const selectedComparisonDate = getComparisonAnchorDate(selectedMode, resolvedSearchParams, dayBeforeYesterday)
   const period = buildPeriodFromMode(selectedMode, selectedDate, yesterday)
   const equivalentDays = diffUtcDays(toPeriodStart(period.start), toPeriodStart(period.end))
-  const comparisonPeriod = buildPeriodFromMode(selectedMode, selectedComparisonDate, yesterday, equivalentDays)
+  const previousPeriodAnchorDate = getPreviousPeriodAnchorDate(selectedMode, toPeriodStart(period.start))
+  const requestedComparisonDate = getComparisonAnchorDate(selectedMode, resolvedSearchParams, previousPeriodAnchorDate)
+  const requestedComparisonPeriod = buildPeriodFromMode(selectedMode, requestedComparisonDate, yesterday, equivalentDays)
+  const comparisonPeriod =
+    requestedComparisonPeriod.start === period.start && requestedComparisonPeriod.end === period.end
+      ? buildPeriodFromMode(selectedMode, previousPeriodAnchorDate, yesterday, equivalentDays)
+      : requestedComparisonPeriod
   const periodStart = toPeriodStart(period.start)
   const comparisonPeriodStart = toPeriodStart(comparisonPeriod.start)
+  const comparisonMaxDate = toDateInputValue(addUtcDays(periodStart, -1))
   const periodInputs = {
     day: period.start,
     week: toWeekInputValue(periodStart),
@@ -137,13 +159,14 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
     year: comparisonPeriod.start.slice(0, 4),
   }
 
-  const [sales, comparisonSales, productItems, allProductItems, productReferences, storeOptionsSource] =
+  const [sales, comparisonSales, productItems, allProductItems, productReferences, stockCmv, storeOptionsSource] =
     await Promise.all([
       getSaiposDashboardSales({ period, selectedStore }),
       getSaiposDashboardSales({ period: comparisonPeriod, selectedStore }),
       getSaiposDashboardItems({ period, selectedStore }),
       getSaiposDashboardItems({ period, selectedStore, includeDeleted: true }),
       getSaiposProductReferences({ selectedStore }),
+      getSaiposStockCmv({ period, selectedStore }),
       getSaiposStoreOptionsSource(),
     ])
 
@@ -161,6 +184,7 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
   const partners = topEntries(groupBy(validSales, getPartnerLabel))
   const paymentTypes = topEntries(groupBy(validSales, getPaymentLabel))
   const productMix = buildProductMix(productItems, productReferences)
+  const estimatedCmv = buildEstimatedCmv(stockCmv)
   const paymentInsights = buildPaymentInsights(sales)
   const financeInsights = buildCommercialFinanceInsights(sales)
   const operationalInsights = buildOperationalInsights(sales, allProductItems)
@@ -169,33 +193,51 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
   const alerts = buildAlerts({
     summary,
     customerCoverage: validSales.length > 0 ? customerInsights.uniqueCustomers / validSales.length : 0,
+    dailyRevenue,
+    storeRows,
+    saleTypes,
+    productMix,
+    operational: operationalInsights,
+    payments: paymentInsights,
+    periodMode: selectedMode,
   })
+  const mobileTabs = tabs.map((tab) => ({
+    id: tab.id,
+    label: tab.label,
+    href: buildIndicatorsHref(resolvedSearchParams, { tab: tab.id }),
+    icon: tab.id,
+    selected: tab.id === activeTab,
+  }))
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <div className="grid min-h-screen xl:grid-cols-[280px_1fr]">
-        <aside className="border-r border-border bg-graphite xl:sticky xl:top-0 xl:h-screen">
-          <div className="flex h-full flex-col gap-6 p-5">
-            <Link
-              href="/admin"
-              className="flex items-center gap-3 rounded-2xl border border-border bg-background p-3 transition hover:border-lime/35"
-            >
-              <img src="/nacho-man-logo.png" alt="Nacho Man" className="h-12 w-auto" />
-              <span className="min-w-0">
-                <strong className="block text-xs uppercase text-lime">Indicadores</strong>
-                <span className="block truncate text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                  Saipos BI
+    <main className="min-h-screen touch-pan-y overflow-x-hidden bg-background text-foreground">
+      <SaiposMobileMenu tabs={mobileTabs} />
+      <div className="min-h-screen xl:block">
+        <aside className="hidden border-border bg-graphite/95 backdrop-blur xl:fixed xl:inset-y-0 xl:left-0 xl:z-30 xl:block xl:w-[280px] xl:overflow-hidden xl:border-r">
+          <div className="flex h-dvh min-h-0 flex-col gap-6 p-5">
+            <div className="grid min-w-0 gap-4">
+              <Link
+                href="/admin"
+                className="flex min-w-0 items-center gap-3 rounded-2xl border border-border bg-background p-3 transition hover:border-lime/35"
+              >
+                <img src="/nacho-man-logo.png" alt="Nacho Man" className="h-12 w-auto shrink-0" />
+                <span className="min-w-0">
+                  <strong className="block text-xs uppercase text-lime">Indicadores</strong>
+                  <span className="block truncate text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                    Saipos BI
+                  </span>
                 </span>
-              </span>
-            </Link>
+              </Link>
 
-            <Link
-              href="/admin"
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-border px-4 text-[10px] font-black uppercase tracking-wider text-muted-foreground transition hover:border-lime/40 hover:text-lime"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Voltar ao admin
-            </Link>
+              <Link
+                href="/admin"
+                className="inline-flex min-h-11 w-full min-w-0 items-center justify-center gap-2 rounded-full border border-border px-4 text-[10px] font-black uppercase tracking-wider text-muted-foreground transition hover:border-lime/40 hover:text-lime"
+                aria-label="Voltar ao admin"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Voltar ao admin</span>
+              </Link>
+            </div>
 
             <nav className="grid gap-1">
               {tabs.map((tab) => {
@@ -205,7 +247,8 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
                   <Link
                     key={tab.id}
                     href={buildIndicatorsHref(resolvedSearchParams, { tab: tab.id })}
-                    className={`flex min-h-12 items-center gap-3 rounded-xl border px-3 text-sm transition ${
+                    data-saipos-loading="content"
+                    className={`flex min-h-12 min-w-0 items-center gap-3 rounded-xl border px-3 text-sm transition ${
                       selected
                         ? "border-lime/30 bg-lime/10 text-lime"
                         : "border-transparent text-muted-foreground hover:border-border hover:bg-background hover:text-foreground"
@@ -213,7 +256,6 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
                   >
                     <Icon className="h-4 w-4 shrink-0" />
                     <span className="min-w-0 flex-1 truncate">{tab.label}</span>
-                    {/* {!tab.active ? <span className="rounded-full bg-background px-2 py-0.5 text-[9px] uppercase text-muted-foreground">EM BREVE</span> : null} */}
                   </Link>
                 )
               })}
@@ -229,18 +271,18 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
           </div>
         </aside>
 
-        <section className="min-w-0 px-4 py-6 md:px-7">
-          <header className="flex flex-wrap items-start justify-between gap-4">
-            <div>
+        <section className="min-w-0 max-w-full touch-pan-y overflow-x-hidden px-3 py-5 sm:px-4 md:px-7 xl:ml-[280px]">
+          <header className="flex min-w-0 flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
               <p className="text-xs font-black uppercase tracking-[0.18em] text-lime">Nacho Man BI</p>
-              <h1 className="mt-2 text-3xl font-black uppercase">{tabs.find((tab) => tab.id === activeTab)?.label}</h1>
+              <h1 className="mt-2 text-2xl font-black uppercase leading-tight sm:text-3xl">{tabs.find((tab) => tab.id === activeTab)?.label}</h1>
               <PeriodSummary
                 period={period.label}
                 comparisonPeriod={comparisonTab ? comparisonPeriod.label : null}
                 userName={user.name}
               />
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2 sm:flex sm:w-auto">
               <SaiposDashboardFilterMenu
                 activeTab={activeTab}
                 selectedStore={selectedStore}
@@ -249,76 +291,80 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
                 periodInputs={periodInputs}
                 comparisonPeriodInputs={comparisonPeriodInputs}
                 maxDate={maxDate}
+                comparisonMaxDate={comparisonMaxDate}
                 comparisonEnabled={comparisonTab}
                 lockedMode={comparisonTab ? selectedMode : undefined}
               />
-              <button className="inline-flex items-center gap-2 rounded-xl bg-lime px-4 py-3 text-xs font-black uppercase text-background transition hover:bg-lime/90">
-                <Download className="h-4 w-4" />
-                Exportar
-              </button>
+              <SaiposExportLink href={buildExportHref(resolvedSearchParams)} />
             </div>
           </header>
 
-          {activeTab === "resumo" ? (
-            <ExecutiveView
-              summary={summary}
-              storeRows={storeRows}
-              alerts={alerts}
-              dailyRevenue={dailyRevenue}
-              saleTypes={saleTypes}
-            />
-          ) : null}
-          {activeTab === "vendas" ? (
-            <SalesView
-              summary={summary}
-              saleTypes={saleTypes}
-              partners={partners}
-              paymentTypes={paymentTypes}
-              customers={customerInsights}
-              operational={operationalInsights}
-            />
-          ) : null}
-          {activeTab === "ticket" ? (
-            <TicketView summary={summary} dailyRevenue={dailyRevenue} storeRows={storeRows} />
-          ) : null}
-          {activeTab === "produtos" ? <ProductsView productMix={productMix} /> : null}
-          {activeTab === "financeiro" ? (
-            <FinanceView summary={summary} payments={paymentInsights} finance={financeInsights} />
-          ) : null}
-          {activeTab === "folha" ? (
-            <RoadmapView
-              title="Folha de Pagamento"
-              icon={BadgePercent}
-              available="Faturamento Saipos pronto para cruzamento"
-              missing={["Salários", "Encargos", "Provisões", "Horas trabalhadas"]}
-            />
-          ) : null}
-          {activeTab === "operacional" ? <OperationalView summary={summary} operational={operationalInsights} /> : null}
-          {activeTab === "semanal" ? (
-            <ComparisonView
-              title="Comparativo semanal"
-              periodLabel={period.label}
-              comparisonLabel={comparisonPeriod.label}
-              summary={summary}
-              comparisonSummary={comparisonSummary}
-              dailyRevenue={dailyRevenue}
-              storeRows={storeRows}
-            />
-          ) : null}
-          {activeTab === "mensal" ? (
-            <ComparisonView
-              title="Comparativo mensal"
-              periodLabel={period.label}
-              comparisonLabel={comparisonPeriod.label}
-              summary={summary}
-              comparisonSummary={comparisonSummary}
-              dailyRevenue={dailyRevenue}
-              storeRows={storeRows}
-            />
-          ) : null}
-          {activeTab === "brutos" ? (
-            <RawDataView rawData={rawDataInsights} productReferences={productReferences.length} />
-          ) : null}
+          <SaiposDashboardContentShell>
+            {activeTab === "resumo" ? (
+              <ExecutiveView
+                summary={summary}
+                storeRows={storeRows}
+                dailyRevenue={dailyRevenue}
+                saleTypes={saleTypes}
+                alerts={alerts}
+                customers={customerInsights}
+                operational={operationalInsights}
+                payments={paymentInsights}
+                estimatedCmv={estimatedCmv}
+              />
+            ) : null}
+            {activeTab === "alertas" ? (
+              <AlertsView alerts={alerts} periodLabel={period.label} periodMode={selectedMode} />
+            ) : null}
+            {activeTab === "vendas" ? (
+              <SalesView
+                summary={summary}
+                saleTypes={saleTypes}
+                partners={partners}
+                paymentTypes={paymentTypes}
+                customers={customerInsights}
+                operational={operationalInsights}
+              />
+            ) : null}
+            {activeTab === "ticket" ? (
+              <TicketView summary={summary} dailyRevenue={dailyRevenue} storeRows={storeRows} />
+            ) : null}
+            {activeTab === "produtos" ? <ProductsView productMix={productMix} /> : null}
+            {activeTab === "financeiro" ? (
+              <FinanceView
+                summary={summary}
+                payments={paymentInsights}
+                finance={financeInsights}
+                estimatedCmv={estimatedCmv}
+              />
+            ) : null}
+            {activeTab === "operacional" ? <OperationalView summary={summary} operational={operationalInsights} /> : null}
+            {activeTab === "semanal" ? (
+              <ComparisonView
+                title="Comparativo semanal"
+                periodLabel={period.label}
+                comparisonLabel={comparisonPeriod.label}
+                summary={summary}
+                comparisonSummary={comparisonSummary}
+                dailyRevenue={dailyRevenue}
+                storeRows={storeRows}
+              />
+            ) : null}
+            {activeTab === "mensal" ? (
+              <ComparisonView
+                title="Comparativo mensal"
+                periodLabel={period.label}
+                comparisonLabel={comparisonPeriod.label}
+                summary={summary}
+                comparisonSummary={comparisonSummary}
+                dailyRevenue={dailyRevenue}
+                storeRows={storeRows}
+              />
+            ) : null}
+            {activeTab === "brutos" ? (
+              <RawDataView rawData={rawDataInsights} productReferences={productReferences.length} />
+            ) : null}
+          </SaiposDashboardContentShell>
 
           <footer className="mt-8 flex items-center justify-center gap-3 border-t border-border pt-5 text-xs text-muted-foreground">
             <RefreshCw className="h-3.5 w-3.5" />
@@ -358,16 +404,39 @@ function PeriodSummary({
 function ExecutiveView({
   summary,
   storeRows,
-  alerts,
   dailyRevenue,
   saleTypes,
+  alerts,
+  customers,
+  operational,
+  payments,
+  estimatedCmv,
 }: {
   summary: ReturnType<typeof summarizeSales>
   storeRows: ReturnType<typeof buildStoreRows>
-  alerts: Array<{ title: string; detail: string; tone: Tone }>
   dailyRevenue: ReturnType<typeof buildDailyRevenue>
   saleTypes: Array<{ name: string; value: number }>
+  alerts: SaiposDashboardAlert[]
+  customers: ReturnType<typeof buildCustomerInsights>
+  operational: ReturnType<typeof buildOperationalInsights>
+  payments: ReturnType<typeof buildPaymentInsights>
+  estimatedCmv: ReturnType<typeof buildEstimatedCmv>
 }) {
+  const activeDays = dailyRevenue.filter((day) => day.orders > 0)
+  const bestDay = [...activeDays].sort((first, second) => second.netInCents - first.netInCents)[0]
+  const weakestDay = [...activeDays].sort((first, second) => first.netInCents - second.netInCents)[0]
+  const topStore = storeRows[0]
+  const topStoreShare = topStore && summary.netInCents > 0 ? topStore.revenueInCents / summary.netInCents : 0
+  const customerCoverage = summary.orders > 0 ? customers.uniqueCustomers / summary.orders : 0
+  const deliveryShare = summary.orders > 0 ? operational.deliveryOrders / summary.orders : 0
+  const hasUnitComparison = storeRows.length > 1
+  const criticalAlerts = alerts.filter((alert) => alert.severity === "Atenção").slice(0, 3)
+  const visibleAlerts = criticalAlerts.length > 0 ? criticalAlerts : alerts.slice(0, 3)
+  const estimatedCmvRate =
+    summary.netInCents > 0 && estimatedCmv.estimatedCostInCents > 0
+      ? estimatedCmv.estimatedCostInCents / summary.netInCents
+      : null
+
   return (
     <div className="mt-6 grid gap-4">
       <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-5">
@@ -391,24 +460,265 @@ function ExecutiveView({
           detail={formatPercent(summary.cancellationRate)}
           inverse
         />
-        <Kpi icon={BadgePercent} label="% CMV" value="--%" detail="Em implantação" />
+        <Kpi
+          icon={BadgePercent}
+          label="% CMV"
+          value={estimatedCmvRate === null ? "--%" : formatPercent(estimatedCmvRate)}
+          detail={
+            estimatedCmvRate === null
+              ? "Sem estoque CMV da Saipos"
+              : estimatedCmv.source === "stock"
+                ? `${formatMoneyFromAmount(estimatedCmv.estimatedCostInCents / 100)} · ${estimatedCmv.movementCount} movimentos`
+                : `${formatMoneyFromAmount(estimatedCmv.estimatedCostInCents / 100)} estimado · ${formatPercent(estimatedCmv.revenueCoverage)} cobertura`
+          }
+          inverse
+        />
       </div>
-      <div className="grid gap-4 xl:grid-cols-[.8fr_1.2fr_.9fr]">
+      <div className="grid gap-4 xl:grid-cols-[.78fr_1.22fr]">
         <Panel title="Faturamento por canal">
           <SaiposDistributionChart data={saleTypes} />
         </Panel>
         <Panel title="Evolução do faturamento">
           <SaiposRevenueChart data={dailyRevenue} />
         </Panel>
-        <Panel title="Alertas">
-          <div className="grid gap-3">
-            {alerts.map((alert) => (
-              <Signal key={alert.title} title={alert.title} detail={alert.detail} tone={alert.tone} />
-            ))}
-          </div>
+      </div>
+      <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+        <Panel title="Leitura rápida">
+          <QuickReadPanel
+            bestDay={bestDay}
+            weakestDay={weakestDay}
+            summary={summary}
+            hasUnitComparison={hasUnitComparison}
+            topStore={topStore}
+            topStoreShare={topStoreShare}
+            customerCoverage={customerCoverage}
+            deliveryShare={deliveryShare}
+            splitPaymentOrders={payments.splitPaymentOrders}
+          />
+        </Panel>
+        <Panel title="Saúde operacional e clientes">
+          <MetricList
+            rows={[
+              { label: "Clientes identificáveis", value: formatPercent(customerCoverage), strong: customerCoverage >= 0.6 },
+              { label: "Peso do delivery", value: formatPercent(deliveryShare) },
+              { label: "Tempo médio de entrega", value: formatMinutes(operational.averageDeliveryMinutes) },
+              { label: "Tempo médio de preparo", value: formatMinutes(operational.averagePrepMinutes) },
+              { label: "Itens removidos", value: String(operational.deletedItems) },
+              { label: "Itens finalizados", value: String(operational.finishedItems) },
+            ]}
+          />
         </Panel>
       </div>
+      <Panel title="Principais sinais">
+        <div className="grid gap-3 md:grid-cols-3">
+          {visibleAlerts.map((alert) => (
+            <ExecutiveSignal key={alert.title} alert={alert} />
+          ))}
+        </div>
+      </Panel>
       <StoreTable rows={storeRows} />
+    </div>
+  )
+}
+
+function ExecutiveSignal({ alert }: { alert: SaiposDashboardAlert }) {
+  const toneClass =
+    alert.severity === "Atenção"
+      ? "border-lime/30 bg-lime/10 text-lime"
+      : alert.severity === "Oportunidade"
+        ? "border-purple-medium/30 bg-purple-medium/10 text-purple-medium"
+        : "border-border bg-background text-muted-foreground"
+
+  return (
+    <div className="rounded-xl border border-border bg-background p-4">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-xs font-black uppercase leading-5 text-foreground">{alert.title}</p>
+        <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-black uppercase ${toneClass}`}>
+          {alert.metric}
+        </span>
+      </div>
+      <p className="mt-3 text-xs leading-5 text-muted-foreground">{alert.detail}</p>
+    </div>
+  )
+}
+
+function AlertsView({
+  alerts,
+  periodLabel,
+  periodMode,
+}: {
+  alerts: SaiposDashboardAlert[]
+  periodLabel: string
+  periodMode: SaiposPeriodMode
+}) {
+  const attention = alerts.filter((alert) => alert.severity === "Atenção")
+  const opportunities = alerts.filter((alert) => alert.severity === "Oportunidade")
+  const stable = alerts.filter((alert) => alert.severity === "Estável")
+  const visibleAlerts = selectRelevantAlerts(alerts, periodMode)
+  const modeLabel =
+    periodMode === "day" ? "operação do dia" : periodMode === "week" ? "ritmo semanal" : periodMode === "month" ? "visão mensal" : "visão anual"
+
+  return (
+    <div className="mt-6 grid gap-4">
+      <div className="grid gap-4 md:grid-cols-4">
+        <Kpi icon={AlertTriangle} label="Sinais relevantes" value={String(visibleAlerts.length)} detail={periodLabel} />
+        <Kpi icon={BadgePercent} label="Atenção" value={String(attention.length)} detail={modeLabel} inverse />
+        <Kpi icon={TrendingUp} label="Oportunidades" value={String(opportunities.length)} detail={modeLabel} />
+        <Kpi icon={Store} label="Detectados" value={String(alerts.length)} detail={`${stable.length} sinais estáveis`} />
+      </div>
+
+      <div className="grid gap-4">
+        <Panel title={`Prioridades do período · ${periodLabel}`}>
+          <PriorityBoard alerts={visibleAlerts} />
+        </Panel>
+      </div>
+    </div>
+  )
+}
+
+function selectRelevantAlerts(alerts: SaiposDashboardAlert[], periodMode: SaiposPeriodMode) {
+  const priorityWords: Record<SaiposPeriodMode, string[]> = {
+    day: ["Plantão", "diária", "Entrega", "Preparo", "Horário", "Pico", "Cancelamento", "Pagamento"],
+    week: ["semana", "Dia", "Faturamento", "Pico", "Delivery", "Unidade", "Cancelamento", "Ritmo"],
+    month: ["mensal", "mês", "Mix", "Descontos", "Ticket", "Canal", "Produto", "Curva", "Unidade"],
+    year: ["anual", "ano", "Curva", "Canal", "Mix", "Unidade", "Ticket", "Descontos", "Receita"],
+  }
+  const scoreAlert = (alert: SaiposDashboardAlert) => {
+    const severityScore = alert.severity === "Atenção" ? 300 : alert.severity === "Oportunidade" ? 200 : 80
+    const text = `${alert.title} ${alert.detail}`
+    const modeScore = priorityWords[periodMode].reduce((score, word) => score + (text.includes(word) ? 30 : 0), 0)
+    return severityScore + modeScore
+  }
+  const ordered = [...alerts].sort((first, second) => scoreAlert(second) - scoreAlert(first))
+  const attention = ordered.filter((alert) => alert.severity === "Atenção").slice(0, 6)
+  const opportunities = ordered.filter((alert) => alert.severity === "Oportunidade").slice(0, 10 - attention.length)
+  const stableWhitelist = new Set(["Operação estável", "Alto volume operacional", "Ticket médio forte", "Entrega em bom ritmo"])
+  const stable =
+    attention.length + opportunities.length < 4
+      ? alerts.filter((alert) => alert.severity === "Estável" && stableWhitelist.has(alert.title)).slice(0, 4)
+      : []
+  const selected = [...attention, ...opportunities, ...stable]
+  return selected.length > 0 ? selected.slice(0, 10) : alerts.slice(0, 1)
+}
+
+function PriorityBoard({ alerts }: { alerts: SaiposDashboardAlert[] }) {
+  const severityWeight: Record<SaiposDashboardAlert["severity"], number> = {
+    Atenção: 0,
+    Oportunidade: 1,
+    Estável: 2,
+  }
+  const orderedAlerts = [...alerts].sort((first, second) => severityWeight[first.severity] - severityWeight[second.severity])
+  const featuredAlert = orderedAlerts[0]
+  const secondaryAlerts = orderedAlerts.filter((alert) => alert.title !== featuredAlert?.title)
+
+  if (!featuredAlert) {
+    return (
+      <div className="rounded-xl border border-border bg-background p-5">
+        <p className="text-sm text-muted-foreground">Sem alertas para o período selecionado.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="grid gap-4">
+      <Signal alert={featuredAlert} featured />
+      <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+        {secondaryAlerts.map((alert) => (
+          <Signal key={alert.title} alert={alert} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function QuickReadPanel({
+  bestDay,
+  weakestDay,
+  summary,
+  hasUnitComparison,
+  topStore,
+  topStoreShare,
+  customerCoverage,
+  deliveryShare,
+  splitPaymentOrders,
+}: {
+  bestDay: ReturnType<typeof buildDailyRevenue>[number] | undefined
+  weakestDay: ReturnType<typeof buildDailyRevenue>[number] | undefined
+  summary: ReturnType<typeof summarizeSales>
+  hasUnitComparison: boolean
+  topStore: ReturnType<typeof buildStoreRows>[number] | undefined
+  topStoreShare: number
+  customerCoverage: number
+  deliveryShare: number
+  splitPaymentOrders: number
+}) {
+  const secondaryRows = [
+    hasUnitComparison
+      ? {
+          label: "Unidade mais forte",
+          value: topStore ? formatPercent(topStoreShare) : "--",
+          detail: topStore?.name ?? "Sem ranking",
+        }
+      : {
+          label: "Ticket médio",
+          value: formatMoneyFromAmount(summary.averageTicketInCents / 100),
+          detail: `${summary.orders} pedidos válidos`,
+        },
+    hasUnitComparison
+      ? {
+          label: "Clientes identificáveis",
+          value: formatPercent(customerCoverage),
+          detail: "Base reconhecida",
+        }
+      : {
+          label: "Cancelamentos",
+          value: formatPercent(summary.cancellationRate),
+          detail: `${summary.canceledOrders} pedidos`,
+        },
+    {
+      label: "Delivery",
+      value: formatPercent(deliveryShare),
+      detail: "Peso no período",
+    },
+    {
+      label: "Pagamentos divididos",
+      value: String(splitPaymentOrders),
+      detail: "Pedidos com múltiplos meios",
+    },
+  ]
+
+  return (
+    <div className="grid gap-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-xl border border-lime/25 bg-lime/10 p-4">
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-lime">Melhor dia</p>
+          <strong className="mt-2 block text-2xl leading-tight">
+            {bestDay ? formatMoneyFromAmount(bestDay.netInCents / 100) : "--"}
+          </strong>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {bestDay ? `${bestDay.label} · ${bestDay.orders} pedidos` : "Sem venda no período"}
+          </p>
+        </div>
+        <div className="rounded-xl border border-border bg-background p-4">
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">Dia mais fraco</p>
+          <strong className="mt-2 block text-2xl leading-tight">
+            {weakestDay ? formatMoneyFromAmount(weakestDay.netInCents / 100) : "--"}
+          </strong>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {weakestDay ? `${weakestDay.label} · ${weakestDay.orders} pedidos` : "Sem venda no período"}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {secondaryRows.map((row) => (
+          <div key={row.label} className="rounded-xl border border-border bg-background p-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">{row.label}</p>
+            <strong className="mt-2 block break-words text-xl leading-tight text-lime">{row.value}</strong>
+            <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">{row.detail}</p>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -431,17 +741,19 @@ function SalesView({
   return (
     <div className="mt-6 grid gap-4">
       <div className="grid gap-4 md:grid-cols-4">
-        <Kpi icon={Users} label="Clientes estimados" value={String(customers.uniqueCustomers)} />
-        <Kpi icon={RefreshCw} label="Recorrentes" value={String(customers.recurringCustomers)} />
+        <Kpi icon={Users} label="Clientes estimados" value={String(customers.uniqueCustomers)} detail="Período analisado" />
+        <Kpi icon={RefreshCw} label="Recorrentes" value={String(customers.recurringCustomers)} detail="Período analisado" />
         <Kpi
           icon={CreditCard}
           label="Com telefone"
           value={formatPercent(summary.orders > 0 ? customers.phoneCustomers / summary.orders : 0)}
+          detail="Pedidos válidos"
         />
         <Kpi
           icon={MapPin}
           label="Pedidos delivery"
           value={formatPercent(summary.orders > 0 ? operational.deliveryOrders / summary.orders : 0)}
+          detail="Pedidos válidos"
         />
       </div>
       <div className="grid gap-4 xl:grid-cols-3">
@@ -463,23 +775,86 @@ function SalesView({
       </div>
       <div className="grid gap-4 xl:grid-cols-2">
         <Panel title="Cadastro dos clientes">
-          <MetricList
-            rows={[
-              { label: "Com documento", value: String(customers.documentCustomers) },
-              {
-                label: "Contato acionável",
-                value: formatPercent(summary.orders > 0 ? customers.actionableCustomers / summary.orders : 0),
-              },
-              {
-                label: "Identificação única",
-                value: formatPercent(summary.orders > 0 ? customers.uniqueCustomers / summary.orders : 0),
-              },
-            ]}
-          />
+          <CustomerProfilePanel summary={summary} customers={customers} />
         </Panel>
         <Panel title="Bairros de entrega">
           <Ranking rows={operational.districts} total={operational.deliveryOrders} />
         </Panel>
+      </div>
+    </div>
+  )
+}
+
+function CustomerProfilePanel({
+  summary,
+  customers,
+}: {
+  summary: ReturnType<typeof summarizeSales>
+  customers: ReturnType<typeof buildCustomerInsights>
+}) {
+  const actionableRate = summary.orders > 0 ? customers.actionableCustomers / summary.orders : 0
+  const uniqueRate = summary.orders > 0 ? customers.uniqueCustomers / summary.orders : 0
+  const phoneRate = summary.orders > 0 ? customers.phoneCustomers / summary.orders : 0
+  const documentRate = summary.orders > 0 ? customers.documentCustomers / summary.orders : 0
+  const missingActionable = Math.max(summary.orders - customers.actionableCustomers, 0)
+  const repeatRate = customers.uniqueCustomers > 0 ? customers.recurringCustomers / customers.uniqueCustomers : 0
+
+  const rows = [
+    {
+      label: "Contato acionável",
+      value: actionableRate,
+      detail: `${customers.actionableCustomers} pedidos com telefone, documento ou e-mail`,
+    },
+    {
+      label: "Identificação única",
+      value: uniqueRate,
+      detail: `${customers.uniqueCustomers} clientes reconhecidos no período`,
+    },
+    {
+      label: "Com telefone",
+      value: phoneRate,
+      detail: `${customers.phoneCustomers} pedidos com telefone`,
+    },
+    {
+      label: "Com documento",
+      value: documentRate,
+      detail: `${customers.documentCustomers} pedidos com CPF/CNPJ`,
+    },
+  ]
+
+  return (
+    <div className="grid gap-4">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border border-lime/25 bg-lime/10 p-4">
+          <p className="text-[10px] font-black uppercase text-lime">Base útil</p>
+          <strong className="mt-2 block text-2xl">{formatPercent(actionableRate)}</strong>
+          <p className="mt-1 text-xs text-muted-foreground">acionável</p>
+        </div>
+        <div className="rounded-xl border border-border bg-background p-4">
+          <p className="text-[10px] font-black uppercase text-muted-foreground">Sem contato</p>
+          <strong className="mt-2 block text-2xl">{missingActionable}</strong>
+          <p className="mt-1 text-xs text-muted-foreground">pedidos</p>
+        </div>
+        <div className="rounded-xl border border-border bg-background p-4">
+          <p className="text-[10px] font-black uppercase text-muted-foreground">Recorrência</p>
+          <strong className="mt-2 block text-2xl">{formatPercent(repeatRate)}</strong>
+          <p className="mt-1 text-xs text-muted-foreground">{customers.recurringCustomers} clientes</p>
+        </div>
+      </div>
+
+      <div className="grid gap-3">
+        {rows.map((row) => (
+          <div key={row.label}>
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="text-muted-foreground">{row.label}</span>
+              <strong>{formatPercent(row.value)}</strong>
+            </div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-background">
+              <div className="h-full rounded-full bg-lime" style={{ width: `${Math.max(4, row.value * 100)}%` }} />
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">{row.detail}</p>
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -498,12 +873,13 @@ function TicketView({
     .map((day) => ({
       name: day.label,
       value: day.orders > 0 ? day.netInCents / day.orders : 0,
-      detail: `${day.orders} pedidos`,
       orders: day.orders,
+      revenueInCents: day.netInCents,
     }))
     .filter((day) => day.orders > 0)
   const bestDay = [...ticketRows].sort((first, second) => second.value - first.value)[0]
   const lowestDay = [...ticketRows].sort((first, second) => first.value - second.value)[0]
+  const averageTicket = summary.averageTicketInCents
 
   return (
     <div className="mt-6 grid gap-4">
@@ -530,30 +906,122 @@ function TicketView({
         />
       </div>
 
-      <div className="grid items-start gap-4 xl:grid-cols-[.75fr_1.25fr]">
+      <div className="grid items-start gap-4 xl:grid-cols-[.7fr_1.3fr]">
         <Panel title="Leitura do ticket">
-          <MetricList
-            rows={[
-              {
-                label: "Maior ticket diário",
-                value: bestDay ? `${bestDay.name} · ${formatMoneyFromAmount(bestDay.value / 100)}` : "--",
-                strong: true,
-              },
-              {
-                label: "Menor ticket diário",
-                value: lowestDay ? `${lowestDay.name} · ${formatMoneyFromAmount(lowestDay.value / 100)}` : "--",
-              },
-              { label: "Dias com venda", value: String(ticketRows.length) },
-              { label: "Faturamento líquido", value: formatMoneyFromAmount(summary.netInCents / 100) },
-            ]}
+          <TicketReadout
+            averageTicket={averageTicket}
+            bestDay={bestDay}
+            lowestDay={lowestDay}
+            activeDays={ticketRows.length}
+            revenueInCents={summary.netInCents}
           />
         </Panel>
         <Panel title="Ticket por dia">
-          <CompactRanking rows={ticketRows} money limit={8} />
+          <TicketDayList rows={ticketRows} averageTicket={averageTicket} />
         </Panel>
       </div>
 
       <StoreTable rows={storeRows} />
+    </div>
+  )
+}
+
+function TicketReadout({
+  averageTicket,
+  bestDay,
+  lowestDay,
+  activeDays,
+  revenueInCents,
+}: {
+  averageTicket: number
+  bestDay: { name: string; value: number; orders: number; revenueInCents: number } | undefined
+  lowestDay: { name: string; value: number; orders: number; revenueInCents: number } | undefined
+  activeDays: number
+  revenueInCents: number
+}) {
+  return (
+    <div className="grid gap-4">
+      <div className="rounded-xl border border-lime/20 bg-lime/10 p-4">
+        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-lime">Média do período</p>
+        <strong className="mt-2 block text-3xl leading-none text-lime sm:text-4xl">{formatMoneyFromAmount(averageTicket / 100)}</strong>
+        <p className="mt-3 text-sm text-muted-foreground">{activeDays} dias com venda · {formatMoneyFromAmount(revenueInCents / 100)}</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+        <TicketExtremeCard label="Maior ticket" day={bestDay} averageTicket={averageTicket} positive />
+        <TicketExtremeCard label="Menor ticket" day={lowestDay} averageTicket={averageTicket} />
+      </div>
+    </div>
+  )
+}
+
+function TicketExtremeCard({
+  label,
+  day,
+  averageTicket,
+  positive = false,
+}: {
+  label: string
+  day: { name: string; value: number; orders: number; revenueInCents: number } | undefined
+  averageTicket: number
+  positive?: boolean
+}) {
+  const diff = day ? day.value - averageTicket : 0
+
+  return (
+    <div className="rounded-xl border border-border bg-background p-4">
+      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
+      <strong className={`mt-2 block text-2xl ${positive ? "text-lime" : "text-foreground"}`}>
+        {day ? formatMoneyFromAmount(day.value / 100) : "--"}
+      </strong>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {day ? `${day.name} · ${day.orders} pedidos` : "Sem venda"}
+      </p>
+      {day ? (
+        <p className={`mt-3 text-xs font-black ${diff >= 0 ? "text-lime" : "text-red-400"}`}>
+          {formatSignedMoneyFromCents(diff)} vs média
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+function TicketDayList({
+  rows,
+  averageTicket,
+}: {
+  rows: Array<{ name: string; value: number; orders: number; revenueInCents: number }>
+  averageTicket: number
+}) {
+  if (rows.length === 0) return <p className="text-sm text-muted-foreground">Sem ticket diário no período.</p>
+  const max = Math.max(...rows.map((row) => row.value), 1)
+
+  return (
+    <div className="grid gap-3">
+      {rows.map((row) => {
+        const diff = row.value - averageTicket
+        const width = Math.max(5, (row.value / max) * 100)
+        return (
+          <div key={row.name} className="rounded-xl border border-border bg-background p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="font-black">{row.name}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {row.orders} pedidos · {formatMoneyFromAmount(row.revenueInCents / 100)}
+                </p>
+              </div>
+              <div className="text-right">
+                <strong className="block text-lg text-lime">{formatMoneyFromAmount(row.value / 100)}</strong>
+                <span className={`text-xs font-black ${diff >= 0 ? "text-lime" : "text-red-400"}`}>
+                  {formatSignedMoneyFromCents(diff)}
+                </span>
+              </div>
+            </div>
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-graphite">
+              <div className="h-full rounded-full bg-lime" style={{ width: `${width}%` }} />
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -579,6 +1047,10 @@ function ComparisonView({
   const orderDelta = percentChange(summary.orders, comparisonSummary.orders)
   const ticketDelta = percentChange(summary.averageTicketInCents, comparisonSummary.averageTicketInCents)
   const cancellationDelta = percentChange(summary.cancellationRate, comparisonSummary.cancellationRate)
+  const revenueDiff = summary.netInCents - comparisonSummary.netInCents
+  const orderDiff = summary.orders - comparisonSummary.orders
+  const ticketDiff = summary.averageTicketInCents - comparisonSummary.averageTicketInCents
+  const cancellationDiff = summary.cancellationRate - comparisonSummary.cancellationRate
 
   return (
     <div className="mt-6 grid gap-4">
@@ -614,17 +1086,50 @@ function ComparisonView({
         />
       </div>
 
-      <div className="grid items-start gap-4 xl:grid-cols-[.75fr_1.25fr]">
-        <Panel title={title}>
+      <div className="grid items-stretch gap-4 xl:grid-cols-[1.05fr_.95fr]">
+        <Panel title={title} className="h-full">
           <div className="grid gap-4 md:grid-cols-2">
             <ComparisonSnapshot label="Período" period={periodLabel} summary={summary} active />
             <ComparisonSnapshot label="Referência" period={comparisonLabel} summary={comparisonSummary} />
           </div>
         </Panel>
-        <Panel title="Evolução do faturamento">
-          <SaiposRevenueChart data={dailyRevenue} />
+        <Panel title="Diagnóstico da variação" className="h-full">
+          <MetricList
+            rows={[
+              {
+                label: "Diferença de faturamento",
+                value: formatSignedMoneyFromCents(revenueDiff),
+                strong: revenueDiff >= 0,
+              },
+              {
+                label: "Variação de faturamento",
+                value: formatSignedPercent(revenueDelta, 2),
+                strong: (revenueDelta ?? 0) >= 0,
+              },
+              {
+                label: "Diferença de pedidos",
+                value: formatSignedNumber(orderDiff),
+              },
+              {
+                label: "Variação de pedidos",
+                value: formatSignedPercent(orderDelta, 2),
+              },
+              {
+                label: "Diferença no ticket",
+                value: formatSignedMoneyFromCents(ticketDiff),
+              },
+              {
+                label: "Diferença em cancelamentos",
+                value: formatSignedPercentagePoints(cancellationDiff),
+              },
+            ]}
+          />
         </Panel>
       </div>
+
+      <Panel title="Evolução do faturamento">
+        <SaiposRevenueChart data={dailyRevenue} />
+      </Panel>
 
       <StoreTable rows={storeRows} />
     </div>
@@ -683,52 +1188,42 @@ function ProductsView({ productMix }: { productMix: ReturnType<typeof buildProdu
         />
         <Kpi
           icon={ClipboardList}
-          label="Sem preço próprio"
-          value={String(productMix.zeroRevenueProducts)}
-          detail="Itens inclusos"
+          label="Top 3 da receita"
+          value={formatPercent(productMix.top3RevenueShare)}
+          detail="Concentração do mix"
         />
       </div>
       <div className="grid gap-4 xl:grid-cols-[1.4fr_.8fr]">
         <Panel title="Curva ABC por receita">
           <ProductRows rows={productMix.topProducts} />
         </Panel>
-        <div className="grid gap-4">
-          <Panel title="Baixo giro com valor">
-            <Ranking
-              rows={productMix.lowTurnover.map((item) => ({
-                name: item.name,
-                value: item.quantity,
-                detail: formatMoneyFromAmount(item.revenueInCents / 100),
-              }))}
-            />
-          </Panel>
-          <Panel title="Adicionais pagos">
-            <Ranking
-              rows={productMix.choices.map((item) => ({
-                name: item.name,
-                value: item.quantity,
-                detail: formatMoneyFromAmount(item.revenueInCents / 100),
-              }))}
-            />
-          </Panel>
-        </div>
-      </div>
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Panel title="Itens inclusos ou sem preço">
+        <Panel title="Baixo giro com valor">
           <Ranking
-            rows={productMix.includedItems.map((item) => ({
+            rows={productMix.lowTurnover.map((item) => ({
               name: item.name,
               value: item.quantity,
-              detail: "Sem preço próprio na Saipos",
+              detail: formatMoneyFromAmount(item.revenueInCents / 100),
             }))}
           />
         </Panel>
-        <Panel title="Escolhas inclusas">
+      </div>
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Panel title="Concentração de receita">
           <Ranking
-            rows={productMix.includedChoices.map((item) => ({
+            rows={productMix.topProducts.slice(0, 6).map((item) => ({
+              name: item.name,
+              value: item.revenueInCents,
+              detail: `${formatPercent(item.share)} da receita · ${formatQuantity(item.quantity)} vendidos`,
+            }))}
+            money
+          />
+        </Panel>
+        <Panel title="Alto volume, ticket baixo">
+          <Ranking
+            rows={productMix.volumeOpportunities.map((item) => ({
               name: item.name,
               value: item.quantity,
-              detail: "Incluso no item principal",
+              detail: `Média ${formatMoneyFromAmount(item.averageUnitPriceInCents / 100)} por unidade`,
             }))}
           />
         </Panel>
@@ -741,11 +1236,18 @@ function FinanceView({
   summary,
   payments,
   finance,
+  estimatedCmv,
 }: {
   summary: ReturnType<typeof summarizeSales>
   payments: ReturnType<typeof buildPaymentInsights>
   finance: ReturnType<typeof buildCommercialFinanceInsights>
+  estimatedCmv: ReturnType<typeof buildEstimatedCmv>
 }) {
+  const estimatedCmvRate =
+    summary.netInCents > 0 && estimatedCmv.estimatedCostInCents > 0
+      ? estimatedCmv.estimatedCostInCents / summary.netInCents
+      : null
+
   return (
     <div className="mt-6 grid gap-4">
       <div className="grid gap-4 md:grid-cols-4">
@@ -771,10 +1273,44 @@ function FinanceView({
       </div>
       <div className="grid items-start gap-4 xl:grid-cols-[.85fr_1.15fr]">
         <Panel title="DRE comercial Saipos">
-          <FinanceStatement summary={summary} />
+          <FinanceStatement summary={summary} estimatedCmv={estimatedCmv} />
         </Panel>
         <Panel title="Pagamentos por valor">
           <CompactRanking rows={payments.rows} money limit={6} />
+        </Panel>
+      </div>
+      <div className="grid items-start gap-4 xl:grid-cols-[.7fr_1.3fr]">
+        <Panel title="CMV estimado">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="rounded-xl border border-lime/20 bg-lime/10 p-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">% CMV</p>
+              <strong className="mt-3 block text-3xl leading-none text-lime">
+                {estimatedCmvRate === null ? "--%" : formatPercent(estimatedCmvRate)}
+              </strong>
+              <p className="mt-2 text-xs text-muted-foreground">{estimatedCmv.sourceLabel}</p>
+            </div>
+            <MetricMiniCard
+              label={estimatedCmv.source === "stock" ? "Movimentos CMV" : "Custo calculado"}
+              value={formatMoneyFromAmount(estimatedCmv.estimatedCostInCents / 100)}
+              detail={
+                estimatedCmv.source === "stock"
+                  ? `${estimatedCmv.movementCount} movimentos de estoque`
+                  : `${formatPercent(estimatedCmv.revenueCoverage)} da receita coberta`
+              }
+            />
+            <MetricMiniCard
+              label={estimatedCmv.source === "stock" ? "Ingredientes CMV" : "Itens com custo"}
+              value={estimatedCmv.source === "stock" ? formatQuantity(estimatedCmv.costCount) : formatQuantity(estimatedCmv.coveredQuantity)}
+              detail={estimatedCmv.source === "stock" ? "Marcados para entrar no CMV" : `${estimatedCmv.costCount} custos ativos`}
+            />
+          </div>
+        </Panel>
+        <Panel title="Ingredientes com maior custo">
+          <CompactRanking
+            rows={estimatedCmv.topIngredients}
+            money
+            limit={6}
+          />
         </Panel>
       </div>
       <div className="grid items-start gap-4 xl:grid-cols-3">
@@ -852,7 +1388,7 @@ function OperationalView({
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
-        <Panel title="Praças de entrega">
+        <Panel title="Bairros de entrega">
           <CompactRanking rows={operational.districts} total={operational.deliveryOrders} limit={6} />
         </Panel>
         <Panel title="Responsável pela entrega">
@@ -870,6 +1406,26 @@ function RawDataView({
   rawData: ReturnType<typeof buildRawDataInsights>
   productReferences: number
 }) {
+  const customerCoverage = rawData.validSales > 0 ? rawData.customers / rawData.validSales : 0
+  const deliveryCoverage = rawData.validSales > 0 ? rawData.delivery / rawData.validSales : 0
+  const paymentCoverage = rawData.validSales > 0 ? rawData.payments / rawData.validSales : 0
+  const nfceCoverage = rawData.validSales > 0 ? rawData.nfce / rawData.validSales : 0
+  const smartposCoverage = rawData.validSales > 0 ? rawData.smartpos / rawData.validSales : 0
+  const tefCoverage = rawData.validSales > 0 ? rawData.tef / rawData.validSales : 0
+  const cancellationCount = Math.max(rawData.sales - rawData.validSales, 0)
+  const averageItemsPerSale = rawData.validSales > 0 ? rawData.items / rawData.validSales : 0
+  const qualityScore = rawData.validSales > 0
+    ? (customerCoverage * 0.2 + deliveryCoverage * 0.2 + paymentCoverage * 0.25 + nfceCoverage * 0.15 + smartposCoverage * 0.1 + tefCoverage * 0.1)
+    : 0
+  const coverageRows = [
+    { label: "Cliente identificado", value: customerCoverage, detail: `${rawData.customers}/${rawData.validSales} vendas` },
+    { label: "Entrega no payload", value: deliveryCoverage, detail: `${rawData.delivery}/${rawData.validSales} vendas` },
+    { label: "Pagamentos lidos", value: paymentCoverage, detail: `${rawData.payments}/${rawData.validSales} vendas` },
+    { label: "NFC-e", value: nfceCoverage, detail: `${rawData.nfce}/${rawData.validSales} vendas` },
+    { label: "SmartPOS", value: smartposCoverage, detail: `${rawData.smartpos}/${rawData.validSales} vendas` },
+    { label: "TEF", value: tefCoverage, detail: `${rawData.tef}/${rawData.validSales} vendas` },
+  ]
+
   return (
     <div className="mt-6 grid gap-4">
       <div className="grid gap-4 md:grid-cols-4">
@@ -884,33 +1440,39 @@ function RawDataView({
         <Kpi
           icon={ReceiptText}
           label="NFC-e no payload"
-          value={formatPercent(rawData.validSales > 0 ? rawData.nfce / rawData.validSales : 0)}
+          value={formatPercent(nfceCoverage)}
         />
       </div>
-      <div className="grid gap-4 xl:grid-cols-[.75fr_1.25fr]">
-        <Panel title="Cobertura dos dados">
-          <MetricList
-            rows={[
-              {
-                label: "Cliente identificado",
-                value: formatPercent(rawData.validSales > 0 ? rawData.customers / rawData.validSales : 0),
-              },
-              {
-                label: "Entrega",
-                value: formatPercent(rawData.validSales > 0 ? rawData.delivery / rawData.validSales : 0),
-              },
-              {
-                label: "Pagamentos",
-                value: formatPercent(rawData.validSales > 0 ? rawData.payments / rawData.validSales : 0),
-              },
-              {
-                label: "SmartPOS",
-                value: formatPercent(rawData.validSales > 0 ? rawData.smartpos / rawData.validSales : 0),
-              },
-              { label: "TEF", value: formatPercent(rawData.validSales > 0 ? rawData.tef / rawData.validSales : 0) },
-            ]}
-          />
+
+      <div className="grid gap-4 xl:grid-cols-[.85fr_1.15fr]">
+        <Panel title="Saúde do payload">
+          <div className="grid gap-4">
+            <div className="rounded-xl border border-lime/20 bg-lime/10 p-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-lime">Qualidade estimada</p>
+              <div className="mt-3 flex items-end justify-between gap-4">
+                <strong className="text-3xl leading-none text-lime sm:text-4xl">{formatPercent(qualityScore)}</strong>
+                <span className="text-right text-xs leading-5 text-muted-foreground">
+                  Base calculada com cliente, entrega, pagamento e dados fiscais.
+                </span>
+              </div>
+              <div className="mt-4 h-2 overflow-hidden rounded-full bg-background">
+                <div className="h-full rounded-full bg-lime" style={{ width: `${Math.max(4, qualityScore * 100)}%` }} />
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <RawMiniStat label="Canceladas" value={String(cancellationCount)} detail="fora das válidas" />
+              <RawMiniStat label="Itens por venda" value={formatQuantity(averageItemsPerSale)} detail="média do filtro" />
+              <RawMiniStat label="Receita bruta" value={formatMoneyFromAmount(rawData.grossInCents / 100)} detail="vendas válidas" />
+            </div>
+          </div>
         </Panel>
+
+        <Panel title="Cobertura dos dados">
+          <RawCoverageGrid rows={coverageRows} />
+        </Panel>
+      </div>
+
+      <div className="grid gap-4">
         <Panel title="Últimas vendas no filtro">
           <RecentSales rows={rawData.recentSales} />
         </Panel>
@@ -919,35 +1481,50 @@ function RawDataView({
   )
 }
 
-function RoadmapView({
-  title,
-  icon: Icon,
-  available,
-  missing,
-}: {
-  title: string
-  icon: LucideIcon
-  available: string
-  missing: string[]
-}) {
+function RawMiniStat({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <div className="mt-6 grid gap-4 xl:grid-cols-[.8fr_1.2fr]">
-      <Panel title={title}>
-        <Icon className="h-10 w-10 text-lime" />
-        <p className="mt-4 text-lg font-black">{available}</p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Esta área está preparada, mas só será ativada quando a fonte de dados estiver confiável.
-        </p>
-      </Panel>
-      <Panel title="Dados necessários">
-        <div className="grid gap-3">
-          {missing.map((item) => (
-            <Signal key={item} title={item} detail="Pendente para cálculo final." tone="amber" />
-          ))}
-        </div>
-      </Panel>
+    <div className="rounded-xl border border-border bg-background p-4">
+      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
+      <strong className="mt-2 block break-words text-xl leading-tight">{value}</strong>
+      <p className="mt-2 text-xs text-muted-foreground">{detail}</p>
     </div>
   )
+}
+
+function RawCoverageGrid({ rows }: { rows: Array<{ label: string; value: number; detail: string }> }) {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {rows.map((row) => (
+        <div key={row.label} className="rounded-xl border border-border bg-background p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">{row.label}</p>
+              <p className="mt-2 text-xs text-muted-foreground">{row.detail}</p>
+            </div>
+            <strong className="text-lg text-lime">{formatPercent(row.value)}</strong>
+          </div>
+          <div className="mt-4 h-2 overflow-hidden rounded-full bg-graphite">
+            <div className="h-full rounded-full bg-lime" style={{ width: `${Math.max(4, row.value * 100)}%` }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function formatSignedNumber(value: number) {
+  const sign = value > 0 ? "+" : ""
+  return `${sign}${formatQuantity(value)}`
+}
+
+function formatSignedMoneyFromCents(value: number) {
+  const sign = value > 0 ? "+" : value < 0 ? "-" : ""
+  return `${sign}${formatMoneyFromAmount(Math.abs(value) / 100)}`
+}
+
+function formatSignedPercentagePoints(value: number) {
+  const sign = value > 0 ? "+" : value < 0 ? "-" : ""
+  return `${sign}${formatPercent(Math.abs(value), 2)} p.p.`
 }
 
 function formatMinutes(value: number) {
@@ -955,15 +1532,27 @@ function formatMinutes(value: number) {
   return `${Math.round(value)} min`
 }
 
-function FinanceStatement({ summary }: { summary: ReturnType<typeof summarizeSales> }) {
+function FinanceStatement({
+  summary,
+  estimatedCmv,
+}: {
+  summary: ReturnType<typeof summarizeSales>
+  estimatedCmv: ReturnType<typeof buildEstimatedCmv>
+}) {
   const discountShare = summary.grossInCents > 0 ? summary.discountInCents / summary.grossInCents : 0
   const cancellationShare = summary.grossInCents > 0 ? summary.canceledInCents / summary.grossInCents : 0
+  const cmvShare =
+    summary.netInCents > 0 && estimatedCmv.estimatedCostInCents > 0
+      ? estimatedCmv.estimatedCostInCents / summary.netInCents
+      : null
+  const grossMarginInCents =
+    estimatedCmv.estimatedCostInCents > 0 ? summary.netInCents - estimatedCmv.estimatedCostInCents : null
 
   return (
     <div className="grid gap-4">
       <div className="rounded-xl border border-lime/20 bg-lime/10 p-4">
         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime">Resultado do período</p>
-        <strong className="mt-3 block text-3xl leading-none text-lime">
+        <strong className="mt-3 block text-2xl leading-none text-lime sm:text-3xl">
           {formatMoneyFromAmount(summary.netInCents / 100)}
         </strong>
         <p className="mt-2 text-xs text-muted-foreground">
@@ -982,8 +1571,30 @@ function FinanceStatement({ summary }: { summary: ReturnType<typeof summarizeSal
             label: "Cancelamentos",
             value: `-${formatMoneyFromAmount(summary.canceledInCents / 100)} (${formatPercent(cancellationShare)})`,
           },
+          {
+            label: "CMV estimado",
+            value:
+              cmvShare === null
+                ? "Sem estoque CMV da Saipos"
+                : `-${formatMoneyFromAmount(estimatedCmv.estimatedCostInCents / 100)} (${formatPercent(cmvShare)})`,
+          },
+          {
+            label: "Margem bruta estimada",
+            value: grossMarginInCents === null ? "--" : formatMoneyFromAmount(grossMarginInCents / 100),
+            strong: grossMarginInCents !== null && grossMarginInCents > 0,
+          },
         ]}
       />
+    </div>
+  )
+}
+
+function MetricMiniCard({ label, value, detail }: { label: string; value: string; detail: string }) {
+  return (
+    <div className="rounded-xl border border-border bg-background p-4">
+      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+      <strong className="mt-3 block text-2xl leading-none text-foreground">{value}</strong>
+      <p className="mt-2 text-xs text-muted-foreground">{detail}</p>
     </div>
   )
 }
@@ -992,9 +1603,9 @@ function MetricList({ rows }: { rows: Array<{ label: string; value: string; stro
   return (
     <div className="divide-y divide-border">
       {rows.map((row) => (
-        <div key={row.label} className="flex min-h-11 items-center justify-between gap-4 py-2.5 text-sm">
-          <span className="text-muted-foreground">{row.label}</span>
-          <strong className={row.strong ? "text-base text-lime" : ""}>{row.value}</strong>
+        <div key={row.label} className="flex min-h-11 items-start justify-between gap-4 py-2.5 text-sm">
+          <span className="min-w-0 text-muted-foreground">{row.label}</span>
+          <strong className={`min-w-0 text-right ${row.strong ? "text-base text-lime" : ""}`}>{row.value}</strong>
         </div>
       ))}
     </div>
@@ -1014,7 +1625,7 @@ function HourHeatmap({ rows }: { rows: Array<{ name: string; value: number; deta
       <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
         <div className="rounded-xl border border-lime/20 bg-lime/10 p-4">
           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime">Pico do período</p>
-          <strong className="mt-3 block text-4xl leading-none text-lime">{peak.name}</strong>
+          <strong className="mt-3 block text-3xl leading-none text-lime sm:text-4xl">{peak.name}</strong>
           <p className="mt-3 text-xs leading-5 text-muted-foreground">
             {formatQuantity(peak.value)} pedidos, {formatPercent(total > 0 ? peak.value / total : 0)} do movimento.
           </p>
@@ -1043,7 +1654,7 @@ function HourHeatmap({ rows }: { rows: Array<{ name: string; value: number; deta
           </div>
         </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {topHours.map((row, index) => (
           <div key={`${row.name}-${index}`} className="rounded-xl border border-border bg-background p-3">
             <p className="text-[10px] font-black uppercase text-muted-foreground">{index + 1}. horário</p>
@@ -1077,7 +1688,7 @@ function CompactRanking({
   return (
     <div className="grid gap-3">
       {visibleRows.map((row, index) => (
-        <div key={`${row.name}-${index}`} className="grid grid-cols-[1.75rem_1fr_auto] items-center gap-3">
+        <div key={`${row.name}-${index}`} className="grid grid-cols-[1.75rem_1fr] items-center gap-3 sm:grid-cols-[1.75rem_1fr_auto]">
           <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-background text-[10px] font-black text-muted-foreground">
             {index + 1}
           </span>
@@ -1145,32 +1756,87 @@ function RecentSales({
   if (rows.length === 0) return <p className="text-sm text-muted-foreground">Sem vendas no período.</p>
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[720px] text-left text-sm">
+    <>
+      <div className="grid gap-3 sm:hidden">
+        {rows.map((row) => (
+          <div key={row.id} className="rounded-xl border border-border bg-background p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <strong className="block truncate">{row.saleNumber ? `#${row.saleNumber}` : row.idSale}</strong>
+                <p className="mt-1 text-xs text-muted-foreground">ID {row.idSale}</p>
+              </div>
+              <strong className="shrink-0 text-right text-lime">{formatMoneyFromAmount(row.amountInCents / 100)}</strong>
+            </div>
+            <div className="mt-3 grid gap-2 text-xs text-muted-foreground">
+              <div className="flex justify-between gap-3">
+                <span>Canal</span>
+                <strong className="min-w-0 truncate text-right text-foreground">{row.partner}</strong>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span>Cliente</span>
+                <strong className="min-w-0 truncate text-right text-foreground">{row.customer}</strong>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span>Bairro</span>
+                <strong className="min-w-0 truncate text-right text-foreground">{row.district}</strong>
+              </div>
+            </div>
+            <span
+              className={`mt-3 inline-flex rounded-full border px-2 py-1 text-[10px] font-black uppercase ${
+                row.canceled ? "border-red-400/30 bg-red-400/10 text-red-400" : "border-lime/30 bg-lime/10 text-lime"
+              }`}
+            >
+              {row.canceled ? "Cancelada" : "Válida"}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto sm:block">
+        <table className="w-full min-w-[640px] text-left text-sm">
         <thead className="border-b border-border text-xs uppercase text-muted-foreground">
           <tr>
             <th className="py-3">Venda</th>
             <th>Canal</th>
             <th>Cliente</th>
-            <th>Praça</th>
+            <th>Bairro</th>
             <th>Status</th>
             <th className="text-right">Valor</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
           {rows.map((row) => (
-            <tr key={row.id}>
-              <td className="py-3 font-black">{row.saleNumber ? `#${row.saleNumber}` : row.idSale}</td>
-              <td>{row.partner}</td>
-              <td>{row.customer}</td>
-              <td>{row.district}</td>
-              <td className={row.canceled ? "text-red-400" : "text-lime"}>{row.canceled ? "Cancelada" : "Válida"}</td>
+            <tr key={row.id} className="align-top">
+              <td className="py-3">
+                <strong className="block">{row.saleNumber ? `#${row.saleNumber}` : row.idSale}</strong>
+                <span className="text-xs text-muted-foreground">ID {row.idSale}</span>
+              </td>
+              <td>
+                <span className="inline-flex max-w-[220px] rounded-full border border-border bg-background px-2 py-1 text-xs text-muted-foreground">
+                  <span className="truncate">{row.partner}</span>
+                </span>
+              </td>
+              <td>
+                <span className="block max-w-[240px] truncate font-medium">{row.customer}</span>
+              </td>
+              <td>
+                <span className="block max-w-[180px] truncate text-muted-foreground">{row.district}</span>
+              </td>
+              <td>
+                <span
+                  className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-black uppercase ${
+                    row.canceled ? "border-red-400/30 bg-red-400/10 text-red-400" : "border-lime/30 bg-lime/10 text-lime"
+                  }`}
+                >
+                  {row.canceled ? "Cancelada" : "Válida"}
+                </span>
+              </td>
               <td className="text-right font-black text-lime">{formatMoneyFromAmount(row.amountInCents / 100)}</td>
             </tr>
           ))}
         </tbody>
-      </table>
-    </div>
+        </table>
+      </div>
+    </>
   )
 }
 
@@ -1178,7 +1844,7 @@ function Kpi({
   icon: Icon,
   label,
   value,
-  detail = "Hoje",
+  detail = "Período",
   delta,
   inverse = false,
 }: {
@@ -1191,14 +1857,14 @@ function Kpi({
 }) {
   const good = delta === undefined || delta === null || (inverse ? delta <= 0 : delta >= 0)
   return (
-    <article className="rounded-2xl border border-border bg-graphite p-5 shadow-[0_18px_70px_rgba(0,0,0,.22)]">
-      <div className="flex items-start gap-4">
-        <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-lime/20 bg-lime/10 text-lime">
+    <article className="min-w-0 rounded-2xl border border-border bg-graphite p-4 shadow-[0_18px_70px_rgba(0,0,0,.22)] sm:p-5">
+      <div className="flex items-start gap-3 sm:gap-4">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-lime/20 bg-lime/10 text-lime sm:h-11 sm:w-11">
           <Icon className="h-5 w-5" />
         </span>
         <div className="min-w-0">
           <p className="text-xs uppercase text-muted-foreground">{label}</p>
-          <strong className="mt-2 block truncate text-2xl">{value}</strong>
+          <strong className="mt-2 block break-words text-xl leading-tight sm:text-2xl">{value}</strong>
           <p className="mt-3 text-sm text-muted-foreground">{detail}</p>
         </div>
       </div>
@@ -1211,9 +1877,9 @@ function Kpi({
   )
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+function Panel({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <article className="rounded-2xl border border-border bg-graphite p-5 shadow-[0_18px_70px_rgba(0,0,0,.2)]">
+    <article className={`min-w-0 rounded-2xl border border-border bg-graphite p-4 shadow-[0_18px_70px_rgba(0,0,0,.2)] sm:p-5 ${className}`}>
       <h2 className="text-sm font-black uppercase">{title}</h2>
       <div className="mt-4">{children}</div>
     </article>
@@ -1225,7 +1891,7 @@ function Ranking({
   total,
   money = false,
 }: {
-  rows: Array<{ name: string; value: number; detail: string }>
+  rows: Array<{ name: string; value: number; detail: string; displayValue?: string }>
   total?: number
   money?: boolean
 }) {
@@ -1235,15 +1901,17 @@ function Ranking({
     <div className="grid gap-4">
       {rows.map((row, index) => (
         <div key={`${row.name}-${index}`}>
-          <div className="flex items-center justify-between gap-3 text-sm">
-            <span className="truncate text-muted-foreground">
+          <div className="flex items-start justify-between gap-3 text-sm">
+            <span className="min-w-0 break-words text-muted-foreground sm:truncate">
               {index + 1}. {row.name}
             </span>
-            <strong>
-              {money
-                ? formatMoneyFromAmount(row.value / 100)
-                : total
-                  ? formatPercent(row.value / total)
+            <strong className="shrink-0 text-right">
+              {row.displayValue
+                ? row.displayValue
+                : money
+                  ? formatMoneyFromAmount(row.value / 100)
+                  : total
+                    ? formatPercent(row.value / total)
                   : formatQuantity(row.value)}
             </strong>
           </div>
@@ -1263,13 +1931,44 @@ function Ranking({
 function ProductRows({ rows }: { rows: ReturnType<typeof buildProductMix>["topProducts"] }) {
   if (rows.length === 0) return <p className="text-sm text-muted-foreground">Sem produtos Saipos no período.</p>
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[680px] text-left text-sm">
+    <>
+      <div className="grid gap-3 sm:hidden">
+        {rows.map((row, index) => (
+          <div key={`${row.name}-${index}`} className="rounded-xl border border-border bg-background p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+                  Produto Saipos
+                </p>
+                <strong className="mt-1 block break-words text-sm leading-5">{row.name}</strong>
+                {row.integrationCode ? (
+                  <span className="mt-2 inline-flex rounded-full border border-border px-2 py-1 text-[10px] text-muted-foreground">
+                    PDV {row.integrationCode}
+                  </span>
+                ) : null}
+              </div>
+              <span className="inline-flex h-8 min-w-8 shrink-0 items-center justify-center rounded-lg border border-lime/20 bg-lime/10 px-2 text-xs font-black text-lime">
+                {row.abc}
+              </span>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <MobileStat label="Quantidade" value={formatQuantity(row.quantity)} />
+              <MobileStat label="Receita" value={formatMoneyFromAmount(row.revenueInCents / 100)} strong />
+              <MobileStat label="Participação" value={formatPercent(row.share)} />
+              <MobileStat label="Acumulado" value={formatPercent(row.cumulativeShare)} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto sm:block">
+        <table className="w-full min-w-[620px] text-left text-sm">
         <thead className="border-b border-border text-xs uppercase text-muted-foreground">
           <tr>
             <th className="py-3">Produto Saipos</th>
             <th>Qtd.</th>
             <th>Receita</th>
+            <th>Part.</th>
+            <th>Acum.</th>
             <th>Curva</th>
           </tr>
         </thead>
@@ -1284,16 +1983,25 @@ function ProductRows({ rows }: { rows: ReturnType<typeof buildProductMix>["topPr
               </td>
               <td>{formatQuantity(row.quantity)}</td>
               <td className="font-black text-lime">{formatMoneyFromAmount(row.revenueInCents / 100)}</td>
-              <td>{row.abc}</td>
+              <td>{formatPercent(row.share)}</td>
+              <td>{formatPercent(row.cumulativeShare)}</td>
+              <td>
+                <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-lg border border-lime/20 bg-lime/10 px-2 text-xs font-black text-lime">
+                  {row.abc}
+                </span>
+              </td>
             </tr>
           ))}
         </tbody>
-      </table>
-    </div>
+        </table>
+      </div>
+    </>
   )
 }
 
 function StoreTable({ rows }: { rows: ReturnType<typeof buildStoreRows> }) {
+  if (rows.length <= 1) return null
+
   if (rows.length === 0)
     return (
       <Panel title="Unidades">
@@ -1302,8 +2010,25 @@ function StoreTable({ rows }: { rows: ReturnType<typeof buildStoreRows> }) {
     )
   return (
     <Panel title="Ranking de unidades">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] text-left text-sm">
+      <div className="grid gap-3 sm:hidden">
+        {rows.map((row, index) => (
+          <div key={row.idStore} className="rounded-xl border border-border bg-background p-4">
+            <div className="flex items-start justify-between gap-3">
+              <strong className="min-w-0 break-words text-sm leading-5">
+                {index + 1}. {row.name}
+              </strong>
+              <strong className="shrink-0 text-right text-lime">{formatMoneyFromAmount(row.revenueInCents / 100)}</strong>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <MobileStat label="Pedidos" value={String(row.orders)} />
+              <MobileStat label="Ticket" value={formatMoneyFromAmount(row.averageTicketInCents / 100)} />
+              <MobileStat label="Cancelamentos" value={formatPercent(row.cancellationRate)} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto sm:block">
+        <table className="w-full min-w-[680px] text-left text-sm">
           <thead className="border-b border-border text-xs uppercase text-muted-foreground">
             <tr>
               <th className="py-3">Unidade</th>
@@ -1332,15 +2057,63 @@ function StoreTable({ rows }: { rows: ReturnType<typeof buildStoreRows> }) {
   )
 }
 
-function Signal({ title, detail, tone }: { title: string; detail: string; tone: Tone }) {
+function MobileStat({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
   return (
-    <div className="rounded-xl border border-border bg-background p-4">
-      <p
-        className={`text-xs font-black uppercase ${tone === "amber" ? "text-lime" : tone === "purple" ? "text-purple-medium" : "text-lime"}`}
-      >
-        {title}
-      </p>
-      <p className="mt-1 text-xs leading-5 text-muted-foreground">{detail}</p>
+    <div className="min-w-0 rounded-xl border border-border bg-graphite/50 p-3">
+      <p className="text-[10px] font-black uppercase tracking-[0.1em] text-muted-foreground">{label}</p>
+      <strong className={`mt-1 block break-words text-sm leading-5 ${strong ? "text-lime" : "text-foreground"}`}>
+        {value}
+      </strong>
     </div>
+  )
+}
+
+function Signal({ alert, featured = false }: { alert: SaiposDashboardAlert; featured?: boolean }) {
+  const isAttention = alert.severity === "Atenção"
+  const isOpportunity = alert.severity === "Oportunidade"
+  const Icon = isAttention ? AlertTriangle : isOpportunity ? TrendingUp : Store
+  const statusClass = isAttention
+    ? "border-lime/30 bg-lime/10 text-lime"
+    : isOpportunity
+      ? "border-purple-medium/30 bg-purple-medium/10 text-purple-medium"
+      : "border-border bg-background text-muted-foreground"
+  const iconClass = isOpportunity
+    ? "border-purple-medium/20 bg-purple-medium/10 text-purple-medium"
+    : "border-lime/20 bg-lime/10 text-lime"
+  const featuredClass = featured ? "p-4 sm:p-5 md:p-6" : "p-4 sm:p-5"
+  const titleClass = featured ? "text-lg leading-6 sm:text-xl sm:leading-7" : "text-sm leading-5"
+  const metricClass = featured ? "text-xl sm:text-2xl" : "text-base"
+
+  return (
+    <article className={`min-w-0 rounded-2xl border border-border bg-graphite shadow-[0_18px_70px_rgba(0,0,0,.2)] ${featuredClass}`}>
+      <div className="flex items-start gap-3 sm:gap-4">
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border sm:h-11 sm:w-11 ${iconClass}`}>
+          <Icon className="h-5 w-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <span className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${statusClass}`}>
+                {alert.severity}
+              </span>
+              <h3 className={`mt-3 font-black uppercase text-foreground ${titleClass}`}>{alert.title}</h3>
+            </div>
+            <strong className={`min-w-0 shrink-0 text-right font-black text-lime ${metricClass}`}>
+              {alert.metric}
+            </strong>
+          </div>
+          <p className={`${featured ? "mt-4 text-sm leading-6" : "mt-3 line-clamp-2 text-xs leading-5"} text-muted-foreground`}>
+            {alert.detail}
+          </p>
+        </div>
+      </div>
+
+      <div className={`${featured ? "mt-5" : "mt-4"} border-t border-border pt-4`}>
+        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">Sugestão</p>
+        <p className={`${featured ? "mt-2 text-sm leading-6" : "mt-1 line-clamp-2 text-xs leading-5"} text-muted-foreground`}>
+          {alert.action}
+        </p>
+      </div>
+    </article>
   )
 }

@@ -186,3 +186,10 @@ export function getComparisonAnchorDate(mode: SaiposPeriodMode, searchParams: Pa
   if (mode === "month") return parseMonthParam(getSearchParam(searchParams, "compareMonth"), fallback)
   return parseYearParam(getSearchParam(searchParams, "compareYear"), fallback)
 }
+
+export function getPreviousPeriodAnchorDate(mode: SaiposPeriodMode, anchorDate: Date) {
+  if (mode === "day") return addUtcDays(anchorDate, -1)
+  if (mode === "week") return addUtcDays(anchorDate, -7)
+  if (mode === "month") return new Date(Date.UTC(anchorDate.getUTCFullYear(), anchorDate.getUTCMonth() - 1, 1))
+  return new Date(Date.UTC(anchorDate.getUTCFullYear() - 1, 0, 1))
+}

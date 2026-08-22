@@ -1,10 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react"
-import { ptBR } from "date-fns/locale"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { createPortal } from "react-dom"
+import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type PeriodMode = "day" | "week" | "month" | "year"
@@ -107,39 +105,109 @@ function getPickerLabel(mode: PeriodMode) {
 export function SaiposPeriodPicker({ mode, values, maxDate, fieldNames, label }: SaiposPeriodPickerProps) {
   const [open, setOpen] = React.useState(false)
   const [value, setValue] = React.useState(values[mode])
+  const [mounted, setMounted] = React.useState(false)
   const maxDateObject = toPeriodStart(maxDate)
+  const title = label ?? getPickerLabel(mode)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
 
   React.useEffect(() => {
     setValue(values[mode])
   }, [mode, values])
 
+  React.useEffect(() => {
+    if (!open) return
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false)
+    }
+
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [open])
+
+  const modal =
+    open && mounted
+      ? createPortal(
+          <div
+            className="fixed inset-0 z-[120] grid place-items-center p-3"
+            data-saipos-period-picker-portal
+            role="dialog"
+            aria-modal="true"
+          >
+            <button
+              type="button"
+              className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+              onClick={() => setOpen(false)}
+              aria-label={`Fechar ${title}`}
+            />
+
+            <div className="relative grid max-h-[calc(100dvh-1.5rem)] w-[min(390px,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-border bg-graphite shadow-[0_28px_90px_rgba(0,0,0,.65)]">
+              <div className="flex items-center justify-between gap-3 border-b border-border p-4">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime">{title}</p>
+                  <p className="mt-1 truncate text-xs text-muted-foreground">{getDisplayValue(mode, value)}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition hover:border-lime/40 hover:text-lime"
+                  aria-label={`Fechar ${title}`}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain">
+                {mode === "day" ? (
+                  <DayPicker value={value} maxDate={maxDateObject} onChange={setValue} onDone={() => setOpen(false)} />
+                ) : null}
+                {mode === "week" ? (
+                  <WeekPicker value={value} maxDate={maxDateObject} onChange={setValue} onDone={() => setOpen(false)} />
+                ) : null}
+                {mode === "month" ? (
+                  <MonthPicker value={value} maxDate={maxDateObject} onChange={setValue} onDone={() => setOpen(false)} />
+                ) : null}
+                {mode === "year" ? (
+                  <YearPicker value={value} maxDate={maxDateObject} onChange={setValue} onDone={() => setOpen(false)} />
+                ) : null}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      : null
+
   return (
     <div className="min-w-0 space-y-2.5">
-      <label className="block text-xs font-bold leading-4 text-muted-foreground">{label ?? getPickerLabel(mode)}</label>
+      <label className="block text-xs font-bold leading-4 text-muted-foreground">{title}</label>
       <input name={fieldNames?.[mode] ?? mode} type="hidden" value={value} />
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            className="flex h-12 min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-border bg-background px-3.5 text-left text-sm font-medium text-foreground shadow-none outline-offset-0 transition hover:border-foreground/20 focus-visible:border-lime focus-visible:outline-2 focus-visible:outline-lime"
-          >
-            <span className="min-w-0 truncate">{getDisplayValue(mode, value)}</span>
-            <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
-          </button>
-        </PopoverTrigger>
-        <PopoverContent align="start" sideOffset={8} className="z-[90] w-auto rounded-xl border-border bg-popover p-0">
-          {mode === "day" ? (
-            <DayPicker value={value} maxDate={maxDateObject} onChange={setValue} onDone={() => setOpen(false)} />
-          ) : null}
-          {mode === "week" ? (
-            <WeekPicker value={value} maxDate={maxDateObject} onChange={setValue} onDone={() => setOpen(false)} />
-          ) : null}
-          {mode === "month" ? <MonthPicker value={value} maxDate={maxDateObject} onChange={setValue} /> : null}
-          {mode === "year" ? <YearPicker value={value} maxDate={maxDateObject} onChange={setValue} /> : null}
-        </PopoverContent>
-      </Popover>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex h-12 min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-border bg-background px-3.5 text-left text-sm font-medium text-foreground shadow-none outline-offset-0 transition hover:border-foreground/20 focus-visible:border-lime focus-visible:outline-2 focus-visible:outline-lime"
+      >
+        <span className="min-w-0 truncate">{getDisplayValue(mode, value)}</span>
+        <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
+      </button>
+
+      {modal}
     </div>
   )
+}
+
+function isSameDate(first: Date, second: Date) {
+  return toDateInputValue(first) === toDateInputValue(second)
+}
+
+function isBeforeDate(first: Date, second: Date) {
+  return toDateInputValue(first) < toDateInputValue(second)
+}
+
+function isAfterDate(first: Date, second: Date) {
+  return toDateInputValue(first) > toDateInputValue(second)
 }
 
 function DayPicker({
@@ -153,16 +221,19 @@ function DayPicker({
   onChange: (value: string) => void
   onDone: () => void
 }) {
+  const selectedDate = toPeriodStart(value)
+  const [visibleMonth, setVisibleMonth] = React.useState(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1))
+
   return (
-    <Calendar
-      mode="single"
-      locale={ptBR}
-      captionLayout="label"
-      selected={toPeriodStart(value)}
-      defaultMonth={toPeriodStart(value)}
-      disabled={(date) => date > maxDate}
+    <SimpleCalendar
+      visibleMonth={visibleMonth}
+      selectedStart={selectedDate}
+      maxDate={maxDate}
+      onPrevious={() => setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))}
+      onNext={() => setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))}
+      nextDisabled={new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1) > maxDate}
       onSelect={(date) => {
-        if (!date) return
+        if (isAfterDate(date, maxDate)) return
         onChange(toDateInputValue(date))
         onDone()
       }}
@@ -184,18 +255,21 @@ function WeekPicker({
   const selectedDate = parseWeekInputValue(value)
   const selectedStart = startOfWeek(selectedDate)
   const selectedEnd = addDays(selectedStart, 6)
+  const [visibleMonth, setVisibleMonth] = React.useState(new Date(selectedStart.getFullYear(), selectedStart.getMonth(), 1))
 
   return (
     <div>
-      <Calendar
-        mode="range"
-        locale={ptBR}
-        captionLayout="label"
-        selected={{ from: selectedStart, to: selectedEnd }}
-        defaultMonth={selectedStart}
-        disabled={(date) => date > maxDate}
-        onDayClick={(date, modifiers) => {
-          if (modifiers.disabled) return
+      <SimpleCalendar
+        visibleMonth={visibleMonth}
+        selectedStart={selectedStart}
+        selectedEnd={selectedEnd}
+        maxDate={maxDate}
+        weekMode
+        onPrevious={() => setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))}
+        onNext={() => setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))}
+        nextDisabled={new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1) > maxDate}
+        onSelect={(date) => {
+          if (isAfterDate(date, maxDate)) return
           onChange(toWeekInputValue(date))
           onDone()
         }}
@@ -207,14 +281,81 @@ function WeekPicker({
   )
 }
 
+function SimpleCalendar({
+  visibleMonth,
+  selectedStart,
+  selectedEnd,
+  maxDate,
+  weekMode = false,
+  nextDisabled,
+  onPrevious,
+  onNext,
+  onSelect,
+}: {
+  visibleMonth: Date
+  selectedStart: Date
+  selectedEnd?: Date
+  maxDate: Date
+  weekMode?: boolean
+  nextDisabled?: boolean
+  onPrevious: () => void
+  onNext: () => void
+  onSelect: (date: Date) => void
+}) {
+  const monthStart = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1)
+  const gridStart = addDays(monthStart, -monthStart.getDay())
+  const days = Array.from({ length: 42 }, (_, index) => addDays(gridStart, index))
+  const monthLabel = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(visibleMonth)
+
+  return (
+    <div className="mx-auto w-full max-w-[326px] p-3">
+      <PeriodPickerHeader value={monthLabel} onPrevious={onPrevious} onNext={onNext} nextDisabled={nextDisabled} />
+      <div className="mt-4 grid grid-cols-7 gap-1 text-center">
+        {["dom", "seg", "ter", "qua", "qui", "sex", "sab"].map((day) => (
+          <span key={day} className="flex h-8 items-center justify-center text-[11px] font-bold text-muted-foreground">
+            {day}
+          </span>
+        ))}
+        {days.map((day) => {
+          const outside = day.getMonth() !== visibleMonth.getMonth()
+          const disabled = isAfterDate(day, maxDate)
+          const inSelectedRange =
+            selectedEnd && !isBeforeDate(day, selectedStart) && !isAfterDate(day, selectedEnd)
+          const selected = isSameDate(day, selectedStart) || (selectedEnd ? isSameDate(day, selectedEnd) : false)
+          const rangeClass = weekMode && inSelectedRange && !selected ? "bg-lime/15 text-foreground" : ""
+
+          return (
+            <button
+              key={toDateInputValue(day)}
+              type="button"
+              disabled={disabled}
+              onClick={() => onSelect(day)}
+              className={cn(
+                "flex aspect-square min-h-0 w-full items-center justify-center rounded-lg text-sm transition disabled:cursor-not-allowed disabled:opacity-25",
+                outside ? "text-muted-foreground/55" : "text-foreground",
+                rangeClass,
+                selected ? "bg-lime font-black text-background" : "hover:bg-lime/10 hover:text-lime"
+              )}
+            >
+              {day.getDate()}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function MonthPicker({
   value,
   maxDate,
   onChange,
+  onDone,
 }: {
   value: string
   maxDate: Date
   onChange: (value: string) => void
+  onDone: () => void
 }) {
   const parsed = parseMonthValue(value)
   const [year, setYear] = React.useState(parsed.getFullYear())
@@ -222,7 +363,7 @@ function MonthPicker({
   const maxMonth = maxDate.getMonth()
 
   return (
-    <div className="w-[312px] p-4">
+    <div className="mx-auto w-full max-w-[340px] p-4">
       <PeriodPickerHeader value={String(year)} onPrevious={() => setYear((current) => current - 1)} onNext={() => setYear((current) => Math.min(current + 1, maxYear))} nextDisabled={year >= maxYear} />
       <div className="mt-4 grid grid-cols-3 gap-2">
         {monthNames.map((month, index) => {
@@ -235,7 +376,10 @@ function MonthPicker({
               key={month}
               type="button"
               disabled={disabled}
-              onClick={() => onChange(optionValue)}
+              onClick={() => {
+                onChange(optionValue)
+                onDone()
+              }}
               className={cn(
                 "h-11 rounded-xl border text-xs font-black uppercase tracking-[0.1em] transition disabled:cursor-not-allowed disabled:opacity-35",
                 selected
@@ -256,17 +400,19 @@ function YearPicker({
   value,
   maxDate,
   onChange,
+  onDone,
 }: {
   value: string
   maxDate: Date
   onChange: (value: string) => void
+  onDone: () => void
 }) {
   const selectedYear = Number(value)
   const maxYear = maxDate.getFullYear()
   const [decadeStart, setDecadeStart] = React.useState(Math.floor(selectedYear / 10) * 10)
 
   return (
-    <div className="w-[312px] p-4">
+    <div className="mx-auto w-full max-w-[340px] p-4">
       <PeriodPickerHeader
         value={`${decadeStart} - ${decadeStart + 9}`}
         onPrevious={() => setDecadeStart((current) => current - 10)}
@@ -283,7 +429,10 @@ function YearPicker({
               key={year}
               type="button"
               disabled={disabled}
-              onClick={() => onChange(String(year))}
+              onClick={() => {
+                onChange(String(year))
+                onDone()
+              }}
               className={cn(
                 "h-11 rounded-xl border text-xs font-black uppercase tracking-[0.1em] transition disabled:cursor-not-allowed disabled:opacity-35",
                 selected

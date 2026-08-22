@@ -1,12 +1,14 @@
 import "server-only"
 
-import type { Prisma } from "@prisma/client"
+import { randomUUID } from "node:crypto"
+import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import {
   fetchSaiposFinancialTransactionsForSync,
   fetchSaiposSaleItemsForSync,
   fetchSaiposSaleStatusHistoriesForSync,
   fetchSaiposSalesForSync,
+  fetchSaiposStockMovementsForSync,
   getSaiposDefaultPeriod,
   getSaiposSaleTotal,
   type SaiposFinancialTransaction,
@@ -17,6 +19,7 @@ import {
   type SaiposSaleStatusHistoryEvent,
   type SaiposSaleStatusHistorySale,
   type SaiposSalesPeriod,
+  type SaiposStockMovement,
 } from "@/lib/saipos-data-api"
 
 const businessTimeZone = "America/Sao_Paulo"
@@ -28,6 +31,17 @@ function amountToCents(value: number | undefined) {
 function amountToOptionalCents(value: number | undefined | null) {
   if (value === undefined || value === null) return 0
   return Math.round(Number(value) * 100)
+}
+
+function parseNumber(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return value
+  if (typeof value !== "string") return null
+
+  const match = value.replace(",", ".").match(/-?\d+(?:\.\d+)?/)
+  if (!match) return null
+
+  const parsed = Number(match[0])
+  return Number.isFinite(parsed) ? parsed : null
 }
 
 function parseSaiposDate(value: string | undefined | null) {
@@ -196,6 +210,61 @@ function normalizeSaiposFinancialTransaction(transaction: SaiposFinancialTransac
   }
 }
 
+function normalizeSaiposStockMovement(movement: SaiposStockMovement) {
+  if (!movement.id_store_ingred_movement) return null
+
+  const ingredient = movement.ingredient
+  const quantityNumber = parseNumber(movement.quantity)
+  const unitCostInCents = amountToOptionalCents(movement.unit_cost)
+  const averageCostInCents = amountToOptionalCents(ingredient?.average_cost)
+  const movementCostInCents =
+    quantityNumber !== null && unitCostInCents > 0 ? Math.round(Math.abs(quantityNumber) * unitCostInCents) : 0
+
+  return {
+    idStore: Number(movement.id_store),
+    idStoreIngredMovement: BigInt(movement.id_store_ingred_movement),
+    idStoreIngredient:
+      typeof (movement.id_store_ingredient ?? ingredient?.id_store_ingredient) === "number"
+        ? BigInt((movement.id_store_ingredient ?? ingredient?.id_store_ingredient)!)
+        : null,
+    idMovementType: typeof movement.id_movement_type === "number" ? movement.id_movement_type : null,
+    dateMovement: parseSaiposDate(movement.date_movement),
+    createdAtSaipos: parseSaiposDate(movement.created_at),
+    quantityText:
+      movement.quantity === null || movement.quantity === undefined ? null : String(movement.quantity).trim() || null,
+    quantityNumber,
+    quantityEntryText:
+      movement.quantity_entry === null || movement.quantity_entry === undefined
+        ? null
+        : String(movement.quantity_entry).trim() || null,
+    unitCostInCents,
+    movementCostInCents,
+    saleId: typeof movement.sale?.id_sale === "number" ? BigInt(movement.sale.id_sale) : null,
+    saleNumber: typeof movement.sale?.sale_number === "number" ? movement.sale.sale_number : null,
+    notes: normalizeOptionalString(movement.notes),
+    ingredientName: normalizeOptionalString(ingredient?.desc_store_ingredient),
+    ingredientGroupId:
+      typeof ingredient?.group?.id_store_group_ingredient === "number"
+        ? BigInt(ingredient.group.id_store_group_ingredient)
+        : null,
+    ingredientGroupName: normalizeOptionalString(ingredient?.group?.desc_store_group_ingredient),
+    currentInventory: parseNumber(ingredient?.current_inventory),
+    minimumStock: parseNumber(ingredient?.minimum_stock ?? ingredient?.minimium_stock),
+    averageCostInCents,
+    averageCostMethod: normalizeOptionalString(ingredient?.average_cost_method),
+    controlInventory: parseSaiposBoolean(ingredient?.control_inventory),
+    includeInCmvCalc: parseSaiposBoolean(ingredient?.include_in_cmv_calc),
+    unitMeasure: normalizeOptionalString(ingredient?.short_desc_unit_measure),
+    identificationNfItem: normalizeOptionalString(movement.identification_nf?.desc_item),
+    identificationNfItemId:
+      typeof movement.identification_nf?.id_store_provider_nfe_item === "number"
+        ? BigInt(movement.identification_nf.id_store_provider_nfe_item)
+        : null,
+    raw: movement as unknown as object,
+    syncedAt: new Date(),
+  }
+}
+
 function normalizeSaiposProductReference(sale: SaiposSaleItemsSale, item: SaiposSaleItem) {
   const productKey = getSaiposProductKey(sale, item)
   const name = item.desc_sale_item?.trim()
@@ -248,6 +317,133 @@ function mergeProductReference(
     raw: next.raw,
     syncedAt: next.syncedAt,
   }
+}
+
+async function countSaiposStockMovementsInPeriod({
+  periodStart,
+  periodEnd,
+  dateColumn,
+}: {
+  periodStart: Date
+  periodEnd: Date
+  dateColumn: "shift_date" | "created_at" | "updated_at"
+}) {
+  try {
+    const dateWhere =
+      dateColumn === "created_at"
+        ? Prisma.sql`"createdAtSaipos" >= ${periodStart} AND "createdAtSaipos" <= ${periodEnd}`
+        : Prisma.sql`"dateMovement" >= ${periodStart} AND "dateMovement" <= ${periodEnd}`
+
+    const rows = await prisma.$queryRaw<Array<{ count: bigint }>>`
+      SELECT COUNT(*)::bigint AS "count"
+      FROM "SaiposStockMovement"
+      WHERE ${dateWhere}
+    `
+
+    return Number(rows[0]?.count ?? 0)
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2010") return 0
+    throw error
+  }
+}
+
+async function upsertSaiposStockMovement(data: NonNullable<ReturnType<typeof normalizeSaiposStockMovement>>) {
+  await prisma.$executeRaw`
+    INSERT INTO "SaiposStockMovement" (
+      "id",
+      "idStore",
+      "idStoreIngredMovement",
+      "idStoreIngredient",
+      "idMovementType",
+      "dateMovement",
+      "createdAtSaipos",
+      "quantityText",
+      "quantityNumber",
+      "quantityEntryText",
+      "unitCostInCents",
+      "movementCostInCents",
+      "saleId",
+      "saleNumber",
+      "notes",
+      "ingredientName",
+      "ingredientGroupId",
+      "ingredientGroupName",
+      "currentInventory",
+      "minimumStock",
+      "averageCostInCents",
+      "averageCostMethod",
+      "controlInventory",
+      "includeInCmvCalc",
+      "unitMeasure",
+      "identificationNfItem",
+      "identificationNfItemId",
+      "raw",
+      "syncedAt",
+      "createdAt",
+      "updatedAt"
+    )
+    VALUES (
+      ${randomUUID()},
+      ${data.idStore},
+      ${data.idStoreIngredMovement},
+      ${data.idStoreIngredient},
+      ${data.idMovementType},
+      ${data.dateMovement},
+      ${data.createdAtSaipos},
+      ${data.quantityText},
+      ${data.quantityNumber},
+      ${data.quantityEntryText},
+      ${data.unitCostInCents},
+      ${data.movementCostInCents},
+      ${data.saleId},
+      ${data.saleNumber},
+      ${data.notes},
+      ${data.ingredientName},
+      ${data.ingredientGroupId},
+      ${data.ingredientGroupName},
+      ${data.currentInventory},
+      ${data.minimumStock},
+      ${data.averageCostInCents},
+      ${data.averageCostMethod},
+      ${data.controlInventory},
+      ${data.includeInCmvCalc},
+      ${data.unitMeasure},
+      ${data.identificationNfItem},
+      ${data.identificationNfItemId},
+      ${data.raw},
+      ${data.syncedAt},
+      CURRENT_TIMESTAMP,
+      CURRENT_TIMESTAMP
+    )
+    ON CONFLICT ("idStore", "idStoreIngredMovement") DO UPDATE SET
+      "idStoreIngredient" = EXCLUDED."idStoreIngredient",
+      "idMovementType" = EXCLUDED."idMovementType",
+      "dateMovement" = EXCLUDED."dateMovement",
+      "createdAtSaipos" = EXCLUDED."createdAtSaipos",
+      "quantityText" = EXCLUDED."quantityText",
+      "quantityNumber" = EXCLUDED."quantityNumber",
+      "quantityEntryText" = EXCLUDED."quantityEntryText",
+      "unitCostInCents" = EXCLUDED."unitCostInCents",
+      "movementCostInCents" = EXCLUDED."movementCostInCents",
+      "saleId" = EXCLUDED."saleId",
+      "saleNumber" = EXCLUDED."saleNumber",
+      "notes" = EXCLUDED."notes",
+      "ingredientName" = EXCLUDED."ingredientName",
+      "ingredientGroupId" = EXCLUDED."ingredientGroupId",
+      "ingredientGroupName" = EXCLUDED."ingredientGroupName",
+      "currentInventory" = EXCLUDED."currentInventory",
+      "minimumStock" = EXCLUDED."minimumStock",
+      "averageCostInCents" = EXCLUDED."averageCostInCents",
+      "averageCostMethod" = EXCLUDED."averageCostMethod",
+      "controlInventory" = EXCLUDED."controlInventory",
+      "includeInCmvCalc" = EXCLUDED."includeInCmvCalc",
+      "unitMeasure" = EXCLUDED."unitMeasure",
+      "identificationNfItem" = EXCLUDED."identificationNfItem",
+      "identificationNfItemId" = EXCLUDED."identificationNfItemId",
+      "raw" = EXCLUDED."raw",
+      "syncedAt" = EXCLUDED."syncedAt",
+      "updatedAt" = CURRENT_TIMESTAMP
+  `
 }
 
 export function getSaiposRecommendedSyncText(now = new Date()) {
@@ -322,10 +518,16 @@ export async function syncSaiposSales({
       },
     },
   })
+  const existingStockMovementsInPeriod = await countSaiposStockMovementsInPeriod({
+    periodStart,
+    periodEnd,
+    dateColumn,
+  })
   const periodLooksComplete =
     existingItemsInPeriod >= existingValidSalesInPeriod &&
     existingPaymentsInPeriod >= existingValidSalesInPeriod &&
-    existingStatusHistoriesInPeriod >= existingValidSalesInPeriod
+    existingStatusHistoriesInPeriod >= existingValidSalesInPeriod &&
+    existingStockMovementsInPeriod > 0
 
   if (dateColumn === "shift_date" && previousSuccess && periodLooksComplete) {
     return prisma.saiposSyncRun.create({
@@ -358,6 +560,7 @@ export async function syncSaiposSales({
     let itemRecordsUpserted = 0
     let statusRecordsUpserted = 0
     let financialRecordsUpserted = 0
+    let stockMovementRecordsUpserted = 0
     let productReferencesUpserted = 0
     let skippedItemRecords = 0
     let skippedStatusRecords = 0
@@ -546,10 +749,29 @@ export async function syncSaiposSales({
       endpointWarnings.push(`Lançamentos financeiros: ${error instanceof Error ? error.message : "erro desconhecido"}`)
     }
 
+    let stockMovementResult: Awaited<ReturnType<typeof fetchSaiposStockMovementsForSync>> | null = null
+    try {
+      stockMovementResult = await fetchSaiposStockMovementsForSync({
+        period,
+        dateColumn: dateColumn === "created_at" ? "created_at" : "date_movement",
+      })
+
+      for (const movement of stockMovementResult.movements) {
+        const data = normalizeSaiposStockMovement(movement)
+        if (!data) continue
+
+        await upsertSaiposStockMovement(data)
+        stockMovementRecordsUpserted += 1
+      }
+    } catch (error) {
+      endpointWarnings.push(`Movimentação de estoque: ${error instanceof Error ? error.message : "erro desconhecido"}`)
+    }
+
     if (result.truncated) truncatedEndpoints.push("vendas")
     if (itemResult?.truncated) truncatedEndpoints.push("itens")
     if (statusResult?.truncated) truncatedEndpoints.push("histórico de status")
     if (financialResult?.truncated) truncatedEndpoints.push("financeiro")
+    if (stockMovementResult?.truncated) truncatedEndpoints.push("estoque")
 
     return prisma.saiposSyncRun.update({
       where: { id: run.id },
@@ -559,8 +781,15 @@ export async function syncSaiposSales({
           result.sales.length +
           (itemResult?.sales.reduce((total, sale) => total + (sale.items?.length ?? 0), 0) ?? 0) +
           (statusResult?.sales.reduce((total, sale) => total + (sale.histories?.length ?? 0), 0) ?? 0) +
-          (financialResult?.transactions.length ?? 0),
-        recordsUpserted: recordsUpserted + paymentRecordsUpserted + itemRecordsUpserted + statusRecordsUpserted + financialRecordsUpserted,
+          (financialResult?.transactions.length ?? 0) +
+          (stockMovementResult?.movements.length ?? 0),
+        recordsUpserted:
+          recordsUpserted +
+          paymentRecordsUpserted +
+          itemRecordsUpserted +
+          statusRecordsUpserted +
+          financialRecordsUpserted +
+          stockMovementRecordsUpserted,
         errorMessage:
           truncatedEndpoints.length > 0
             ? `A sincronização atingiu o limite de páginas em: ${truncatedEndpoints.join(", ")}.`
@@ -570,6 +799,7 @@ export async function syncSaiposSales({
                 `Itens sincronizados: ${itemRecordsUpserted}.`,
                 `Históricos de status sincronizados: ${statusRecordsUpserted}.`,
                 `Lançamentos financeiros sincronizados: ${financialRecordsUpserted}.`,
+                `Movimentos de estoque sincronizados: ${stockMovementRecordsUpserted}.`,
                 `Produtos Saipos atualizados: ${productReferencesUpserted}.`,
                 `Itens sem venda correspondente ignorados: ${skippedItemRecords}.`,
                 `Históricos sem venda correspondente ignorados: ${skippedStatusRecords}.`,

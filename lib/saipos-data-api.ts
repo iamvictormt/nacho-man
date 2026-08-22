@@ -137,6 +137,45 @@ export type SaiposFinancialTransaction = {
   notes?: string | null
 }
 
+export type SaiposStockMovement = {
+  id_store: number
+  id_store_ingred_movement?: number
+  id_store_ingredient?: number | null
+  id_movement_type?: number | null
+  date_movement?: string | null
+  created_at?: string | null
+  quantity?: string | number | null
+  quantity_entry?: string | number | null
+  unit_cost?: number | null
+  notes?: string | null
+  sale?: {
+    id_sale?: number | null
+    sale_number?: number | null
+  } | null
+  ingredient?: {
+    id_store?: number | null
+    id_store_ingredient?: number | null
+    desc_store_ingredient?: string | null
+    current_inventory?: number | string | null
+    minimium_stock?: number | string | null
+    minimum_stock?: number | string | null
+    average_cost?: number | null
+    average_cost_method?: string | null
+    control_inventory?: "Y" | "N" | string | boolean | null
+    include_in_cmv_calc?: "Y" | "N" | string | boolean | null
+    ingredient_created_at?: string | null
+    short_desc_unit_measure?: string | null
+    group?: {
+      id_store_group_ingredient?: number | null
+      desc_store_group_ingredient?: string | null
+    } | null
+  } | null
+  identification_nf?: {
+    desc_item?: string | null
+    id_store_provider_nfe_item?: number | null
+  } | null
+}
+
 export type SaiposSalesPeriod = {
   start: string
   end: string
@@ -490,6 +529,32 @@ export async function fetchSaiposFinancialTransactionsForSync({
   }
 
   return { transactions, truncated: true }
+}
+
+export async function fetchSaiposStockMovementsForSync({
+  period,
+  dateColumn = "date_movement",
+  maxPages = 200,
+}: {
+  period: SaiposSalesPeriod
+  dateColumn?: "date_movement" | "created_at"
+  maxPages?: number
+}) {
+  const movements: SaiposStockMovement[] = []
+
+  for (let pageNumber = 0; pageNumber < maxPages; pageNumber += 1) {
+    const offset = pageNumber * SAIPOS_SYNC_LIMIT
+    const page = await fetchSaiposPage<SaiposStockMovement>("/search_ingredient_movement", period, offset, {
+      dateColumn,
+      limit: SAIPOS_SYNC_LIMIT,
+      timeoutMs: SAIPOS_SYNC_REQUEST_TIMEOUT_MS,
+    })
+
+    movements.push(...page)
+    if (page.length < SAIPOS_SYNC_LIMIT) return { movements, truncated: false }
+  }
+
+  return { movements, truncated: true }
 }
 
 export function getSaiposSaleTotal(sale: SaiposSale) {
