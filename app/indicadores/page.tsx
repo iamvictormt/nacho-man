@@ -24,6 +24,7 @@ import {
 import { SaiposDistributionChart, SaiposRevenueChart } from "@/components/saipos-dashboard-charts"
 import { SaiposDashboardContentShell } from "@/components/saipos-dashboard-content-shell"
 import { SaiposDashboardFilterMenu } from "@/components/saipos-dashboard-filter-menu"
+import { SaiposAdminExitButton } from "@/components/saipos-admin-exit-button"
 import { SaiposExportLink } from "@/components/saipos-export-link"
 import { SaiposMobileMenu } from "@/components/saipos-mobile-menu"
 import { requireIndicatorsAccess } from "@/lib/auth"
@@ -224,6 +225,7 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
                   </span>
                 </span>
               </div>
+              <SaiposAdminExitButton />
             </div>
 
             <nav className="grid gap-1">

@@ -17,6 +17,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react"
+import { SaiposAdminExitButton } from "@/components/saipos-admin-exit-button"
 import { useBodyScrollLock } from "@/components/use-body-scroll-lock"
 
 type SaiposMobileMenuTab = {
@@ -59,7 +60,7 @@ export function SaiposMobileMenu({ tabs }: { tabs: SaiposMobileMenuTab[] }) {
   return (
     <>
       <div className="sticky top-0 z-40 border-b border-border bg-graphite/95 px-3 py-3 backdrop-blur xl:hidden">
-        <div className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-center gap-2">
+        <div className="grid grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] items-center gap-2">
           <button
             type="button"
             onClick={() => setOpen(true)}
@@ -80,6 +81,7 @@ export function SaiposMobileMenu({ tabs }: { tabs: SaiposMobileMenuTab[] }) {
             </span>
           </div>
 
+          <SaiposAdminExitButton compact />
         </div>
       </div>
 
@@ -92,7 +94,7 @@ export function SaiposMobileMenu({ tabs }: { tabs: SaiposMobileMenuTab[] }) {
             aria-label="Fechar menu"
           />
 
-          <aside className="absolute inset-y-0 left-0 grid w-[min(330px,calc(100vw-2rem))] grid-rows-[auto_1fr] border-r border-border bg-graphite shadow-[28px_0_80px_rgba(0,0,0,.45)]">
+          <aside className="absolute inset-y-0 left-0 grid w-[min(330px,calc(100vw-2rem))] grid-rows-[auto_1fr_auto] border-r border-border bg-graphite shadow-[28px_0_80px_rgba(0,0,0,.45)]">
             <div className="border-b border-border p-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
@@ -136,6 +138,10 @@ export function SaiposMobileMenu({ tabs }: { tabs: SaiposMobileMenuTab[] }) {
                 })}
               </div>
             </nav>
+
+            <div className="border-t border-border p-4">
+              <SaiposAdminExitButton />
+            </div>
           </aside>
         </div>
       ) : null}
