@@ -325,6 +325,13 @@ export function getItemProductKey(item: SaiposDashboardSaleItem) {
   return `${item.idStore}:name:${nameKey}`
 }
 
+function getProductMixAggregationKey(item: SaiposDashboardSaleItem, reference?: SaiposProductReference) {
+  const integrationCode = reference?.integrationCode ?? getRawStringFromObject(item.raw, "integration_code")
+  if (integrationCode) return `pdv:${normalizeProductKeyText(integrationCode)}`
+
+  return getItemProductKey(item)
+}
+
 export function buildEstimatedCmv(stockCmv?: SaiposStockCmv) {
   if (stockCmv && stockCmv.estimatedCostInCents > 0) {
     return {
@@ -409,9 +416,10 @@ export function buildProductMix(items: SaiposDashboardSaleItem[], productReferen
   >()
 
   for (const item of items) {
-    const key = getItemProductKey(item)
-    const reference = referencesByKey.get(key)
-    const current = products.get(key) ?? {
+    const itemKey = getItemProductKey(item)
+    const reference = referencesByKey.get(itemKey)
+    const aggregationKey = getProductMixAggregationKey(item, reference)
+    const current = products.get(aggregationKey) ?? {
       name: reference?.name ?? item.descSaleItem,
       integrationCode: reference?.integrationCode ?? getRawStringFromObject(item.raw, "integration_code"),
       quantity: 0,
@@ -425,7 +433,7 @@ export function buildProductMix(items: SaiposDashboardSaleItem[], productReferen
     current.quantity += item.quantity
     current.revenueInCents += getItemRevenueInCents(item)
     current.orders += 1
-    products.set(key, current)
+    products.set(aggregationKey, current)
   }
 
   const rows = Array.from(products.values()).sort((a, b) => b.revenueInCents - a.revenueInCents)

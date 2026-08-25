@@ -45,7 +45,14 @@ const distributionConfig = {
   },
 } satisfies ChartConfig
 
-const colors = ["var(--lime)", "var(--purple-medium)", "var(--lime-dark)", "var(--muted-foreground)", "var(--foreground)", "var(--border)"]
+const colors = [
+  "var(--lime)",
+  "var(--purple-medium)",
+  "var(--lime-dark)",
+  "var(--muted-foreground)",
+  "var(--foreground)",
+  "var(--border)",
+]
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -76,7 +83,13 @@ export function SaiposRevenueChart({ data }: { data: RevenuePoint[] }) {
       <ComposedChart data={chartData} margin={{ top: 12, right: 4, left: 0, bottom: 0 }}>
         <CartesianGrid vertical={false} strokeDasharray="4 5" />
         <XAxis dataKey="label" axisLine={false} tickLine={false} tickMargin={12} />
-        <YAxis yAxisId="money" axisLine={false} tickLine={false} tickFormatter={(value) => formatAxisMoney(Number(value))} width={54} />
+        <YAxis
+          yAxisId="money"
+          axisLine={false}
+          tickLine={false}
+          tickFormatter={(value) => formatAxisMoney(Number(value))}
+          width={54}
+        />
         <ChartTooltip
           cursor={{ fill: "rgba(239,255,13,.08)" }}
           content={({ active, payload, label }) => {
@@ -131,7 +144,7 @@ export function SaiposRevenueChart({ data }: { data: RevenuePoint[] }) {
 
 export function SaiposDistributionChart({ data }: { data: DistributionPoint[] }) {
   return (
-    <ChartContainer config={distributionConfig} className="h-[230px] w-full min-w-0 sm:h-[260px]">
+    <ChartContainer config={distributionConfig} className="h-[310px] w-full min-w-0 sm:h-[340px]">
       <PieChart>
         <ChartTooltip
           content={
@@ -146,7 +159,16 @@ export function SaiposDistributionChart({ data }: { data: DistributionPoint[] })
             />
           }
         />
-        <Pie data={data} dataKey="value" nameKey="name" innerRadius={58} outerRadius={92} paddingAngle={3}>
+        <Pie
+          data={data}
+          dataKey="value"
+          nameKey="name"
+          cx="50%"
+          cy="52%"
+          innerRadius={78}
+          outerRadius={126}
+          paddingAngle={3}
+        >
           {data.map((entry, index) => (
             <Cell key={entry.name} fill={colors[index % colors.length]} />
           ))}

@@ -222,9 +222,10 @@ export async function GET(request: NextRequest) {
     {
       name: "Produtos",
       rows: [
-      ["Produto", "Qtd.", "Pedidos", "Receita", "Preço médio", "Participação", "Acumulado", "Curva"],
+      ["Produto", "PDV", "Qtd.", "Pedidos", "Receita", "Preço médio", "Participação", "Acumulado", "Curva"],
       ...productMix.rows.slice(0, 50).map((item) => [
         item.name,
+        item.integrationCode ?? "",
         formatQuantity(item.quantity),
         item.orders,
         formatMoneyFromAmount(item.revenueInCents / 100),

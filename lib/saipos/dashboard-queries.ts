@@ -92,6 +92,30 @@ export type SaiposStockCmv = {
   topIngredients: SaiposStockCmvRow[]
 }
 
+function emptySaiposStockCmv(): SaiposStockCmv {
+  return {
+    estimatedCostInCents: 0,
+    movementCount: 0,
+    ingredientCount: 0,
+    sourceLabel: "Estoque Saipos",
+    topIngredients: [],
+  }
+}
+
+function isMissingSaiposStockMovementError(error: unknown) {
+  if (!(error instanceof Error)) return false
+
+  const meta = error instanceof Prisma.PrismaClientKnownRequestError ? error.meta : null
+  const metaText = meta ? JSON.stringify(meta) : ""
+  const message = `${error.message} ${metaText}`
+
+  return (
+    message.includes("42P01") ||
+    message.includes('relation "SaiposStockMovement" does not exist') ||
+    message.includes('table "SaiposStockMovement" does not exist')
+  )
+}
+
 export async function getSaiposStockCmv({
   period,
   selectedStore,
@@ -100,8 +124,7 @@ export async function getSaiposStockCmv({
   selectedStore: string
 }): Promise<SaiposStockCmv> {
   try {
-    const storeWhere =
-      selectedStore === "all" ? Prisma.empty : Prisma.sql`AND "idStore" = ${Number(selectedStore)}`
+    const storeWhere = selectedStore === "all" ? Prisma.empty : Prisma.sql`AND "idStore" = ${Number(selectedStore)}`
 
     const filter = Prisma.sql`
       "dateMovement" >= ${toPeriodStart(period.start)}
@@ -157,15 +180,7 @@ export async function getSaiposStockCmv({
       })),
     }
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2010") {
-      return {
-        estimatedCostInCents: 0,
-        movementCount: 0,
-        ingredientCount: 0,
-        sourceLabel: "Estoque Saipos",
-        topIngredients: [],
-      }
-    }
+    if (isMissingSaiposStockMovementError(error)) return emptySaiposStockCmv()
     throw error
   }
 }
