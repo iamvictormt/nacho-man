@@ -35,6 +35,7 @@ import {
   buildEstimatedCmv,
   buildHref,
   buildProductMix,
+  buildSaleTypeDistribution,
   buildStoreRows,
   getKnownStoreNames,
   getPartnerLabel,
@@ -42,7 +43,6 @@ import {
   groupBy,
   isCanceled,
   percentChange,
-  saleTypeLabels,
   summarizeSales,
   topEntries,
   type SaiposDashboardAlert,
@@ -63,6 +63,7 @@ import {
 } from "@/lib/saipos/dashboard-queries"
 import {
   addUtcDays,
+  buildSamePeriodPreviousMonth,
   buildPeriodFromMode,
   diffUtcDays,
   getComparisonAnchorDate,
@@ -86,6 +87,7 @@ type DashboardTab =
   | "ticket"
   | "financeiro"
   | "operacional"
+  | "projecao"
   | "produtos"
   | "semanal"
   | "mensal"
@@ -98,6 +100,7 @@ const tabs: Array<{ id: DashboardTab; label: string; icon: LucideIcon; active: b
   { id: "ticket", label: "Ticket Médio", icon: TrendingUp, active: true },
   { id: "financeiro", label: "Financeiro & CMV", icon: WalletCards, active: true },
   { id: "operacional", label: "Operacional", icon: Utensils, active: true },
+  { id: "projecao", label: "Projeção de Vendas", icon: CircleDollarSign, active: true },
   { id: "produtos", label: "Mix de Produtos", icon: PackageSearch, active: true },
   { id: "semanal", label: "Comparativo Semanal", icon: CalendarDays, active: true },
   { id: "mensal", label: "Comparativo Mensal", icon: LineChart, active: true },
@@ -124,6 +127,71 @@ function buildExportHref(searchParams: PageSearchParams) {
   return query ? `/api/indicadores/export?${query}` : "/api/indicadores/export"
 }
 
+function getMonthBoundaryPeriod(period: { start: string }) {
+  const start = toPeriodStart(period.start)
+  const monthStart = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1))
+  const monthEnd = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 0))
+
+  return {
+    start: toDateInputValue(monthStart),
+    end: toDateInputValue(monthEnd),
+  }
+}
+
+function countScheduledOpenDays(period: { start: string; end: string }, openDaysPerWeek: number) {
+  const closedDaysPerWeek = Math.max(0, 7 - openDaysPerWeek)
+  const closedWeekdays = Array.from({ length: closedDaysPerWeek }, (_, index) => index)
+  let current = toPeriodStart(period.start)
+  const end = toPeriodStart(period.end)
+  let days = 0
+
+  while (current <= end) {
+    if (!closedWeekdays.includes(current.getUTCDay())) days += 1
+    current = addUtcDays(current, 1)
+  }
+
+  return days
+}
+
+function buildSalesProjection(sales: Awaited<ReturnType<typeof getSaiposDashboardSales>>, period: { start: string; end: string }) {
+  const validSales = sales.filter((sale) => !isCanceled(sale))
+  const summary = summarizeSales(sales)
+  const monthPeriod = getMonthBoundaryPeriod(period)
+  const daysElapsed = diffUtcDays(toPeriodStart(period.start), toPeriodStart(period.end))
+  const daysInMonth = diffUtcDays(toPeriodStart(monthPeriod.start), toPeriodStart(monthPeriod.end))
+  const activeDays = new Set(
+    validSales.map((sale) => (sale.shiftDate ? toDateInputValue(sale.shiftDate) : toBrazilDateInputValue(sale.createdAtSaipos)))
+  ).size
+  const buildScenario = (openDaysPerWeek: number) => {
+    const openDaysElapsed = countScheduledOpenDays(period, openDaysPerWeek)
+    const openDaysInMonth = countScheduledOpenDays(monthPeriod, openDaysPerWeek)
+    const averageDailyGrossInCents = openDaysElapsed > 0 ? summary.grossInCents / openDaysElapsed : 0
+    const projectedGrossInCents = Math.round(averageDailyGrossInCents * openDaysInMonth)
+
+    return {
+      openDaysPerWeek,
+      openDaysElapsed,
+      openDaysInMonth,
+      averageDailyGrossInCents,
+      projectedGrossInCents,
+      remainingOpenDays: Math.max(openDaysInMonth - openDaysElapsed, 0),
+      projectedRemainingInCents: Math.max(projectedGrossInCents - summary.grossInCents, 0),
+    }
+  }
+
+  return {
+    period,
+    monthPeriod,
+    daysElapsed,
+    daysInMonth,
+    activeDays,
+    grossInCents: summary.grossInCents,
+    orders: summary.orders,
+    primary: buildScenario(6),
+    scenarios: [buildScenario(5), buildScenario(6), buildScenario(7)],
+  }
+}
+
 export default async function IndicatorsPage({ searchParams }: { searchParams?: Promise<PageSearchParams> }) {
   const user = await requireIndicatorsAccess()
   const resolvedSearchParams = (await searchParams) ?? {}
@@ -132,11 +200,17 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
   const selectedStore = getSearchParam(resolvedSearchParams, "store") ?? "all"
   const activeTab = getTab(resolvedSearchParams)
   const comparisonTab = activeTab === "semanal" || activeTab === "mensal"
+  const projectionTab = activeTab === "projecao"
   const selectedMode =
-    activeTab === "semanal" ? "week" : activeTab === "mensal" ? "month" : getPeriodMode(resolvedSearchParams)
+    activeTab === "semanal"
+      ? "week"
+      : activeTab === "mensal" || projectionTab
+        ? "month"
+        : getPeriodMode(resolvedSearchParams)
   const selectedDate = getSelectedAnchorDate(selectedMode, resolvedSearchParams, yesterday)
   const period = buildPeriodFromMode(selectedMode, selectedDate, yesterday)
   const equivalentDays = diffUtcDays(toPeriodStart(period.start), toPeriodStart(period.end))
+  const samePeriodPreviousMonth = buildSamePeriodPreviousMonth(period)
   const previousPeriodAnchorDate = getPreviousPeriodAnchorDate(selectedMode, toPeriodStart(period.start))
   const requestedComparisonDate = getComparisonAnchorDate(selectedMode, resolvedSearchParams, previousPeriodAnchorDate)
   const requestedComparisonPeriod = buildPeriodFromMode(
@@ -165,10 +239,20 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
     year: comparisonPeriod.start.slice(0, 4),
   }
 
-  const [sales, comparisonSales, productItems, allProductItems, productReferences, stockCmv, storeOptionsSource] =
+  const [
+    sales,
+    comparisonSales,
+    previousMonthSales,
+    productItems,
+    allProductItems,
+    productReferences,
+    stockCmv,
+    storeOptionsSource,
+  ] =
     await Promise.all([
       getSaiposDashboardSales({ period, selectedStore }),
       getSaiposDashboardSales({ period: comparisonPeriod, selectedStore }),
+      getSaiposDashboardSales({ period: samePeriodPreviousMonth, selectedStore }),
       getSaiposDashboardItems({ period, selectedStore }),
       getSaiposDashboardItems({ period, selectedStore, includeDeleted: true }),
       getSaiposProductReferences({ selectedStore }),
@@ -185,8 +269,10 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
   const comparisonSummary = summarizeSales(comparisonSales)
   const validSales = sales.filter((sale) => !isCanceled(sale))
   const dailyRevenue = buildDailyRevenue(sales, period)
+  const comparisonDailyRevenue = buildDailyRevenue(comparisonSales, comparisonPeriod)
+  const previousMonthDailyRevenue = buildDailyRevenue(previousMonthSales, samePeriodPreviousMonth)
   const storeRows = buildStoreRows({ sales, comparisonSales, knownStoreNames })
-  const saleTypes = topEntries(groupBy(validSales, (sale) => saleTypeLabels[sale.idSaleType] ?? "Outro"))
+  const saleTypes = buildSaleTypeDistribution(validSales)
   const partners = topEntries(groupBy(validSales, getPartnerLabel), Number.MAX_SAFE_INTEGER)
   const paymentTypes = topEntries(groupBy(validSales, getPaymentLabel), Number.MAX_SAFE_INTEGER)
   const productMix = buildProductMix(productItems, productReferences)
@@ -196,6 +282,7 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
   const operationalInsights = buildOperationalInsights(sales, allProductItems)
   const customerInsights = buildCustomerInsights(sales)
   const rawDataInsights = buildRawDataInsights(sales, allProductItems)
+  const salesProjection = buildSalesProjection(sales, period)
   const alerts = buildAlerts({
     summary,
     customerCoverage: validSales.length > 0 ? customerInsights.uniqueCustomers / validSales.length : 0,
@@ -290,7 +377,7 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
                 maxDate={maxDate}
                 comparisonMaxDate={comparisonMaxDate}
                 comparisonEnabled={comparisonTab}
-                lockedMode={comparisonTab ? selectedMode : undefined}
+                lockedMode={comparisonTab || projectionTab ? selectedMode : undefined}
               />
               <SaiposExportLink href={buildExportHref(resolvedSearchParams)} />
             </div>
@@ -302,6 +389,7 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
                 summary={summary}
                 storeRows={storeRows}
                 dailyRevenue={dailyRevenue}
+                previousMonthDailyRevenue={previousMonthDailyRevenue}
                 saleTypes={saleTypes}
                 alerts={alerts}
                 customers={customerInsights}
@@ -316,7 +404,6 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
             {activeTab === "vendas" ? (
               <SalesView
                 summary={summary}
-                saleTypes={saleTypes}
                 partners={partners}
                 paymentTypes={paymentTypes}
                 customers={customerInsights}
@@ -338,6 +425,9 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
             {activeTab === "operacional" ? (
               <OperationalView summary={summary} operational={operationalInsights} />
             ) : null}
+            {activeTab === "projecao" ? (
+              <SalesProjectionView projection={salesProjection} periodLabel={period.label} selectedStore={selectedStore} />
+            ) : null}
             {activeTab === "semanal" ? (
               <ComparisonView
                 title="Comparativo semanal"
@@ -346,6 +436,7 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
                 summary={summary}
                 comparisonSummary={comparisonSummary}
                 dailyRevenue={dailyRevenue}
+                comparisonDailyRevenue={comparisonDailyRevenue}
                 storeRows={storeRows}
               />
             ) : null}
@@ -357,6 +448,7 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
                 summary={summary}
                 comparisonSummary={comparisonSummary}
                 dailyRevenue={dailyRevenue}
+                comparisonDailyRevenue={comparisonDailyRevenue}
                 storeRows={storeRows}
               />
             ) : null}
@@ -404,6 +496,7 @@ function ExecutiveView({
   summary,
   storeRows,
   dailyRevenue,
+  previousMonthDailyRevenue,
   saleTypes,
   alerts,
   customers,
@@ -414,7 +507,8 @@ function ExecutiveView({
   summary: ReturnType<typeof summarizeSales>
   storeRows: ReturnType<typeof buildStoreRows>
   dailyRevenue: ReturnType<typeof buildDailyRevenue>
-  saleTypes: Array<{ name: string; value: number }>
+  previousMonthDailyRevenue: ReturnType<typeof buildDailyRevenue>
+  saleTypes: ReturnType<typeof buildSaleTypeDistribution>
   alerts: SaiposDashboardAlert[]
   customers: ReturnType<typeof buildCustomerInsights>
   operational: ReturnType<typeof buildOperationalInsights>
@@ -455,8 +549,8 @@ function ExecutiveView({
         <Kpi
           icon={PackageSearch}
           label="Cancelamentos"
-          value={String(summary.canceledOrders)}
-          detail={formatPercent(summary.cancellationRate)}
+          value={formatMoneyFromAmount(summary.canceledInCents / 100)}
+          detail={formatCancellationDetail(summary)}
           inverse
         />
         <Kpi
@@ -480,7 +574,7 @@ function ExecutiveView({
           </div>
         </Panel>
         <Panel title="Evolução do faturamento">
-          <SaiposRevenueChart data={dailyRevenue} />
+          <SaiposRevenueChart data={dailyRevenue} comparisonData={previousMonthDailyRevenue} />
         </Panel>
       </div>
       <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
@@ -695,8 +789,8 @@ function QuickReadPanel({
         }
       : {
           label: "Cancelamentos",
-          value: formatPercent(summary.cancellationRate),
-          detail: `${summary.canceledOrders} pedidos`,
+          value: formatMoneyFromAmount(summary.canceledInCents / 100),
+          detail: formatCancellationDetail(summary),
         },
     {
       label: "Delivery",
@@ -748,14 +842,12 @@ function QuickReadPanel({
 
 function SalesView({
   summary,
-  saleTypes,
   partners,
   paymentTypes,
   customers,
   operational,
 }: {
   summary: ReturnType<typeof summarizeSales>
-  saleTypes: Array<{ name: string; value: number }>
   partners: Array<{ name: string; value: number }>
   paymentTypes: Array<{ name: string; value: number }>
   customers: ReturnType<typeof buildCustomerInsights>
@@ -792,7 +884,7 @@ function SalesView({
       <div className="grid gap-4 xl:grid-cols-3">
         <Panel title="Canal de venda">
           <div className="flex min-h-[420px] items-center justify-center">
-            <SaiposDistributionChart data={saleTypes} />
+            <SaiposDistributionChart data={partners} showPercentLabels />
           </div>
         </Panel>
         <Panel title="Origem do pedido">
@@ -937,8 +1029,8 @@ function TicketView({
         <Kpi
           icon={PackageSearch}
           label="Cancelamentos"
-          value={String(summary.canceledOrders)}
-          detail={formatPercent(summary.cancellationRate)}
+          value={formatMoneyFromAmount(summary.canceledInCents / 100)}
+          detail={formatCancellationDetail(summary)}
           inverse
         />
       </div>
@@ -1114,6 +1206,7 @@ function ComparisonView({
   summary,
   comparisonSummary,
   dailyRevenue,
+  comparisonDailyRevenue,
   storeRows,
 }: {
   title: string
@@ -1122,6 +1215,7 @@ function ComparisonView({
   summary: ReturnType<typeof summarizeSales>
   comparisonSummary: ReturnType<typeof summarizeSales>
   dailyRevenue: ReturnType<typeof buildDailyRevenue>
+  comparisonDailyRevenue: ReturnType<typeof buildDailyRevenue>
   storeRows: ReturnType<typeof buildStoreRows>
 }) {
   const revenueDelta = percentChange(summary.netInCents, comparisonSummary.netInCents)
@@ -1130,7 +1224,7 @@ function ComparisonView({
   const revenueDiff = summary.netInCents - comparisonSummary.netInCents
   const orderDiff = summary.orders - comparisonSummary.orders
   const ticketDiff = summary.averageTicketInCents - comparisonSummary.averageTicketInCents
-  const cancellationDiff = summary.cancellationRate - comparisonSummary.cancellationRate
+  const cancellationDiff = summary.canceledInCents - comparisonSummary.canceledInCents
 
   return (
     <div className="mt-6 grid gap-4">
@@ -1159,10 +1253,10 @@ function ComparisonView({
         <Kpi
           icon={PackageSearch}
           label="Cancelamentos"
-          value={formatPercent(summary.cancellationRate)}
+          value={formatMoneyFromAmount(summary.canceledInCents / 100)}
           detail="Contra referência"
-          delta={cancellationDiff}
-          deltaDisplay={formatSignedPercentagePoints(cancellationDiff)}
+          delta={percentChange(summary.canceledInCents, comparisonSummary.canceledInCents)}
+          deltaDisplay={formatSignedMoneyFromCents(cancellationDiff)}
           inverse
         />
       </div>
@@ -1201,7 +1295,7 @@ function ComparisonView({
               },
               {
                 label: "Diferença em cancelamentos",
-                value: formatSignedPercentagePoints(cancellationDiff),
+                value: formatSignedMoneyFromCents(cancellationDiff),
               },
             ]}
           />
@@ -1209,7 +1303,7 @@ function ComparisonView({
       </div>
 
       <Panel title="Evolução do faturamento">
-        <SaiposRevenueChart data={dailyRevenue} />
+        <SaiposRevenueChart data={dailyRevenue} comparisonData={comparisonDailyRevenue} />
       </Panel>
 
       <StoreTable rows={storeRows} />
@@ -1242,7 +1336,7 @@ function ComparisonSnapshot({
             { label: "Faturamento", value: formatMoneyFromAmount(summary.netInCents / 100), strong: active },
             { label: "Pedidos", value: String(summary.orders) },
             { label: "Ticket médio", value: formatMoneyFromAmount(summary.averageTicketInCents / 100) },
-            { label: "Cancelamentos", value: formatPercent(summary.cancellationRate) },
+            { label: "Cancelamentos", value: formatMoneyFromAmount(summary.canceledInCents / 100) },
           ]}
         />
       </div>
@@ -1574,6 +1668,142 @@ function OperationalView({
   )
 }
 
+function SalesProjectionView({
+  projection,
+  periodLabel,
+  selectedStore,
+}: {
+  projection: ReturnType<typeof buildSalesProjection>
+  periodLabel: string
+  selectedStore: string
+}) {
+  const progress = projection.primary.openDaysInMonth > 0 ? projection.primary.openDaysElapsed / projection.primary.openDaysInMonth : 0
+  const projectedLift =
+    projection.grossInCents > 0
+      ? (projection.primary.projectedGrossInCents - projection.grossInCents) / projection.grossInCents
+      : null
+  const storeLabel = selectedStore === "all" ? "Todas as lojas" : `Loja #${selectedStore}`
+
+  return (
+    <div className="mt-6 grid gap-4">
+      <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
+        <Kpi
+          icon={CircleDollarSign}
+          label="Projeção do mês"
+          value={formatMoneyFromAmount(projection.primary.projectedGrossInCents / 100)}
+          detail="Bruto estimado"
+        />
+        <Kpi
+          icon={BarChart3}
+          label="Vendido até agora"
+          value={formatMoneyFromAmount(projection.grossInCents / 100)}
+          detail={`${projection.orders} pedidos válidos`}
+        />
+        <Kpi
+          icon={TrendingUp}
+          label="Média diária"
+          value={formatMoneyFromAmount(projection.primary.averageDailyGrossInCents / 100)}
+          detail="Por dia aberto"
+        />
+        <Kpi
+          icon={CalendarDays}
+          label="Dias abertos"
+          value={`${projection.primary.openDaysElapsed}/${projection.primary.openDaysInMonth}`}
+          detail="Base 6 dias/semana"
+        />
+      </div>
+
+      <div className="grid items-stretch gap-4 xl:grid-cols-[1.15fr_.85fr]">
+        <Panel title="Projeção de vendas" className="h-full">
+          <div className="grid gap-5">
+            <div className="rounded-xl border border-lime/20 bg-lime/10 p-5">
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime">Fechamento projetado</p>
+              <strong className="mt-3 block text-3xl leading-none text-lime sm:text-4xl">
+                {formatMoneyFromAmount(projection.primary.projectedGrossInCents / 100)}
+              </strong>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                {periodLabel} · {storeLabel} · média de{" "}
+                {formatMoneyFromAmount(projection.primary.averageDailyGrossInCents / 100)} por dia aberto.
+              </p>
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-3 text-xs font-black uppercase text-muted-foreground">
+                <span>Avanço do calendário aberto</span>
+                <span>{formatPercent(progress, 0)}</span>
+              </div>
+              <div className="h-3 overflow-hidden rounded-full bg-background">
+                <div className="h-full rounded-full bg-lime" style={{ width: `${Math.min(progress * 100, 100)}%` }} />
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              <MetricMiniCard
+                label="Ainda a realizar"
+                value={formatMoneyFromAmount(projection.primary.projectedRemainingInCents / 100)}
+                detail={`${projection.primary.remainingOpenDays} dias abertos restantes`}
+              />
+              <MetricMiniCard
+                label="Crescimento previsto"
+                value={projectedLift === null ? "--%" : formatPercent(projectedLift, 0)}
+                detail="Sobre o vendido no período"
+              />
+              <MetricMiniCard
+                label="Dias com venda"
+                value={`${projection.activeDays}/${projection.daysElapsed}`}
+                detail="Movimento real lido"
+              />
+            </div>
+          </div>
+        </Panel>
+
+        <Panel title="Cenários de abertura" className="h-full">
+          <div className="grid gap-3">
+            {projection.scenarios.map((scenario) => (
+              <div
+                key={scenario.openDaysPerWeek}
+                className={`rounded-xl border p-4 ${
+                  scenario.openDaysPerWeek === projection.primary.openDaysPerWeek
+                    ? "border-lime/30 bg-lime/10"
+                    : "border-border bg-background"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">
+                      {scenario.openDaysPerWeek} dias por semana
+                    </p>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {scenario.openDaysInMonth} dias abertos no mês
+                    </p>
+                  </div>
+                  <strong className="text-right text-lg text-lime">
+                    {formatMoneyFromAmount(scenario.projectedGrossInCents / 100)}
+                  </strong>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Panel>
+      </div>
+
+      <Panel title="Memória do cálculo">
+        <MetricList
+          rows={[
+            { label: "Faturamento bruto acumulado", value: formatMoneyFromAmount(projection.grossInCents / 100), strong: true },
+            {
+              label: "Média por dia aberto",
+              value: formatMoneyFromAmount(projection.primary.averageDailyGrossInCents / 100),
+            },
+            { label: "Dias abertos considerados", value: String(projection.primary.openDaysInMonth) },
+            { label: "Regra padrão", value: "6 dias por semana" },
+          ]}
+        />
+      </Panel>
+    </div>
+  )
+}
+
 function FinancePulse({
   summary,
   finance,
@@ -1789,9 +2019,9 @@ function formatSignedMoneyFromCents(value: number) {
   return `${sign}${formatMoneyFromAmount(Math.abs(value) / 100)}`
 }
 
-function formatSignedPercentagePoints(value: number) {
-  const sign = value > 0 ? "+" : value < 0 ? "-" : ""
-  return `${sign}${formatPercent(Math.abs(value), 2).replace("%", "")} p.p.`
+function formatCancellationDetail(summary: ReturnType<typeof summarizeSales>) {
+  const zeroed = summary.canceledOrdersWithoutValue > 0 ? ` · ${summary.canceledOrdersWithoutValue} zerados` : ""
+  return `${formatPercent(summary.cancellationRate)} · ${summary.canceledOrdersWithValue} com valor${zeroed}`
 }
 
 function formatMinutes(value: number) {
@@ -1837,7 +2067,7 @@ function FinanceStatement({
           suffix={formatPercent(discountShare)}
         />
         <DreBar
-          label="Cancelamentos"
+          label="Cancelamentos com valor"
           value={summary.canceledInCents}
           max={compositionMax}
           tone="danger"
@@ -1863,7 +2093,7 @@ function FinanceStatement({
           },
           { label: "Acréscimos e taxas", value: formatMoneyFromAmount(summary.increaseInCents / 100) },
           {
-            label: "Cancelamentos",
+            label: "Cancelamentos com valor",
             value: `-${formatMoneyFromAmount(summary.canceledInCents / 100)} (${formatPercent(cancellationShare)})`,
           },
           {

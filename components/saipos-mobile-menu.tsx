@@ -35,6 +35,7 @@ const iconMap: Record<string, LucideIcon> = {
   ticket: TrendingUp,
   financeiro: WalletCards,
   operacional: Utensils,
+  projecao: LineChart,
   produtos: PackageSearch,
   semanal: CalendarDays,
   mensal: LineChart,

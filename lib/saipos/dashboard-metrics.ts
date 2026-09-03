@@ -64,6 +64,20 @@ export function topEntries(totals: Record<string, number>, limit = 6) {
     .slice(0, limit)
 }
 
+export function buildSaleTypeDistribution(sales: SaiposDashboardSale[]) {
+  const totals = sales.filter((sale) => !isCanceled(sale)).reduce<
+    Record<string, { name: string; value: number; revenueInCents: number }>
+  >((acc, sale) => {
+    const name = saleTypeLabels[sale.idSaleType] ?? "Outro"
+    acc[name] ??= { name, value: 0, revenueInCents: 0 }
+    acc[name].value += 1
+    acc[name].revenueInCents += sale.totalAmountInCents
+    return acc
+  }, {})
+
+  return Object.values(totals).sort((first, second) => second.revenueInCents - first.revenueInCents)
+}
+
 function getRawString(value: unknown, path: string[]) {
   let current = value
 
@@ -191,17 +205,23 @@ export function getSaleGrossAmountInCents(sale: SaiposDashboardSale) {
 export function summarizeSales(sales: SaiposDashboardSale[]) {
   const validSales = sales.filter((sale) => !isCanceled(sale))
   const canceledSales = sales.filter(isCanceled)
+  const canceledSalesWithValue = canceledSales.filter((sale) => getSaleGrossAmountInCents(sale) > 0)
+  const canceledOrdersWithoutValue = canceledSales.length - canceledSalesWithValue.length
   const grossInCents = validSales.reduce((total, sale) => total + getSaleGrossAmountInCents(sale), 0)
   const netInCents = validSales.reduce((total, sale) => total + sale.totalAmountInCents, 0)
   const discountInCents = validSales.reduce((total, sale) => total + sale.totalDiscountInCents, 0)
   const increaseInCents = validSales.reduce((total, sale) => total + sale.totalIncreaseInCents, 0)
-  const canceledInCents = canceledSales.reduce((total, sale) => total + getSaleGrossAmountInCents(sale), 0)
+  const canceledInCents = canceledSalesWithValue.reduce((total, sale) => total + getSaleGrossAmountInCents(sale), 0)
+  const cancellationBaseOrders = validSales.length + canceledSalesWithValue.length
 
   return {
     records: sales.length,
     orders: validSales.length,
-    canceledOrders: canceledSales.length,
-    cancellationRate: sales.length > 0 ? canceledSales.length / sales.length : 0,
+    canceledOrders: canceledSalesWithValue.length,
+    canceledOrdersWithValue: canceledSalesWithValue.length,
+    canceledOrdersWithoutValue,
+    canceledOrdersTotal: canceledSales.length,
+    cancellationRate: cancellationBaseOrders > 0 ? canceledSalesWithValue.length / cancellationBaseOrders : 0,
     grossInCents,
     netInCents,
     discountInCents,
@@ -676,7 +696,7 @@ export function buildAlerts({
   if (summary.cancellationRate >= 0.05) {
     addAlert({
       title: "Cancelamento pede atenção",
-      detail: `${summary.canceledOrders} pedidos cancelados no ${periodNoun} analisado.`,
+      detail: `${summary.canceledOrdersWithValue} pedidos cancelados com valor no ${periodNoun} analisado.`,
       metric: formatPercent(summary.cancellationRate),
       action: "Abra Dados Brutos e confira canal, unidade e horários com mais cancelamentos.",
       tone: "amber",
@@ -687,7 +707,7 @@ export function buildAlerts({
   if (summary.cancellationRate >= 0.1) {
     addAlert({
       title: "Cancelamento crítico",
-      detail: "A taxa de cancelamento passou de dois dígitos e pode estar corroendo venda e operação.",
+      detail: "A taxa de cancelamentos com valor passou de dois dígitos e pode estar corroendo venda e operação.",
       metric: formatPercent(summary.cancellationRate),
       action: "Separe cancelamentos por canal e horário antes de analisar ticket ou produto.",
       tone: "amber",

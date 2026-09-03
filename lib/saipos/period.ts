@@ -193,3 +193,27 @@ export function getPreviousPeriodAnchorDate(mode: SaiposPeriodMode, anchorDate: 
   if (mode === "month") return new Date(Date.UTC(anchorDate.getUTCFullYear(), anchorDate.getUTCMonth() - 1, 1))
   return new Date(Date.UTC(anchorDate.getUTCFullYear() - 1, 0, 1))
 }
+
+function addUtcMonthsClamped(date: Date, months: number) {
+  const targetYear = date.getUTCFullYear()
+  const targetMonth = date.getUTCMonth() + months
+  const targetMonthEnd = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate()
+  const targetDay = Math.min(date.getUTCDate(), targetMonthEnd)
+
+  return new Date(Date.UTC(targetYear, targetMonth, targetDay))
+}
+
+export function buildSamePeriodPreviousMonth(period: { start: string; end: string }) {
+  const previousStart = addUtcMonthsClamped(toPeriodStart(period.start), -1)
+  const days = diffUtcDays(toPeriodStart(period.start), toPeriodStart(period.end))
+  const previousEnd = addUtcDays(previousStart, days - 1)
+
+  return {
+    label: `${toDateInputValue(previousStart).split("-").reverse().join("/")} a ${toDateInputValue(previousEnd)
+      .split("-")
+      .reverse()
+      .join("/")}`,
+    start: toDateInputValue(previousStart),
+    end: toDateInputValue(previousEnd),
+  }
+}

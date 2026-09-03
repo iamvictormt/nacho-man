@@ -1,6 +1,6 @@
 "use client"
 
-import { Bar, CartesianGrid, Cell, ComposedChart, Line, Pie, PieChart, XAxis, YAxis } from "recharts"
+import { Bar, CartesianGrid, Cell, ComposedChart, Pie, PieChart, XAxis, YAxis } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 
 type RevenuePoint = {
@@ -11,36 +11,47 @@ type RevenuePoint = {
 }
 
 type RevenueChartPoint = RevenuePoint & {
-  grossTrendInCents: number
+  currentGrossInCents: number
+  previousGrossInCents?: number
+  previousLabel?: string
 }
 
 type DistributionPoint = {
   name: string
   value: number
+  revenueInCents?: number
+}
+
+type DistributionChartPoint = DistributionPoint & {
+  chartValue: number
+}
+
+type DistributionLabelProps = {
+  cx?: number | string
+  cy?: number | string
+  midAngle?: number
+  outerRadius?: number | string
+  percent?: number
 }
 
 const revenueConfig = {
-  grossInCents: {
-    label: "Bruto",
+  currentGrossInCents: {
+    label: "Atual",
     color: "var(--lime)",
   },
-  netInCents: {
-    label: "Líquido",
+  previousGrossInCents: {
+    label: "Mês anterior",
     color: "var(--purple-medium)",
   },
   orders: {
     label: "Pedidos",
     color: "var(--muted-foreground)",
   },
-  grossTrendInCents: {
-    label: "Tendência",
-    color: "var(--muted-foreground)",
-  },
 } satisfies ChartConfig
 
 const distributionConfig = {
-  value: {
-    label: "Pedidos",
+  chartValue: {
+    label: "Faturamento",
     color: "var(--purple-medium)",
   },
 } satisfies ChartConfig
@@ -59,6 +70,11 @@ const moneyFormatter = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 })
 
+const percentFormatter = new Intl.NumberFormat("pt-BR", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+})
+
 function formatAxisMoney(cents: number) {
   const value = cents / 100
   if (value >= 1000000) return `R$ ${Math.round(value / 1000000)}mi`
@@ -66,17 +82,57 @@ function formatAxisMoney(cents: number) {
   return `R$ ${Math.round(value)}`
 }
 
-function getRevenueBarSize(length: number) {
-  if (length <= 7) return 34
-  if (length <= 10) return 28
-  return 22
+function getRevenueBarSize(length: number, compact = false) {
+  if (length <= 7) return compact ? 26 : 34
+  if (length <= 10) return compact ? 22 : 28
+  return compact ? 16 : 22
 }
 
-export function SaiposRevenueChart({ data }: { data: RevenuePoint[] }) {
-  const chartData: RevenueChartPoint[] = data.map((item) => ({
+function renderDistributionPercentLabel({ cx, cy, midAngle, outerRadius, percent }: DistributionLabelProps) {
+  if (
+    typeof cx !== "number" ||
+    typeof cy !== "number" ||
+    typeof midAngle !== "number" ||
+    typeof outerRadius !== "number" ||
+    typeof percent !== "number" ||
+    percent < 0.045
+  ) {
+    return null
+  }
+
+  const radius = outerRadius + 18
+  const angle = (-midAngle * Math.PI) / 180
+  const x = cx + radius * Math.cos(angle)
+  const y = cy + radius * Math.sin(angle)
+
+  return (
+    <text
+      x={x}
+      y={y}
+      fill="var(--foreground)"
+      textAnchor={x > cx ? "start" : "end"}
+      dominantBaseline="central"
+      className="text-[10px] font-black"
+    >
+      {percentFormatter.format(percent * 100)}%
+    </text>
+  )
+}
+
+export function SaiposRevenueChart({
+  data,
+  comparisonData,
+}: {
+  data: RevenuePoint[]
+  comparisonData?: RevenuePoint[]
+}) {
+  const chartData: RevenueChartPoint[] = data.map((item, index) => ({
     ...item,
-    grossTrendInCents: item.grossInCents,
+    currentGrossInCents: item.grossInCents,
+    previousGrossInCents: comparisonData?.[index]?.grossInCents,
+    previousLabel: comparisonData?.[index]?.label,
   }))
+  const hasComparison = chartData.some((item) => typeof item.previousGrossInCents === "number")
 
   return (
     <ChartContainer config={revenueConfig} className="h-[260px] w-full min-w-0 sm:h-[280px] md:h-[330px]">
@@ -93,56 +149,66 @@ export function SaiposRevenueChart({ data }: { data: RevenuePoint[] }) {
         <ChartTooltip
           cursor={{ fill: "rgba(239,255,13,.08)" }}
           content={({ active, payload, label }) => {
-            const visibleItems = payload?.filter((item) => item.dataKey !== "grossTrendInCents") ?? []
-            if (!active || visibleItems.length === 0) return null
+            const current = payload?.find((item) => item.dataKey === "currentGrossInCents")
+            const previous = payload?.find((item) => item.dataKey === "previousGrossInCents")
+            if (!active || !current) return null
+            const previousLabel = current.payload.previousLabel
 
             return (
               <div className="grid min-w-40 gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs shadow-xl">
                 <strong className="font-black text-foreground">{label}</strong>
-                {visibleItems.map((item) => (
-                  <div key={String(item.dataKey)} className="flex items-center justify-between gap-4">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-muted-foreground">Bruto atual</span>
+                  <span className="font-black text-foreground">{moneyFormatter.format(Number(current.value) / 100)}</span>
+                </div>
+                {previous ? (
+                  <div className="flex items-center justify-between gap-4">
                     <span className="text-muted-foreground">
-                      {item.dataKey === "grossInCents" ? "Bruto" : "Líquido"}
+                      {previousLabel ? `Bruto ${previousLabel}` : "Bruto mês anterior"}
                     </span>
                     <span className="font-black text-foreground">
-                      {moneyFormatter.format(Number(item.value) / 100)}
+                      {moneyFormatter.format(Number(previous.value) / 100)}
                     </span>
                   </div>
-                ))}
+                ) : null}
               </div>
             )
           }}
         />
         <Bar
           yAxisId="money"
-          dataKey="grossInCents"
-          fill="var(--color-grossInCents)"
+          dataKey="currentGrossInCents"
+          fill="var(--color-currentGrossInCents)"
           radius={[7, 7, 0, 0]}
-          barSize={getRevenueBarSize(data.length)}
+          barSize={getRevenueBarSize(data.length, hasComparison)}
         />
-        <Bar
-          yAxisId="money"
-          dataKey="netInCents"
-          fill="var(--color-netInCents)"
-          radius={[7, 7, 0, 0]}
-          barSize={getRevenueBarSize(data.length)}
-        />
-        <Line
-          yAxisId="money"
-          type="monotone"
-          dataKey="grossTrendInCents"
-          tooltipType="none"
-          stroke="var(--color-grossTrendInCents)"
-          strokeWidth={3}
-          dot={{ r: 3, fill: "var(--muted-foreground)", strokeWidth: 0 }}
-          activeDot={{ r: 5 }}
-        />
+        {hasComparison ? (
+          <Bar
+            yAxisId="money"
+            dataKey="previousGrossInCents"
+            fill="var(--color-previousGrossInCents)"
+            radius={[7, 7, 0, 0]}
+            barSize={getRevenueBarSize(data.length, true)}
+          />
+        ) : null}
       </ComposedChart>
     </ChartContainer>
   )
 }
 
-export function SaiposDistributionChart({ data }: { data: DistributionPoint[] }) {
+export function SaiposDistributionChart({
+  data,
+  showPercentLabels = false,
+}: {
+  data: DistributionPoint[]
+  showPercentLabels?: boolean
+}) {
+  const chartData: DistributionChartPoint[] = data.map((item) => ({
+    ...item,
+    chartValue: item.revenueInCents ?? item.value,
+  }))
+  const total = chartData.reduce((sum, item) => sum + item.chartValue, 0)
+
   return (
     <ChartContainer config={distributionConfig} className="h-[310px] w-full min-w-0 sm:h-[340px]">
       <PieChart>
@@ -150,26 +216,36 @@ export function SaiposDistributionChart({ data }: { data: DistributionPoint[] })
           content={
             <ChartTooltipContent
               hideLabel
-              formatter={(value, _name, item) => (
-                <div className="flex min-w-32 items-center justify-between gap-4">
+              formatter={(_value, _name, item) => (
+                <div className="flex min-w-48 items-center justify-between gap-4">
                   <span className="max-w-24 truncate text-muted-foreground">{item.payload.name}</span>
-                  <span className="font-black text-foreground">{Number(value)}</span>
+                  <span className="grid justify-items-end gap-0.5 font-black text-foreground">
+                    {typeof item.payload.revenueInCents === "number" ? (
+                      <span>{moneyFormatter.format(item.payload.revenueInCents / 100)}</span>
+                    ) : null}
+                    <span className="text-[10px] uppercase text-muted-foreground">{item.payload.value} pedidos</span>
+                    <span className="text-[10px] uppercase text-muted-foreground">
+                      {percentFormatter.format(total > 0 ? (item.payload.chartValue / total) * 100 : 0)}%
+                    </span>
+                  </span>
                 </div>
               )}
             />
           }
         />
         <Pie
-          data={data}
-          dataKey="value"
+          data={chartData}
+          dataKey="chartValue"
           nameKey="name"
           cx="50%"
           cy="52%"
           innerRadius={78}
           outerRadius={126}
           paddingAngle={3}
+          label={showPercentLabels ? renderDistributionPercentLabel : false}
+          labelLine={false}
         >
-          {data.map((entry, index) => (
+          {chartData.map((entry, index) => (
             <Cell key={entry.name} fill={colors[index % colors.length]} />
           ))}
         </Pie>
