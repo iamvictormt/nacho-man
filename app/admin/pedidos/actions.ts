@@ -224,6 +224,15 @@ const editableOrderStatuses: readonly OrderStatus[] = [
   OrderStatus.DELIVERED,
 ]
 
+async function lockEditableOrder(tx: Prisma.TransactionClient, orderId: string) {
+  const result = await tx.order.updateMany({
+    where: { id: orderId, status: { not: OrderStatus.CANCELLED } },
+    data: { updatedAt: new Date() },
+  })
+  if (result.count !== 1)
+    throw new Error("Pedido não encontrado ou cancelado. Pedidos cancelados não podem ser editados.")
+}
+
 export async function updateOrderStatusAction(formData: FormData) {
   await requireAdmin()
   const orderId = String(formData.get("orderId") ?? "")
@@ -235,10 +244,11 @@ export async function updateOrderStatusAction(formData: FormData) {
     where: { id: orderId },
     select: { status: true },
   })
-  if (!order || order.status === status || order.status === OrderStatus.CANCELLED) return
+  if (!order || order.status === OrderStatus.CANCELLED) throw new Error("Pedido não encontrado ou cancelado.")
+  if (order.status === status) return
 
   await prisma.order.update({
-    where: { id: orderId },
+    where: { id: orderId, status: { not: OrderStatus.CANCELLED } },
     data: {
       status,
       statusHistory: {
@@ -261,10 +271,11 @@ export async function updateOrderFulfillmentMethodAction(formData: FormData) {
     where: { id: orderId },
     select: { status: true, fulfillmentMethod: true },
   })
-  if (!order || order.fulfillmentMethod === fulfillmentMethod) return
+  if (!order || order.status === OrderStatus.CANCELLED) throw new Error("Pedido não encontrado ou cancelado.")
+  if (order.fulfillmentMethod === fulfillmentMethod) return
 
   await prisma.order.update({
-    where: { id: orderId },
+    where: { id: orderId, status: { not: OrderStatus.CANCELLED } },
     data: {
       fulfillmentMethod,
       statusHistory: {
@@ -289,6 +300,7 @@ export async function updateOrderPaymentMethodAction(formData: FormData) {
   const paymentSettings = await getPaymentDiscountSettings()
 
   await prisma.$transaction(async (tx) => {
+    await lockEditableOrder(tx, orderId)
     const order = await tx.order.findUnique({
       where: { id: orderId },
       select: { id: true, status: true, paymentMethod: true },
@@ -323,6 +335,7 @@ export async function updateOrderItemQuantityAction(formData: FormData) {
   const paymentSettings = await getPaymentDiscountSettings()
 
   await prisma.$transaction(async (tx) => {
+    await lockEditableOrder(tx, orderId)
     const item = await tx.orderItem.findFirst({
       where: { id: itemId, orderId },
       include: {
@@ -365,6 +378,7 @@ export async function addOrderProductItemAction(formData: FormData) {
   const paymentSettings = await getPaymentDiscountSettings()
 
   await prisma.$transaction(async (tx) => {
+    await lockEditableOrder(tx, orderId)
     const order = await tx.order.findUnique({
       where: { id: orderId },
       select: { id: true, status: true, franchiseId: true },
@@ -443,6 +457,7 @@ export async function removeOrderItemAction(formData: FormData) {
   const paymentSettings = await getPaymentDiscountSettings()
 
   await prisma.$transaction(async (tx) => {
+    await lockEditableOrder(tx, orderId)
     const order = await tx.order.findUnique({
       where: { id: orderId },
       include: { items: true },
@@ -471,28 +486,19 @@ export async function removeOrderItemAction(formData: FormData) {
 export async function cancelOrderAction(formData: FormData) {
   await requireAdmin()
   const orderId = String(formData.get("orderId") ?? "")
-  if (!orderId) return
+  const reason = String(formData.get("reason") ?? "").trim()
+  if (!orderId) throw new Error("Pedido não encontrado.")
+  if (!reason || reason.length > 1000) throw new Error("Informe uma justificativa de até 1.000 caracteres.")
 
-  await prisma.order.update({
-    where: { id: orderId },
-    data: {
-      status: "CANCELLED",
-      statusHistory: {
-        create: { status: "CANCELLED", note: "Pedido cancelado pelo admin." },
+  await prisma.$transaction(async (tx) => {
+    await lockEditableOrder(tx, orderId)
+    await tx.order.update({
+      where: { id: orderId },
+      data: {
+        status: OrderStatus.CANCELLED,
+        statusHistory: { create: { status: OrderStatus.CANCELLED, note: reason } },
       },
-    },
+    })
   })
-
   revalidateOrderPaths()
-}
-
-export async function deleteOrderAction(formData: FormData) {
-  await requireAdmin()
-  const orderId = String(formData.get("orderId") ?? "")
-  if (!orderId) return
-  const order = await prisma.order.findUnique({ where: { id: orderId }, select: { status: true } })
-  if (!order || order.status !== "CANCELLED") return
-  await prisma.order.delete({ where: { id: orderId } })
-  revalidatePath("/admin")
-  revalidatePath("/admin/pedidos")
 }

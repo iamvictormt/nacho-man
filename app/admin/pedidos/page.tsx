@@ -12,8 +12,6 @@ import { PaginationControls } from "@/components/pagination-controls"
 import { getCurrentPage, getPagination, getSearchQuery, type SearchParams } from "@/lib/pagination"
 import {
   addOrderProductItemAction,
-  cancelOrderAction,
-  deleteOrderAction,
   removeOrderItemAction,
   updateOrderFulfillmentMethodAction,
   updateOrderItemQuantityAction,
@@ -30,6 +28,7 @@ import {
   orderFulfillmentMethods,
 } from "@/lib/order-fulfillment"
 import { formatBrazilDateTime } from "@/lib/date-format"
+import { CancelOrderDialog } from "./cancel-order-dialog"
 import { OrderStatusForm } from "./order-status-form"
 import { OrderStatusFilterChips } from "./order-status-filter-chips"
 
@@ -81,6 +80,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
     prisma.order.findMany({
       where: orderWhere,
       include: {
+        statusHistory: { where: { status: "CANCELLED" }, orderBy: { createdAt: "desc" }, take: 1 },
         franchise: true,
         user: { include: { businessProfile: true } },
         items: { include: { product: { include: { category: true } } } },
@@ -246,6 +246,7 @@ function OrderManagement({
     id: string
     number: number
     status: string
+    statusHistory: { note: string | null }[]
     paymentMethod: string
     fulfillmentMethod: string
     subtotalInCents: number
@@ -438,84 +439,90 @@ function OrderManagement({
 
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
         <div>
-          <div className="rounded-xl border border-border bg-graphite/45 p-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime">Atualizar operação</p>
-            <div className="mt-4 space-y-4">
-              <AdminActionForm
-                action={updateOrderStatusAction}
-                submitLabel="SALVAR STATUS"
-                successMessage="Status atualizado com sucesso."
-                modalId={modalId}
-                className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px] sm:items-start"
-                submitClassName="mt-0 h-12 w-full"
-                alignSubmitWithField
-              >
-                <input type="hidden" name="orderId" value={order.id} />
-                <AdminSelect name="status" label="Status do pedido" defaultValue={defaultEditableStatus}>
-                  {editableStatusLabels.map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </AdminSelect>
-              </AdminActionForm>
-              <AdminActionForm
-                action={updateOrderPaymentMethodAction}
-                submitLabel="SALVAR PAGAMENTO"
-                successMessage="Forma de pagamento atualizada."
-                modalId={modalId}
-                className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px] sm:items-start"
-                submitClassName="mt-0 h-12 w-full"
-                alignSubmitWithField
-              >
-                <input type="hidden" name="orderId" value={order.id} />
-                <AdminSelect name="paymentMethod" label="Forma de pagamento" defaultValue={order.paymentMethod}>
-                  {paymentMethods.map((method) => (
-                    <option key={method} value={method}>
-                      {getPaymentMethodLabel(method)}
-                    </option>
-                  ))}
-                </AdminSelect>
-              </AdminActionForm>
-              <AdminActionForm
-                action={updateOrderFulfillmentMethodAction}
-                submitLabel="SALVAR ENTREGA"
-                successMessage="Tipo de entrega atualizado."
-                modalId={modalId}
-                className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px] sm:items-start"
-                submitClassName="mt-0 h-12 w-full"
-                alignSubmitWithField
-              >
-                <input type="hidden" name="orderId" value={order.id} />
-                <AdminSelect
-                  name="fulfillmentMethod"
-                  label="Entrega ou retirada"
-                  defaultValue={order.fulfillmentMethod}
-                >
-                  {orderFulfillmentMethods.map((method) => (
-                    <option key={method} value={method}>
-                      {getOrderFulfillmentLabel(method)}
-                    </option>
-                  ))}
-                </AdminSelect>
-              </AdminActionForm>
-              {order.scheduledPickupAt && (
-                <div className="rounded-xl border border-lime/25 bg-lime/10 p-4 text-xs font-bold leading-5 text-lime">
-                  Retirada agendada para {formatFactoryPickupScheduleAt(order.scheduledPickupAt)}
-                </div>
-              )}
+          {order.status === "CANCELLED" ? (
+            <div className="rounded-xl border border-red-400/25 bg-red-500/5 p-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-red-300">Pedido cancelado</p>
+              <p className="mt-2 text-xs text-muted-foreground">Este pedido não pode mais ser editado.</p>
+              <p className="mt-4 text-[9px] font-black uppercase tracking-wider text-muted-foreground">
+                Motivo do cancelamento
+              </p>
+              <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-foreground">
+                {order.statusHistory[0]?.note || "Justificativa não registrada para este pedido."}
+              </p>
             </div>
-          </div>
+          ) : (
+            <div className="rounded-xl border border-border bg-graphite/45 p-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime">Atualizar operação</p>
+              <div className="mt-4 space-y-4">
+                <AdminActionForm
+                  action={updateOrderStatusAction}
+                  submitLabel="SALVAR STATUS"
+                  successMessage="Status atualizado com sucesso."
+                  modalId={modalId}
+                  className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px] sm:items-start"
+                  submitClassName="mt-0 h-12 w-full"
+                  alignSubmitWithField
+                >
+                  <input type="hidden" name="orderId" value={order.id} />
+                  <AdminSelect name="status" label="Status do pedido" defaultValue={defaultEditableStatus}>
+                    {editableStatusLabels.map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </AdminSelect>
+                </AdminActionForm>
+                <AdminActionForm
+                  action={updateOrderPaymentMethodAction}
+                  submitLabel="SALVAR PAGAMENTO"
+                  successMessage="Forma de pagamento atualizada."
+                  modalId={modalId}
+                  className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px] sm:items-start"
+                  submitClassName="mt-0 h-12 w-full"
+                  alignSubmitWithField
+                >
+                  <input type="hidden" name="orderId" value={order.id} />
+                  <AdminSelect name="paymentMethod" label="Forma de pagamento" defaultValue={order.paymentMethod}>
+                    {paymentMethods.map((method) => (
+                      <option key={method} value={method}>
+                        {getPaymentMethodLabel(method)}
+                      </option>
+                    ))}
+                  </AdminSelect>
+                </AdminActionForm>
+                <AdminActionForm
+                  action={updateOrderFulfillmentMethodAction}
+                  submitLabel="SALVAR ENTREGA"
+                  successMessage="Tipo de entrega atualizado."
+                  modalId={modalId}
+                  className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px] sm:items-start"
+                  submitClassName="mt-0 h-12 w-full"
+                  alignSubmitWithField
+                >
+                  <input type="hidden" name="orderId" value={order.id} />
+                  <AdminSelect
+                    name="fulfillmentMethod"
+                    label="Entrega ou retirada"
+                    defaultValue={order.fulfillmentMethod}
+                  >
+                    {orderFulfillmentMethods.map((method) => (
+                      <option key={method} value={method}>
+                        {getOrderFulfillmentLabel(method)}
+                      </option>
+                    ))}
+                  </AdminSelect>
+                </AdminActionForm>
+                {order.scheduledPickupAt && (
+                  <div className="rounded-xl border border-lime/25 bg-lime/10 p-4 text-xs font-bold leading-5 text-lime">
+                    Retirada agendada para {formatFactoryPickupScheduleAt(order.scheduledPickupAt)}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           {order.status !== "CANCELLED" && (
             <div className="mt-4 flex justify-end border-t border-border pt-4">
-              <DeleteActionDialog
-                action={cancelOrderAction}
-                fields={{ orderId: order.id }}
-                title="Cancelar pedido?"
-                description={`O pedido ${number} será marcado como cancelado. Ele continuará no histórico e poderá ser excluído depois se necessário.`}
-                label="CANCELAR PEDIDO"
-                successMessage="Pedido cancelado."
-              />
+              <CancelOrderDialog orderId={order.id} orderNumber={number} />
             </div>
           )}
           {order.notes && (
@@ -558,17 +565,6 @@ function OrderManagement({
           )}
         </div>
       </section>
-      {order.status === "CANCELLED" && (
-        <div className="flex justify-end border-t border-border pt-5">
-          <DeleteActionDialog
-            action={deleteOrderAction}
-            fields={{ orderId: order.id }}
-            title="Excluir pedido cancelado?"
-            description={`O pedido ${number} será removido definitivamente.`}
-            successMessage="Pedido excluído."
-          />
-        </div>
-      )}
     </div>
   )
 }
