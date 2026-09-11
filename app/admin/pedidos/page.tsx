@@ -1,5 +1,6 @@
 import { CalendarDays, CreditCard, MessageCircle, PackageCheck, ReceiptText, Truck, WalletCards } from "lucide-react"
 import type { OrderStatus, PaymentMethod, Prisma } from "@prisma/client"
+import { canEditOrderItems, itemLockStatuses } from "@/lib/order-editing"
 import { prisma } from "@/lib/prisma"
 import { formatMoneyFromCents } from "@/lib/money"
 import { AdminActionForm } from "@/components/admin-action-form"
@@ -80,7 +81,11 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
     prisma.order.findMany({
       where: orderWhere,
       include: {
-        statusHistory: { where: { status: "CANCELLED" }, orderBy: { createdAt: "desc" }, take: 1 },
+        statusHistory: {
+          where: { status: { in: itemLockStatuses } },
+          orderBy: { createdAt: "desc" },
+          select: { status: true, note: true },
+        },
         franchise: true,
         user: { include: { businessProfile: true } },
         items: { include: { product: { include: { category: true } } } },
@@ -246,7 +251,7 @@ function OrderManagement({
     id: string
     number: number
     status: string
-    statusHistory: { note: string | null }[]
+    statusHistory: { status: string; note: string | null }[]
     paymentMethod: string
     fulfillmentMethod: string
     subtotalInCents: number
@@ -301,7 +306,8 @@ function OrderManagement({
   const number = formatOrderCode(order.number)
   const paymentDiscountLabel = getPaymentDiscountLabel(order.paymentMethod)
   const defaultEditableStatus = order.status === "CANCELLED" ? undefined : order.status
-  const canRemoveItems = order.status !== "CANCELLED" && order.items.length > 1
+  const canEditItems = canEditOrderItems(order.status, order.statusHistory)
+  const canRemoveItems = canEditItems && order.items.length > 1
   const ownerWhatsApp = getOrderOwnerWhatsApp(order)
   const ownerName = order.franchise?.tradeName ?? order.user?.name ?? "cliente"
   const ownerWhatsAppMessage = `Olá, ${ownerName}! Aqui é a Nacho Factory sobre o pedido ${number}.`
@@ -362,7 +368,7 @@ function OrderManagement({
                 <SelectedOptionsList value={item.selectedOptions} />
               </div>
               <div className="w-full rounded-xl border border-border bg-background/55 p-3 min-[720px]:w-[236px]">
-                {order.status !== "CANCELLED" && (
+                {canEditItems && (
                   <AdminInlineActionForm
                     action={updateOrderItemQuantityAction}
                     label="Salvar qtd"
@@ -401,7 +407,7 @@ function OrderManagement({
             </div>
           ))}
         </div>
-        {order.status !== "CANCELLED" && (
+        {canEditItems && (
           <div className="mt-4 rounded-xl border border-border bg-graphite/45 p-4">
             <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime">Adicionar produto</p>
             <AdminActionForm
@@ -437,6 +443,12 @@ function OrderManagement({
         )}
       </section>
 
+      {!canEditItems && order.status !== "CANCELLED" && (
+        <p className="rounded-xl border border-border bg-graphite/45 p-4 text-xs leading-5 text-muted-foreground">
+          Os itens deste pedido estão disponíveis apenas para consulta, pois ele já foi faturado, ficou pronto para
+          retirada, foi enviado ou entregue.
+        </p>
+      )}
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
         <div>
           {order.status === "CANCELLED" ? (
@@ -447,7 +459,8 @@ function OrderManagement({
                 Motivo do cancelamento
               </p>
               <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-foreground">
-                {order.statusHistory[0]?.note || "Justificativa não registrada para este pedido."}
+                {order.statusHistory.find((entry) => entry.status === "CANCELLED")?.note ||
+                  "Justificativa não registrada para este pedido."}
               </p>
             </div>
           ) : (

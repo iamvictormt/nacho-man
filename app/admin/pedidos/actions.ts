@@ -2,6 +2,7 @@
 
 import { OrderFulfillmentMethod, OrderStatus, PaymentMethod, PromotionScope, type Prisma } from "@prisma/client"
 import { revalidatePath } from "next/cache"
+import { itemLockStatuses } from "@/lib/order-editing"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
 import { getPaymentDiscountSettings } from "@/lib/site-settings"
@@ -233,6 +234,22 @@ async function lockEditableOrder(tx: Prisma.TransactionClient, orderId: string) 
     throw new Error("Pedido não encontrado ou cancelado. Pedidos cancelados não podem ser editados.")
 }
 
+async function lockEditableOrderItems(tx: Prisma.TransactionClient, orderId: string) {
+  await lockEditableOrder(tx, orderId)
+  const order = await tx.order.findFirst({
+    where: {
+      id: orderId,
+      status: { notIn: itemLockStatuses },
+      statusHistory: { none: { status: { in: itemLockStatuses } } },
+    },
+    select: { id: true },
+  })
+  if (!order)
+    throw new Error(
+      "Os itens não podem mais ser alterados após o faturamento, preparo para retirada, envio ou entrega do pedido."
+    )
+}
+
 export async function updateOrderStatusAction(formData: FormData) {
   await requireAdmin()
   const orderId = String(formData.get("orderId") ?? "")
@@ -335,7 +352,7 @@ export async function updateOrderItemQuantityAction(formData: FormData) {
   const paymentSettings = await getPaymentDiscountSettings()
 
   await prisma.$transaction(async (tx) => {
-    await lockEditableOrder(tx, orderId)
+    await lockEditableOrderItems(tx, orderId)
     const item = await tx.orderItem.findFirst({
       where: { id: itemId, orderId },
       include: {
@@ -378,7 +395,7 @@ export async function addOrderProductItemAction(formData: FormData) {
   const paymentSettings = await getPaymentDiscountSettings()
 
   await prisma.$transaction(async (tx) => {
-    await lockEditableOrder(tx, orderId)
+    await lockEditableOrderItems(tx, orderId)
     const order = await tx.order.findUnique({
       where: { id: orderId },
       select: { id: true, status: true, franchiseId: true },
@@ -457,7 +474,7 @@ export async function removeOrderItemAction(formData: FormData) {
   const paymentSettings = await getPaymentDiscountSettings()
 
   await prisma.$transaction(async (tx) => {
-    await lockEditableOrder(tx, orderId)
+    await lockEditableOrderItems(tx, orderId)
     const order = await tx.order.findUnique({
       where: { id: orderId },
       include: { items: true },
