@@ -80,6 +80,7 @@ model User {
   orders               Order[]
   marketplaceCartItems MarketplaceCartItem[]
   passwordResetCodes   PasswordResetCode[]
+  indicatorAnalyses    IndicatorAnalysis[]
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
 }
@@ -103,6 +104,23 @@ model SiteSetting {
   value     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model IndicatorAnalysis {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question    String
+  answer      String?
+  status      String   @default("pending")
+  model       String
+  snapshot    Json
+  inputTokens Int      @default(0)
+  outputTokens Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, createdAt])
 }
 
 model SaiposSale {

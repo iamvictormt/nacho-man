@@ -9,6 +9,7 @@ import {
   Database,
   LineChart,
   Menu,
+  Sparkles,
   PackageSearch,
   TrendingUp,
   Users,
@@ -29,6 +30,7 @@ type SaiposMobileMenuTab = {
 }
 
 const iconMap: Record<string, LucideIcon> = {
+  ia: Sparkles,
   resumo: BarChart3,
   alertas: AlertTriangle,
   vendas: Users,

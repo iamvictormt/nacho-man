@@ -14,6 +14,7 @@ import {
   ReceiptText,
   RefreshCw,
   Store,
+  Sparkles,
   Timer,
   TrendingUp,
   Users,
@@ -28,6 +29,7 @@ import { SaiposAdminExitButton } from "@/components/saipos-admin-exit-button"
 import { SaiposExportLink } from "@/components/saipos-export-link"
 import { SaiposMobileMenu } from "@/components/saipos-mobile-menu"
 import { IndicatorsListModal } from "@/components/indicators-list-modal"
+import { IndicatorsAi } from "@/components/indicators-ai"
 import { requireIndicatorsAccess } from "@/lib/auth"
 import {
   buildAlerts,
@@ -81,6 +83,7 @@ import {
 import { formatMoneyFromAmount, formatPercent, formatQuantity, formatSignedPercent } from "@/lib/saipos/formatters"
 
 type DashboardTab =
+  | "ia"
   | "resumo"
   | "vendas"
   | "alertas"
@@ -95,6 +98,7 @@ type DashboardTab =
 
 const tabs: Array<{ id: DashboardTab; label: string; icon: LucideIcon; active: boolean }> = [
   { id: "resumo", label: "Resumo Executivo", icon: BarChart3, active: true },
+  { id: "ia", label: "Análise com IA", icon: Sparkles, active: true },
   { id: "alertas", label: "Alertas", icon: AlertTriangle, active: true },
   { id: "vendas", label: "Vendas e Clientes", icon: Users, active: true },
   { id: "ticket", label: "Ticket Médio", icon: TrendingUp, active: true },
@@ -238,6 +242,7 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
     month: comparisonPeriod.start.slice(0, 7),
     year: comparisonPeriod.start.slice(0, 4),
   }
+  const loadDashboard = activeTab !== "ia"
 
   const [
     sales,
@@ -250,13 +255,13 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
     storeOptionsSource,
   ] =
     await Promise.all([
-      getSaiposDashboardSales({ period, selectedStore }),
-      getSaiposDashboardSales({ period: comparisonPeriod, selectedStore }),
-      getSaiposDashboardSales({ period: samePeriodPreviousMonth, selectedStore }),
-      getSaiposDashboardItems({ period, selectedStore }),
-      getSaiposDashboardItems({ period, selectedStore, includeDeleted: true }),
-      getSaiposProductReferences({ selectedStore }),
-      getSaiposStockCmv({ period, selectedStore }),
+      loadDashboard ? getSaiposDashboardSales({ period, selectedStore }) : Promise.resolve([]),
+      loadDashboard ? getSaiposDashboardSales({ period: comparisonPeriod, selectedStore }) : Promise.resolve([]),
+      loadDashboard ? getSaiposDashboardSales({ period: samePeriodPreviousMonth, selectedStore }) : Promise.resolve([]),
+      loadDashboard ? getSaiposDashboardItems({ period, selectedStore }) : Promise.resolve([]),
+      loadDashboard ? getSaiposDashboardItems({ period, selectedStore, includeDeleted: true }) : Promise.resolve([]),
+      loadDashboard ? getSaiposProductReferences({ selectedStore }) : Promise.resolve([]),
+      loadDashboard ? getSaiposStockCmv({ period, selectedStore }) : Promise.resolve({ estimatedCostInCents: 0, movementCount: 0, ingredientCount: 0, sourceLabel: "Estoque Saipos", topIngredients: [] }),
       getSaiposStoreOptionsSource(),
     ])
 
@@ -307,7 +312,7 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
       <SaiposMobileMenu tabs={mobileTabs} />
       <div className="min-h-screen xl:block">
         <aside className="hidden border-border bg-graphite/95 backdrop-blur xl:fixed xl:inset-y-0 xl:left-0 xl:z-30 xl:block xl:w-[280px] xl:overflow-hidden xl:border-r">
-          <div className="flex h-dvh min-h-0 flex-col gap-6 p-5">
+          <div className="flex h-dvh min-h-0 flex-col gap-6 overflow-y-auto p-5">
             <div className="grid min-w-0 gap-4">
               <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-border bg-background p-3">
                 <img src="/nacho-man-logo.png" alt="Nacho Man" className="h-12 w-auto shrink-0" />
@@ -346,7 +351,7 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
             <div className="mt-auto rounded-2xl border border-border bg-background p-4">
               <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime">Contexto atual</p>
               <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                {period.label}
+                {activeTab === "ia" ? "Escolha os períodos e a loja na área de análise." : period.label}
                 {comparisonTab ? ` comparado com ${comparisonPeriod.label}` : ""}
               </p>
             </div>
@@ -360,13 +365,13 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
               <h1 className="mt-2 text-2xl font-black uppercase leading-tight sm:text-3xl">
                 {tabs.find((tab) => tab.id === activeTab)?.label}
               </h1>
-              <PeriodSummary
+              {activeTab === "ia" ? <p className="mt-3 text-sm text-muted-foreground">Análises e histórico de {user.name}</p> : <PeriodSummary
                 period={period.label}
                 comparisonPeriod={comparisonTab ? comparisonPeriod.label : null}
                 userName={user.name}
-              />
+              />}
             </div>
-            <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2 sm:flex sm:w-auto">
+            {activeTab !== "ia" ? <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2 sm:flex sm:w-auto">
               <SaiposDashboardFilterMenu
                 activeTab={activeTab}
                 selectedStore={selectedStore}
@@ -380,10 +385,18 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
                 lockedMode={comparisonTab || projectionTab ? selectedMode : undefined}
               />
               <SaiposExportLink href={buildExportHref(resolvedSearchParams)} />
-            </div>
+            </div> : null}
           </header>
 
           <SaiposDashboardContentShell>
+            {activeTab === "ia" ? (
+              <IndicatorsAi
+                key={`${selectedStore}-${period.start}-${period.end}-${comparisonPeriod.start}-${comparisonPeriod.end}`}
+                initialStart={period.start} initialEnd={period.end}
+                comparisonStart={comparisonPeriod.start} comparisonEnd={comparisonPeriod.end}
+                selectedStore={selectedStore} stores={storeOptions} maxDate={maxDate}
+              />
+            ) : null}
             {activeTab === "resumo" ? (
               <ExecutiveView
                 summary={summary}
