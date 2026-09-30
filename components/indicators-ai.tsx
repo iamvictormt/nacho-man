@@ -1,7 +1,16 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Sparkles, Loader2, History, ArrowUpRight, Download } from "lucide-react"
+import { BrainCircuit, Loader2, History, ArrowUpRight, Download, AlertCircle } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { AdminDatePicker } from "@/components/admin-form-fields"
+import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
+import { IndicatorsAiCosts } from "@/components/indicators-ai-costs"
 
 type HistoryRow = { id: string; question: string; status: string; createdAt: string }
 type Analysis = HistoryRow & {
@@ -58,6 +67,7 @@ export function IndicatorsAi({
   const [busy, setBusy] = useState(false)
   const [opening, setOpening] = useState(false)
   const [error, setError] = useState("")
+  const [creditError, setCreditError] = useState(false)
   const [historyError, setHistoryError] = useState("")
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
   const questionRef = useRef<HTMLTextAreaElement>(null)
@@ -102,7 +112,11 @@ export function IndicatorsAi({
         body: JSON.stringify({ ...filters, question }),
       })
       const data = await response.json()
-      if (!response.ok) throw new Error(data.error)
+      if (!response.ok) {
+        setCreditError(data.code === "PROVIDER_CREDITS")
+        throw new Error(data.error)
+      }
+      setCreditError(false)
       setAnalysis(data.analysis)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha de conexão. Consulte o histórico antes de tentar novamente.")
@@ -139,12 +153,14 @@ export function IndicatorsAi({
   }
 
   return (
-    <div className="mt-6 grid min-w-0 gap-5 2xl:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="[--accent:var(--secondary)] [--accent-foreground:var(--lime)] mt-5 grid min-w-0 gap-4 sm:mt-6 sm:gap-5 2xl:grid-cols-[minmax(0,1fr)_340px]">
       <div className="min-w-0 space-y-5">
-        <section className="rounded-2xl border border-lime/20 bg-gradient-to-br from-lime/10 to-graphite p-5 sm:p-6">
+        <Card className="@container min-w-0 gap-0 rounded-2xl border-border bg-graphite p-4 shadow-none sm:p-6">
           <div className="flex items-center gap-3">
-            <Sparkles className="h-6 w-6 text-lime" />
-            <h2 className="text-lg font-bold">Transforme seus indicadores em decisões</h2>
+            <span className="shrink-0 rounded-xl border border-lime/20 bg-lime/10 p-2.5 sm:p-3">
+              <BrainCircuit className="h-5 w-5 text-lime" />
+            </span>
+            <h2 className="min-w-0 text-base font-bold sm:text-lg">Análise dos indicadores</h2>
           </div>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
             Pergunte sobre vendas, lojas, produtos e CMV. O Claude analisa os dois períodos abaixo e cada resposta fica
@@ -155,24 +171,35 @@ export function IndicatorsAi({
               A análise com IA aguarda ativação pelo administrador. Seu histórico continua disponível.
             </p>
           ) : null}
-          <form onSubmit={submit} className="mt-5 space-y-5">
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Badge variant="outline" className="border-lime/25 bg-lime/10 text-lime">
+              Vendas e desempenho
+            </Badge>
+            <Badge variant="outline">Comparação de períodos</Badge>
+          </div>
+          <form onSubmit={submit} className="mt-6 space-y-5 border-t border-border pt-6">
             <fieldset disabled={busy} className="grid gap-4">
               <label className="grid gap-2 text-xs font-bold">
                 Loja
-                <select
-                  className={field}
+                <Select
+                  disabled={busy}
                   value={filters.store}
-                  onChange={(event) => setFilters({ ...filters, store: event.target.value })}
+                  onValueChange={(store) => setFilters({ ...filters, store })}
                 >
-                  <option value="all">Todas as lojas</option>
-                  {stores.map((store) => (
-                    <option key={store.value} value={store.value}>
-                      {store.label}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger aria-label="Loja" className={field}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="[--accent:var(--secondary)] [--accent-foreground:var(--lime)]">
+                    <SelectItem value="all">Todas as lojas</SelectItem>
+                    {stores.map((store) => (
+                      <SelectItem key={store.value} value={store.value}>
+                        {store.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </label>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid min-w-0 gap-4 @min-[640px]:grid-cols-2">
                 {(
                   [
                     { title: "Período da análise", start: "start", end: "end" },
@@ -181,25 +208,27 @@ export function IndicatorsAi({
                 ).map((period) => (
                   <fieldset key={period.start} className="min-w-0 rounded-xl border border-border p-3">
                     <legend className="px-1 text-xs font-bold text-lime">{period.title}</legend>
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="grid min-w-0 gap-3 @min-[360px]:grid-cols-2">
                       {(
                         [
                           { key: period.start, label: "Início" },
                           { key: period.end, label: "Fim" },
                         ] as const
                       ).map(({ key, label }) => (
-                        <label key={key} className="grid min-w-0 gap-2 text-xs text-muted-foreground">
-                          {label}
-                          <input
-                            aria-label={`${period.title}: ${label}`}
-                            className={`${field} min-w-0`}
-                            type="date"
-                            required
-                            max={maxDate}
-                            value={filters[key]}
-                            onChange={(event) => setFilters({ ...filters, [key]: event.target.value })}
-                          />
-                        </label>
+                        <AdminDatePicker
+                          key={key}
+                          name={`ai-${key}`}
+                          label={label}
+                          ariaLabel={`${period.title}: ${label}`}
+                          popoverClassName="[--accent:var(--secondary)] [--accent-foreground:var(--lime)]"
+                          className="min-w-0"
+                          required
+                          disabled={busy}
+                          maxDate={maxDate}
+                          defaultValue={filters[key]}
+                          valueFormat="iso"
+                          onValueChange={(value) => setFilters((current) => ({ ...current, [key]: value }))}
+                        />
                       ))}
                     </div>
                   </fieldset>
@@ -208,28 +237,29 @@ export function IndicatorsAi({
               <p className="text-xs text-muted-foreground">
                 Até 366 dias por período. A disponibilidade depende dos dados importados da Saipos.
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid min-w-0 gap-2 @min-[640px]:grid-cols-3">
                 {suggestions.map((suggestion) => (
-                  <button
+                  <Button
+                    variant="ghost"
                     key={suggestion}
                     type="button"
                     onClick={() => {
                       setQuestion(suggestion)
                       questionRef.current?.focus()
                     }}
-                    className="rounded-xl border border-border bg-background/70 px-3 py-2 text-left text-xs text-muted-foreground transition hover:border-lime/40 hover:text-foreground"
+                    className="h-auto min-h-11 min-w-0 w-full whitespace-normal justify-between rounded-xl border border-border bg-background px-3 py-3 text-left text-xs text-muted-foreground transition hover:border-lime/40 hover:text-foreground"
                   >
-                    {suggestion}
+                    <span className="min-w-0 break-words">{suggestion}</span>
                     <ArrowUpRight className="ml-1 inline h-3 w-3" />
-                  </button>
+                  </Button>
                 ))}
               </div>
               <label htmlFor="ai-question" className="grid gap-2 text-sm font-bold">
                 O que você quer entender?
-                <textarea
+                <Textarea
                   id="ai-question"
                   ref={questionRef}
-                  className={`${field} min-h-28 resize-y font-normal`}
+                  className={`${field} min-h-32 resize-y font-normal text-base sm:text-sm`}
                   minLength={8}
                   maxLength={2000}
                   required
@@ -243,22 +273,25 @@ export function IndicatorsAi({
               <p className="text-xs text-muted-foreground">
                 Cada pergunta inicia uma análise independente. {question.length}/2000
               </p>
-              <button
+              <Button
+                variant="ghost"
                 disabled={!configured || busy || opening || question.trim().length < 8}
                 type="submit"
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-lime px-5 text-sm font-bold text-black transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex h-auto min-h-11 w-full whitespace-normal items-center gap-2 rounded-xl bg-lime px-5 py-3 text-sm font-bold text-black sm:w-auto transition hover:bg-lime-dark hover:text-black dark:hover:bg-lime-dark dark:hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <BrainCircuit className="h-4 w-4" />}
                 {busy ? "Analisando os indicadores…" : "Gerar análise"}
-              </button>
+              </Button>
             </div>
           </form>
-        </section>
+        </Card>
         <div aria-live="polite" aria-busy={busy || opening}>
           {error ? (
-            <p role="alert" className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm">
-              {error}
-            </p>
+            <Alert variant="destructive" className="mb-4 border-red-500/30 bg-red-500/10">
+              <AlertCircle />
+              <AlertTitle>Não foi possível gerar a análise</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           ) : null}
           {busy ? (
             <p className="rounded-xl border border-border p-5 text-sm text-muted-foreground">
@@ -267,22 +300,23 @@ export function IndicatorsAi({
           ) : null}
           {opening ? <p className="text-sm text-muted-foreground">Abrindo análise…</p> : null}
           {analysis ? (
-            <article className="min-w-0 rounded-2xl border border-border bg-graphite p-5 sm:p-6">
+            <article className="min-w-0 rounded-2xl border border-border bg-graphite p-4 sm:p-6">
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
+                <div className="min-w-0 w-full">
                   <p className="text-xs font-bold uppercase tracking-wider text-lime">
                     Análise salva · {new Date(analysis.createdAt).toLocaleString("pt-BR")}
                   </p>
                   <h3 className="mt-3 break-words text-lg font-bold">{analysis.question}</h3>
                 </div>
-                <button
+                <Button
+                  variant="ghost"
                   type="button"
                   onClick={download}
-                  className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border px-3 text-xs"
+                  className="inline-flex h-auto min-h-11 w-full whitespace-normal items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs sm:w-auto"
                 >
                   <Download className="h-4 w-4" />
                   Baixar dados e resposta
-                </button>
+                </Button>
               </div>
               {analysis.snapshot.current ? (
                 <p className="mt-3 text-xs leading-5 text-muted-foreground">
@@ -317,74 +351,81 @@ export function IndicatorsAi({
           ) : null}
         </div>
       </div>
-      <aside className="h-fit min-w-0 rounded-2xl border border-border bg-graphite p-5">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="flex items-center gap-2 text-sm font-bold">
-            <History className="h-4 w-4 text-lime" />
-            Meu histórico
-          </h2>
-          <button
-            type="button"
-            disabled={loadingHistory || busy}
-            onClick={() => void loadHistory()}
-            className="min-h-10 text-xs text-lime disabled:opacity-40"
-          >
-            Atualizar
-          </button>
-        </div>
-        <p className="mt-1 text-xs text-muted-foreground">Suas perguntas e respostas, em todos os períodos.</p>
-        {historyError ? (
-          <p role="alert" className="mt-4 text-sm text-red-300">
-            {historyError}
-          </p>
-        ) : null}
-        {loadingHistory ? (
-          <p className="mt-4 text-sm text-muted-foreground">Carregando histórico…</p>
-        ) : !history.length && !historyError ? (
-          <p className="mt-5 text-sm text-muted-foreground">Suas análises aparecerão aqui.</p>
-        ) : null}
-        <div className="mt-4 grid gap-2">
-          {history.map((row) => (
-            <button
+      <aside className="grid min-w-0 items-start gap-4 md:grid-cols-2 2xl:grid-cols-1 sm:gap-5">
+        <IndicatorsAiCosts creditError={creditError} />
+        <Card className="min-w-0 gap-0 rounded-2xl border-border bg-graphite p-4 shadow-none sm:p-5">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 text-sm font-bold">
+              <History className="h-4 w-4 text-lime" />
+              Meu histórico
+            </h2>
+            <Button
+              variant="ghost"
               type="button"
-              key={row.id}
-              disabled={busy || opening}
-              onClick={() => void openAnalysis(row.id)}
-              className={`rounded-xl border p-3 text-left transition disabled:opacity-50 ${analysis?.id === row.id ? "border-lime/40 bg-lime/10" : "border-border hover:border-lime/30"}`}
+              disabled={loadingHistory || busy}
+              onClick={() => void loadHistory()}
+              className="min-h-10 text-xs text-lime disabled:opacity-40"
             >
-              <span className="line-clamp-3 break-words text-sm">{row.question}</span>
-              <span className="mt-2 block text-[11px] text-muted-foreground">
-                {new Date(row.createdAt).toLocaleString("pt-BR")} ·{" "}
-                {row.status === "completed"
-                  ? "Concluída"
-                  : row.status === "failed"
-                    ? "Não concluída"
-                    : Date.now() - Date.parse(row.createdAt) > 180000
-                      ? "Interrompida"
-                      : "Em andamento"}
-              </span>
-            </button>
-          ))}
-        </div>
-        {page > 0 || hasMore ? (
-          <div className="mt-4 flex justify-between text-xs">
-            <button
-              disabled={page === 0 || loadingHistory}
-              onClick={() => setPage(page - 1)}
-              className="min-h-10 disabled:opacity-40"
-            >
-              Anterior
-            </button>
-            <span className="self-center">Página {page + 1}</span>
-            <button
-              disabled={!hasMore || loadingHistory}
-              onClick={() => setPage(page + 1)}
-              className="min-h-10 disabled:opacity-40"
-            >
-              Próxima
-            </button>
+              Atualizar
+            </Button>
           </div>
-        ) : null}
+          <p className="mt-1 text-xs text-muted-foreground">Suas perguntas e respostas, em todos os períodos.</p>
+          {historyError ? (
+            <p role="alert" className="mt-4 text-sm text-red-300">
+              {historyError}
+            </p>
+          ) : null}
+          {loadingHistory ? (
+            <p className="mt-4 text-sm text-muted-foreground">Carregando histórico…</p>
+          ) : !history.length && !historyError ? (
+            <p className="mt-5 text-sm text-muted-foreground">Suas análises aparecerão aqui.</p>
+          ) : null}
+          <div className="mt-4 grid gap-2">
+            {history.map((row) => (
+              <Button
+                variant="ghost"
+                type="button"
+                key={row.id}
+                disabled={busy || opening}
+                onClick={() => void openAnalysis(row.id)}
+                className={`h-auto whitespace-normal items-start flex-col rounded-xl border p-3 text-left transition disabled:opacity-50 ${analysis?.id === row.id ? "border-lime/40 bg-lime/10" : "border-border hover:border-lime/30"}`}
+              >
+                <span className="line-clamp-3 break-words text-sm">{row.question}</span>
+                <span className="mt-2 block text-[11px] text-muted-foreground">
+                  {new Date(row.createdAt).toLocaleString("pt-BR")} ·{" "}
+                  {row.status === "completed"
+                    ? "Concluída"
+                    : row.status === "failed"
+                      ? "Não concluída"
+                      : Date.now() - Date.parse(row.createdAt) > 180000
+                        ? "Interrompida"
+                        : "Em andamento"}
+                </span>
+              </Button>
+            ))}
+          </div>
+          {page > 0 || hasMore ? (
+            <div className="mt-4 flex justify-between text-xs">
+              <Button
+                variant="ghost"
+                disabled={page === 0 || loadingHistory}
+                onClick={() => setPage(page - 1)}
+                className="min-h-10 disabled:opacity-40"
+              >
+                Anterior
+              </Button>
+              <span className="self-center">Página {page + 1}</span>
+              <Button
+                variant="ghost"
+                disabled={!hasMore || loadingHistory}
+                onClick={() => setPage(page + 1)}
+                className="min-h-10 disabled:opacity-40"
+              >
+                Próxima
+              </Button>
+            </div>
+          ) : null}
+        </Card>
       </aside>
     </div>
   )

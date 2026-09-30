@@ -341,7 +341,7 @@ export async function POST(request: Request) {
         ],
       },
       include: {
-        options: { include: { product: { select: { id: true, name: true, paymentDiscountEligible: true } } } },
+        options: { include: { product: { select: { id: true, name: true, paymentDiscountEligible: true, supplier: true } } } },
       },
     }),
   ])
@@ -399,6 +399,7 @@ export async function POST(request: Request) {
       quantity: requestedItem.quantity,
       unitPriceInCents: product.priceInCents,
       totalInCents,
+      supplier: product.supplier,
       product: { category: product.category },
     }
   })
@@ -455,6 +456,9 @@ export async function POST(request: Request) {
       quantity: requestedItem.quantity,
       unitPriceInCents: combo.priceInCents,
       totalInCents,
+      supplier: selectedOptions
+        .map((option) => optionMap.get(option.productId)?.supplier)
+        .find((supplier) => supplier) ?? null,
       selectedOptions: normalizedOptions,
     }
   })

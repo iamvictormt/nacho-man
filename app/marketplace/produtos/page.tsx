@@ -24,6 +24,7 @@ const marketplaceProductSelect = {
   priceInCents: true,
   unit: true,
   packageLabel: true,
+  supplier: true,
   minimumQuantity: true,
   category: { select: { name: true } },
 } satisfies Prisma.ProductSelect
@@ -149,6 +150,7 @@ export default async function MarketplaceProductsPage({ searchParams }: { search
                     unit: product.unit,
                     packageLabel: product.packageLabel,
                     minimumQuantity: product.minimumQuantity,
+                    supplier: product.supplier,
                   }}
                 />
               </div>

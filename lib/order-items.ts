@@ -5,6 +5,7 @@ type OrderItemCategory = {
 
 type OrderItemWithCategory = {
   name: string
+  supplier?: string | null
   product?: {
     category?: OrderItemCategory
   } | null
@@ -16,6 +17,8 @@ function getOrderItemCategory(item: OrderItemWithCategory) {
 
 export function sortOrderItemsByCategory<T extends OrderItemWithCategory>(items: T[]) {
   return [...items].sort((a, b) => {
+    const supplierOrder = Number(Boolean(a.supplier)) - Number(Boolean(b.supplier))
+    if (supplierOrder !== 0) return supplierOrder
     const categoryA = getOrderItemCategory(a)
     const categoryB = getOrderItemCategory(b)
     const sortA = categoryA?.sortOrder ?? Number.MAX_SAFE_INTEGER
@@ -28,6 +31,15 @@ export function sortOrderItemsByCategory<T extends OrderItemWithCategory>(items:
 
     return a.name.localeCompare(b.name, "pt-BR")
   })
+}
+
+export function getOrderItemSupplierLabel(item: { supplier?: string | null }) {
+  const labels: Record<string, string> = {
+    AM_EMBUTIDOS: "A.M. Embutidos",
+    MARCHEF: "Marchef Pescados",
+    BONI: "Boni Embalagens",
+  }
+  return item.supplier ? labels[item.supplier] ?? null : null
 }
 
 export function getOrderItemCategoryName(item: OrderItemWithCategory) {

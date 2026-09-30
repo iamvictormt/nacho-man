@@ -87,6 +87,7 @@ async function getCartItems(user: MarketplaceUser) {
           image: true,
           unit: true,
           packageLabel: true,
+          supplier: true,
           priceInCents: true,
           paymentDiscountEligible: true,
           minimumQuantity: true,
@@ -114,6 +115,7 @@ async function getCartItems(user: MarketplaceUser) {
                   id: true,
                   name: true,
                   image: true,
+                  supplier: true,
                   paymentDiscountEligible: true,
                   active: true,
                   category: { select: { active: true } },
@@ -150,6 +152,7 @@ async function getCartItems(user: MarketplaceUser) {
         image: product.image,
         unit: product.unit,
         packageLabel: product.packageLabel,
+        supplier: product.supplier,
         unitPriceInCents: product.priceInCents,
         paymentDiscountEligibleInCents: product.paymentDiscountEligible ? product.priceInCents * quantity : 0,
         minimumQuantity: product.minimumQuantity,
@@ -211,6 +214,7 @@ async function getCartItems(user: MarketplaceUser) {
       minimumQuantity: 1,
       quantity: Math.max(1, Math.min(999, row.quantity)),
       selectedOptions: normalizedOptions,
+      supplier: selectedOptions.map((option) => optionMap.get(option.productId)?.supplier).find((supplier) => supplier) ?? null,
     })
   }
 
@@ -218,7 +222,7 @@ async function getCartItems(user: MarketplaceUser) {
     await prisma.marketplaceCartItem.deleteMany({ where: { id: { in: invalidIds } } })
   }
 
-  return items
+  return items.sort((first, second) => Number(Boolean(first.supplier)) - Number(Boolean(second.supplier)))
 }
 
 export async function GET() {

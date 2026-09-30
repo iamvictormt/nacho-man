@@ -1,6 +1,9 @@
 import Link from "next/link"
 import {
   ArrowRight,
+  ArrowDown,
+  ArrowDownAZ,
+  ArrowUp,
   BarChart3,
   CheckCircle2,
   Clock3,
@@ -44,12 +47,24 @@ type UsersPageProps = {
   searchParams?: Promise<SearchParams>
 }
 
+type UserSortField = "name" | "orders" | "createdAt"
+type UserSortDirection = "asc" | "desc"
+
+function getUserSort(searchParams?: SearchParams) {
+  const rawSort = Array.isArray(searchParams?.sort) ? searchParams.sort[0] : searchParams?.sort
+  const rawDirection = Array.isArray(searchParams?.direction) ? searchParams.direction[0] : searchParams?.direction
+  const sort: UserSortField = rawSort === "orders" || rawSort === "createdAt" ? rawSort : "name"
+  const direction: UserSortDirection = rawDirection === "desc" ? "desc" : "asc"
+  return { sort, direction }
+}
+
 export default async function UsersPage({ searchParams }: UsersPageProps) {
   const currentUser = await requireAdmin()
   const canManageAdmins = currentUser.role === "ADMIN_MASTER"
   const resolvedSearchParams = await searchParams
   const view = getView(resolvedSearchParams, canManageAdmins)
   const page = getCurrentPage(resolvedSearchParams)
+  const { sort, direction } = getUserSort(resolvedSearchParams)
   const query = getSearchQuery(resolvedSearchParams)
   let userWhere: Prisma.UserWhereInput
 
@@ -164,7 +179,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
             businessProfile: true,
             _count: { select: { orders: true } },
           },
-          orderBy: [{ active: "desc" }, { createdAt: "desc" }],
+          orderBy: getUserOrderBy(sort, direction),
           skip: pagination.skip,
           take: pagination.take,
         })
@@ -192,7 +207,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
             },
             _count: { select: { orders: true } },
           },
-          orderBy: [{ active: "asc" }, { createdAt: "desc" }],
+          orderBy: getUserOrderBy(sort, direction),
           skip: pagination.skip,
           take: pagination.take,
         })
@@ -297,9 +312,9 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
         {view === "admins" ? (
           <AdminUsersList users={adminUsers} currentUserId={currentUser.id} />
         ) : view === "franqueados" ? (
-          <FranchiseUsersList users={franchiseeUsers} />
+          <FranchiseUsersList users={franchiseeUsers} searchParams={resolvedSearchParams} sort={sort} direction={direction} />
         ) : (
-          <CommonUsersList users={commonUsers} />
+          <CommonUsersList users={commonUsers} searchParams={resolvedSearchParams} sort={sort} direction={direction} />
         )}
       </div>
 
@@ -310,6 +325,56 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
         searchParams={resolvedSearchParams}
       />
     </main>
+  )
+}
+
+function getUserOrderBy(sort: UserSortField, direction: UserSortDirection): Prisma.UserOrderByWithRelationInput[] {
+  if (sort === "orders") return [{ orders: { _count: direction } }, { name: "asc" }]
+  if (sort === "createdAt") return [{ createdAt: direction }, { name: "asc" }]
+  return [{ name: direction }]
+}
+
+function UserSortHeader({
+  field,
+  label,
+  sort,
+  direction,
+  searchParams,
+}: {
+  field: UserSortField
+  label: string
+  sort: UserSortField
+  direction: UserSortDirection
+  searchParams?: SearchParams
+}) {
+  const active = sort === field
+  const nextDirection = active ? (direction === "asc" ? "desc" : "asc") : "asc"
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(searchParams ?? {})) {
+    if (key === "page" || key === "sort" || key === "direction" || value === undefined) continue
+    if (Array.isArray(value)) value.forEach((item) => params.append(key, item))
+    else params.set(key, value)
+  }
+  params.set("sort", field)
+  params.set("direction", nextDirection)
+
+  return (
+    <Link
+      href={`/admin/usuarios?${params.toString()}`}
+      scroll={false}
+      aria-label={`Ordenar por ${label.toLowerCase()} em ordem ${nextDirection === "asc" ? "crescente" : "decrescente"}`}
+      aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : "none"}
+      className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[.14em] text-muted-foreground transition hover:text-lime"
+    >
+      {label}
+      {active ? field === "name" ? (
+        <ArrowDownAZ className={`h-3 w-3 ${direction === "desc" ? "rotate-180" : ""}`} aria-hidden="true" />
+      ) : direction === "asc" ? (
+        <ArrowUp className="h-3 w-3" aria-hidden="true" />
+      ) : (
+        <ArrowDown className="h-3 w-3" aria-hidden="true" />
+      ) : null}
+    </Link>
   )
 }
 
@@ -493,10 +558,27 @@ type FranchiseeUser = {
   _count: { orders: number }
 }
 
-function FranchiseUsersList({ users }: { users: FranchiseeUser[] }) {
+function FranchiseUsersList({
+  users,
+  searchParams,
+  sort,
+  direction,
+}: {
+  users: FranchiseeUser[]
+  searchParams?: SearchParams
+  sort: UserSortField
+  direction: UserSortDirection
+}) {
   return (
     <AdminDataList
-      headers={["Franqueado", "Unidade", "Pedidos", "Cadastro", "Status", "Ações"]}
+      headers={[
+        <UserSortHeader key="name" field="name" label="Franqueado" sort={sort} direction={direction} searchParams={searchParams} />,
+        "Unidade",
+        <UserSortHeader key="orders" field="orders" label="Pedidos" sort={sort} direction={direction} searchParams={searchParams} />,
+        <UserSortHeader key="createdAt" field="createdAt" label="Cadastro" sort={sort} direction={direction} searchParams={searchParams} />,
+        "Status",
+        "Ações",
+      ]}
       template="minmax(210px,1.35fr) minmax(220px,1.25fr) 90px 120px 100px 72px"
       isEmpty={users.length === 0}
       emptyTitle="Nenhum usuário franqueado cadastrado"
@@ -595,7 +677,13 @@ function FranchiseUsersList({ users }: { users: FranchiseeUser[] }) {
 
 function CommonUsersList({
   users,
+  searchParams,
+  sort,
+  direction,
 }: {
+  searchParams?: SearchParams
+  sort: UserSortField
+  direction: UserSortDirection
   users: {
     id: string
     name: string
@@ -617,7 +705,14 @@ function CommonUsersList({
 }) {
   return (
     <AdminDataList
-      headers={["Cliente", "E-mail", "Pedidos", "Cadastro", "Status", "Ações"]}
+      headers={[
+        <UserSortHeader key="name" field="name" label="Cliente" sort={sort} direction={direction} searchParams={searchParams} />,
+        "E-mail",
+        <UserSortHeader key="orders" field="orders" label="Pedidos" sort={sort} direction={direction} searchParams={searchParams} />,
+        <UserSortHeader key="createdAt" field="createdAt" label="Cadastro" sort={sort} direction={direction} searchParams={searchParams} />,
+        "Status",
+        "Ações",
+      ]}
       template="minmax(200px,1.35fr) minmax(220px,1.25fr) 90px 120px 100px 72px"
       isEmpty={users.length === 0}
       emptyTitle="Nenhum cliente comum cadastrado"

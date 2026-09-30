@@ -27,6 +27,14 @@ docker compose --env-file .env.production --profile tools run --build --rm migra
 
 Configure `NEXT_PUBLIC_SITE_URL` com a URL pública correta quando houver proxy reverso; a API valida a origem das solicitações.
 
+## Custos no painel administrativo
+
+O cartão de custos consulta `/v1/organizations/cost_report` com `ANTHROPIC_ADMIN_KEY`, uma credencial administrativa privada com acesso ao relatório. Configure-a no `.env` local ou `.env.production` do servidor. A chave fica somente no servidor e é independente da chave usada para gerar análises. Sem ela, o painel mostra que a consulta não está configurada e mantém o acesso ao console de cobrança.
+
+O valor é o gasto de toda a organização desde o início do mês em UTC, em USD, incluindo consumo fora deste sistema. O relatório é paginado e os valores em centavos são convertidos para dólares; uma falha nunca é apresentada como custo zero ou total parcial. Pode haver atraso na contabilização. O saldo disponível não é informado por esta integração: consulte-o no console da Anthropic. O aviso de créditos insuficientes reflete a última tentativa na tela, não uma consulta de saldo em tempo real.
+
+Referência: https://platform.claude.com/docs/en/manage-claude/usage-cost-api
+
 ## Dados e comportamento
 
 - Reutiliza os cálculos do painel: resumo de vendas, série diária, resumo por loja, mix de produtos e CMV disponível. O histórico de vendas continua nas tabelas Saipos existentes.

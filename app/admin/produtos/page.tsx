@@ -1,4 +1,4 @@
-import { Package, PackagePlus } from "lucide-react"
+import { ArrowDown, ArrowDownAZ, ArrowUp, Package, PackagePlus } from "lucide-react"
 import Link from "next/link"
 import type { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
@@ -31,6 +31,20 @@ const PRODUCT_AUDIENCES = {
 } as const
 
 type ProductAudienceValue = keyof typeof PRODUCT_AUDIENCES
+type ProductSortField = "name" | "price"
+type ProductSortDirection = "asc" | "desc"
+
+function getProductSort(searchParams?: SearchParams) {
+  const rawSort = Array.isArray(searchParams?.sort) ? searchParams.sort[0] : searchParams?.sort
+  const rawDirection = Array.isArray(searchParams?.direction) ? searchParams.direction[0] : searchParams?.direction
+  const allowedSorts: ProductSortField[] = ["name", "price"]
+  const sort: ProductSortField = allowedSorts.includes(rawSort as ProductSortField)
+    ? (rawSort as ProductSortField)
+    : "name"
+  const direction: ProductSortDirection = rawDirection === "desc" ? "desc" : "asc"
+
+  return { sort, direction }
+}
 
 function getProductAudience(searchParams?: SearchParams): ProductAudienceValue {
   const rawAudience = Array.isArray(searchParams?.audience) ? searchParams?.audience[0] : searchParams?.audience
@@ -43,6 +57,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
   const query = getSearchQuery(resolvedSearchParams)
   const categorySlug = getSearchQuery(resolvedSearchParams, "categoria")
   const page = getCurrentPage(resolvedSearchParams)
+  const { sort, direction } = getProductSort(resolvedSearchParams)
   const categories = await prisma.category.findMany({
     select: { id: true, name: true, slug: true, _count: { select: { products: true } } },
     orderBy: { name: "asc" },
@@ -87,7 +102,11 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
   const products = await prisma.product.findMany({
     where: productWhere,
     include: { category: true, _count: { select: { orderItems: true, comboItems: true } } },
-    orderBy: [{ active: "desc" }, { createdAt: "desc" }],
+    orderBy: [
+      { active: "desc" as const },
+      ...(sort === "name" ? [{ name: direction }] : [{ priceInCents: direction }]),
+      { name: "asc" },
+    ],
     skip: pagination.skip,
     take: pagination.take,
   })
@@ -128,7 +147,15 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       </div>
       <div id="products-grid" className="mt-6">
         <AdminDataList
-          headers={["Produto", "Embalagem", "Preço", "Uso", "Catálogo", "Status", "Ações"]}
+          headers={[
+            <ProductSortHeader key="name" field="name" label="Produto" sort={sort} direction={direction} searchParams={resolvedSearchParams} />,
+            "Embalagem",
+            <ProductSortHeader key="price" field="price" label="Preço" sort={sort} direction={direction} searchParams={resolvedSearchParams} />,
+            "Uso",
+            "Catálogo",
+            "Status",
+            "Ações",
+          ]}
           template="minmax(220px,1.5fr) minmax(160px,1fr) 110px 100px 120px 90px 72px"
           isEmpty={products.length === 0}
           emptyTitle={`Nenhum produto para ${PRODUCT_AUDIENCES[audience].label.toLowerCase()}`}
@@ -271,6 +298,7 @@ function ProductForm({
     unit: string
     audience: ProductAudienceValue
     packageLabel: string
+    supplier: "AM_EMBUTIDOS" | "MARCHEF" | "BONI" | null
     minimumQuantity: number
     featured: boolean
     paymentDiscountEligible: boolean
@@ -295,6 +323,12 @@ function ProductForm({
         <AdminProductCategoryField categories={categories} defaultValue={product?.category.name ?? ""} />
         <AdminInput name="sku" label="SKU" defaultValue={product?.sku ?? ""} />
       </AdminFieldGrid>
+      <AdminSelect name="supplier" label="Fornecedor" defaultValue={product?.supplier ?? "FACTORY"}>
+        <option value="FACTORY">Nacho Factory</option>
+        <option value="AM_EMBUTIDOS">A.M. Embutidos (fornecedor parceiro)</option>
+        <option value="MARCHEF">Marchef Pescados (fornecedor parceiro)</option>
+        <option value="BONI">Boni Embalagens (fornecedor parceiro)</option>
+      </AdminSelect>
       <AdminSelect name="audience" label="Catálogo" defaultValue={product?.audience ?? defaultAudience}>
         <option value="FRANCHISEE">Franqueados</option>
         <option value="PUBLIC">Não franqueados</option>
@@ -504,6 +538,53 @@ function ProductCategoryFilterLink({
       <span className={`rounded-full px-2 py-0.5 text-[9px] ${active ? "bg-background/15" : "bg-background"}`}>
         {count}
       </span>
+    </Link>
+  )
+}
+
+function ProductSortHeader({
+  field,
+  label,
+  sort,
+  direction,
+  searchParams,
+}: {
+  field: ProductSortField
+  label: string
+  sort: ProductSortField
+  direction: ProductSortDirection
+  searchParams?: SearchParams
+}) {
+  const active = sort === field
+  const nextDirection = active ? (direction === "asc" ? "desc" : "asc") : "asc"
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(searchParams ?? {})) {
+    if (key === "page" || key === "sort" || key === "direction" || value === undefined) continue
+    if (Array.isArray(value)) value.forEach((item) => params.append(key, item))
+    else params.set(key, value)
+  }
+  params.set("sort", field)
+  params.set("direction", nextDirection)
+  const href = `/admin/produtos?${params.toString()}`
+
+  return (
+    <Link
+      href={href}
+      scroll={false}
+      aria-label={`Ordenar por ${label.toLowerCase()} em ordem ${nextDirection === "asc" ? "crescente" : "decrescente"}`}
+      aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : "none"}
+      className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[.14em] text-muted-foreground transition hover:text-lime"
+    >
+      {label}
+      {active ? (
+        field === "name" ? (
+          <ArrowDownAZ className={`h-3 w-3 ${direction === "desc" ? "rotate-180" : ""}`} aria-hidden="true" />
+        ) : direction === "asc" ? (
+          <ArrowUp className="h-3 w-3" aria-hidden="true" />
+        ) : (
+          <ArrowDown className="h-3 w-3" aria-hidden="true" />
+        )
+      ) : null}
     </Link>
   )
 }

@@ -7,6 +7,7 @@ import { ArrowUpRight, Check, Package, Plus } from "lucide-react"
 import { useCartStore } from "@/lib/cart-store"
 import { useMarketplaceCart } from "@/lib/marketplace-cart-store"
 import type { CatalogProduct } from "@/lib/products"
+import { getOrderItemSupplierLabel } from "@/lib/order-items"
 
 type MarketplaceCommerce = {
   context: "marketplace"
@@ -14,6 +15,7 @@ type MarketplaceCommerce = {
   unit: string
   packageLabel: string
   minimumQuantity: number
+  supplier?: "AM_EMBUTIDOS" | "MARCHEF" | "BONI" | null
 }
 
 type ProductDetailCardProps = {
@@ -98,6 +100,11 @@ export function ProductDetailCard({ product, commerce }: ProductDetailCardProps)
 
       <div className="relative z-10 flex flex-1 flex-col bg-background p-5 md:p-6">
         <div>
+          {(commerce?.supplier ?? product.supplier) && (
+            <p className="mb-2 text-[10px] font-bold text-purple-medium">
+              Fornecimento por parceiro: {getOrderItemSupplierLabel({ supplier: commerce?.supplier ?? product.supplier })}. A Nacho Factory faz a ponte.
+            </p>
+          )}
           <Link href={detailHref} className="block">
             <h3 className="mt-3 line-clamp-2 text-xl font-black uppercase leading-[1.1] tracking-[-0.025em] text-foreground transition-colors group-hover:text-lime md:text-2xl">
               {product.displayName}

@@ -19,6 +19,7 @@ const publicProductSelect = {
   priceInCents: true,
   unit: true,
   packageLabel: true,
+  supplier: true,
   minimumQuantity: true,
   category: { select: { name: true } },
 } satisfies Prisma.ProductSelect

@@ -16,6 +16,7 @@ export type MarketplaceProductRecord = {
   priceInCents: number
   unit: "KG" | "UND" | "CX"
   packageLabel: string | null
+  supplier?: "AM_EMBUTIDOS" | "MARCHEF" | "BONI" | null
   minimumQuantity: number
   category: {
     name: string
@@ -54,6 +55,7 @@ export function adaptMarketplaceProduct(product: MarketplaceProductRecord): Cata
 
   return {
     slug: product.slug,
+    supplier: product.supplier ?? null,
     name: product.name,
     displayName: product.name,
     description,

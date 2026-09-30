@@ -25,6 +25,12 @@ enum ProductAudience {
   PUBLIC
 }
 
+enum ProductSupplier {
+  AM_EMBUTIDOS
+  MARCHEF
+  BONI
+}
+
 enum DiscountType {
   PERCENTAGE
   FIXED
@@ -420,6 +426,7 @@ model Product {
   unit                    ProductUnit
   audience                ProductAudience       @default(FRANCHISEE)
   packageLabel            String
+  supplier                ProductSupplier?
   minimumQuantity         Int                   @default(1)
   stockQuantity           Int?
   active                  Boolean               @default(true)
@@ -584,6 +591,7 @@ model OrderItem {
   unitPriceInCents Int
   totalInCents     Int
   selectedOptions  Json?
+  supplier         ProductSupplier?
 
   @@index([orderId])
   @@index([productId])

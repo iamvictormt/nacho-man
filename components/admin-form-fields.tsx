@@ -231,6 +231,10 @@ export function AdminDatePicker({
   valueFormat = "br",
   minDate,
   maxDate,
+  onValueChange,
+  disabled,
+  ariaLabel,
+  popoverClassName,
 }: {
   label: string
   name: string
@@ -243,6 +247,10 @@ export function AdminDatePicker({
   valueFormat?: "br" | "iso"
   minDate?: string
   maxDate?: string
+  onValueChange?: (value: string) => void
+  disabled?: boolean
+  ariaLabel?: string
+  popoverClassName?: string
 }) {
   const fieldId = id ?? name
   const [open, setOpen] = React.useState(false)
@@ -265,6 +273,8 @@ export function AdminDatePicker({
           <button
             type="button"
             id={fieldId}
+            disabled={disabled}
+            aria-label={ariaLabel}
             aria-invalid={Boolean(error)}
             className={cn(
               controlClassName,
@@ -276,7 +286,11 @@ export function AdminDatePicker({
             <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
           </button>
         </PopoverTrigger>
-        <PopoverContent align="start" sideOffset={8} className="z-[90] w-auto rounded-xl border-border bg-popover p-0">
+        <PopoverContent
+          align="start"
+          sideOffset={8}
+          className={cn("z-[90] w-auto rounded-xl border-border bg-popover p-0", popoverClassName)}
+        >
           <Calendar
             mode="single"
             locale={ptBR}
@@ -287,6 +301,7 @@ export function AdminDatePicker({
             onSelect={(date) => {
               if (!date) return
               setValue(formatDateInput(date))
+              onValueChange?.(valueFormat === "iso" ? formatIsoDateInput(date) : formatDateInput(date))
               setOpen(false)
             }}
           />
@@ -343,7 +358,8 @@ export function AdminDateRangePicker({
   const from = range?.from
   const to = range?.to
   const dynamicMin = from && selectingEnd ? addDays(from, -(maxRangeDays - 1)) : undefined
-  const dynamicMax = from && selectingEnd ? minDate(addDays(from, maxRangeDays - 1), max ?? addDays(from, maxRangeDays - 1)) : max
+  const dynamicMax =
+    from && selectingEnd ? minDate(addDays(from, maxRangeDays - 1), max ?? addDays(from, maxRangeDays - 1)) : max
   const displayValue =
     from && to
       ? `${formatDateInput(from)} - ${formatDateInput(to)}`

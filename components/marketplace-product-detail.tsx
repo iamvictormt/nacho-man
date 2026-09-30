@@ -7,6 +7,7 @@ import { Check, ChefHat, Clock3, Minus, Plus, ShieldCheck } from "lucide-react"
 import type { CatalogProduct } from "@/lib/products"
 import { useMarketplaceCart } from "@/lib/marketplace-cart-store"
 import { ProductDetailCard } from "@/components/product-detail-card"
+import { getOrderItemSupplierLabel } from "@/lib/order-items"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -21,6 +22,7 @@ type MarketplaceCommerce = {
   unit: string
   packageLabel: string
   minimumQuantity: number
+  supplier?: "AM_EMBUTIDOS" | "MARCHEF" | "BONI" | null
 }
 
 type RelatedMarketplaceProduct = {
@@ -111,6 +113,11 @@ export function MarketplaceProductDetail({
 
   return (
     <div>
+        {commerce.supplier && (
+          <p className="mb-3 rounded-xl border border-purple-medium/20 bg-purple-medium/5 px-4 py-3 text-xs font-bold text-purple-medium">
+            Fornecimento por parceiro: {getOrderItemSupplierLabel(commerce)}. A Nacho Factory faz a ponte.
+          </p>
+        )}
       <div className="mx-auto max-w-7xl px-4 pt-6">
         <Breadcrumb>
           <BreadcrumbList>

@@ -11,6 +11,46 @@ export const maxDuration = 120
 
 const json = (body: unknown, status = 200) =>
   NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } })
+
+// Translate provider details into fixed messages; never expose the raw response.
+async function providerFailure(response: Response) {
+  const body = await response.json().catch(() => null)
+  const message = typeof body?.error?.message === "string" ? body.error.message.toLowerCase() : ""
+  if (response.status === 429) return "PROVIDER_LIMIT"
+  if (response.status === 401) return "PROVIDER_AUTH"
+  if (response.status === 400 && message.includes("credit balance")) return "PROVIDER_CREDITS"
+  if (response.status === 400 && message.includes("workspace")) return "PROVIDER_WORKSPACE"
+  if (response.status === 403) return "PROVIDER_PERMISSION"
+  if (response.status === 404) return "PROVIDER_MODEL"
+  if (response.status === 413) return "CONTEXT_TOO_LARGE"
+  if (response.status >= 500) return "PROVIDER_UNAVAILABLE"
+  return "PROVIDER_ERROR"
+}
+
+const failureMessages: Record<string, string> = {
+  PROVIDER_CREDITS:
+    "A análise com IA está indisponível porque o saldo de créditos da API Anthropic é insuficiente. Peça ao administrador para adicionar créditos em Plans & Billing e tente novamente.",
+  PROVIDER_WORKSPACE:
+    "A chave da IA exige a configuração de um workspace da Anthropic. Peça ao administrador para configurar o workspace ou usar uma chave vinculada a ele.",
+  PROVIDER_AUTH:
+    "A chave de acesso à IA é inválida ou foi revogada. Peça ao administrador para atualizar a chave da Anthropic.",
+  PROVIDER_PERMISSION:
+    "A conta da IA não tem permissão para realizar esta análise. Peça ao administrador para verificar as permissões da chave e o acesso ao modelo na Anthropic.",
+  PROVIDER_MODEL:
+    "O modelo de IA configurado não está disponível para esta conta. Peça ao administrador para verificar o modelo na Anthropic.",
+  PROVIDER_UNAVAILABLE:
+    "O serviço de IA da Anthropic está temporariamente indisponível ou sobrecarregado. Aguarde alguns minutos e tente novamente.",
+  PROVIDER_ERROR:
+    "A Anthropic recusou a solicitação de análise. Peça ao administrador para verificar a configuração da integração com a IA.",
+  PROVIDER_TIMEOUT:
+    "A IA demorou mais que o esperado para responder. Tente novamente em alguns minutos ou selecione um período menor.",
+  PROVIDER_CERTIFICATE:
+    "O servidor não conseguiu estabelecer uma conexão segura com a Anthropic. Peça ao administrador para verificar os certificados de segurança do servidor.",
+  PROVIDER_CONNECTION:
+    "O servidor não conseguiu se conectar à Anthropic. Tente novamente em alguns minutos; se persistir, peça ao administrador para verificar a conexão do servidor.",
+  EMPTY_ANSWER: "A IA não retornou uma resposta utilizável. Reformule a pergunta e tente novamente.",
+}
+
 async function authorizedUser() {
   const user = await getCurrentUser()
   return user &&
@@ -107,7 +147,14 @@ export async function POST(request: NextRequest) {
       method: "POST",
       cache: "no-store",
       signal: AbortSignal.timeout(75000),
-      headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+        ...(process.env.ANTHROPIC_WORKSPACE_ID?.trim()
+          ? { "anthropic-workspace-id": process.env.ANTHROPIC_WORKSPACE_ID.trim() }
+          : {}),
+      },
       body: JSON.stringify({
         model,
         max_tokens: 3000,
@@ -117,8 +164,23 @@ export async function POST(request: NextRequest) {
           { role: "user", content: `DADOS DO PAINEL (JSON):\n${contextText}\n\nPERGUNTA:\n${input.question}` },
         ],
       }),
+    }).catch((error: unknown) => {
+      if (error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name))
+        throw new Error("PROVIDER_TIMEOUT")
+      const cause = error instanceof Error ? (error.cause as { code?: string } | undefined) : undefined
+      if (
+        [
+          "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+          "SELF_SIGNED_CERT_IN_CHAIN",
+          "DEPTH_ZERO_SELF_SIGNED_CERT",
+          "CERT_HAS_EXPIRED",
+          "UNABLE_TO_GET_ISSUER_CERT_LOCALLY",
+        ].includes(cause?.code ?? "")
+      )
+        throw new Error("PROVIDER_CERTIFICATE")
+      throw new Error("PROVIDER_CONNECTION")
     })
-    if (!response.ok) throw new Error(response.status === 429 ? "PROVIDER_LIMIT" : "PROVIDER_ERROR")
+    if (!response.ok) throw new Error(await providerFailure(response))
     const result = await response.json()
     const answer = Array.isArray(result.content)
       ? result.content
@@ -158,6 +220,7 @@ export async function POST(request: NextRequest) {
       return json({ error: "Selecione um período menor ou apenas uma loja para esta análise." }, 422)
     if (code === "PROVIDER_LIMIT")
       return json({ error: "O Claude atingiu um limite temporário. Tente novamente mais tarde." }, 429)
+    if (Object.hasOwn(failureMessages, code)) return json({ error: failureMessages[code], code }, 503)
     return json(
       {
         error:

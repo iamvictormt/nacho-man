@@ -14,7 +14,7 @@ import {
   ReceiptText,
   RefreshCw,
   Store,
-  Sparkles,
+  BrainCircuit,
   Timer,
   TrendingUp,
   Users,
@@ -98,7 +98,7 @@ type DashboardTab =
 
 const tabs: Array<{ id: DashboardTab; label: string; icon: LucideIcon; active: boolean }> = [
   { id: "resumo", label: "Resumo Executivo", icon: BarChart3, active: true },
-  { id: "ia", label: "Análise com IA", icon: Sparkles, active: true },
+  { id: "ia", label: "Análise com IA", icon: BrainCircuit, active: true },
   { id: "alertas", label: "Alertas", icon: AlertTriangle, active: true },
   { id: "vendas", label: "Vendas e Clientes", icon: Users, active: true },
   { id: "ticket", label: "Ticket Médio", icon: TrendingUp, active: true },

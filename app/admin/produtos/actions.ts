@@ -1,19 +1,22 @@
 "use server"
 
-import { ProductAudience, ProductUnit } from "@prisma/client"
+import { ProductAudience, ProductSupplier, ProductUnit } from "@prisma/client"
 import { revalidatePath } from "next/cache"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
 import { parseMoneyToCents } from "@/lib/money"
 import { createSlug } from "@/lib/slug"
+import { normalizeCategoryName } from "@/lib/category-name"
 
 const NEW_CATEGORY_VALUE = "__new__"
 const validAudiences = new Set<ProductAudience>(["FRANCHISEE", "PUBLIC"])
+const validSuppliers = new Set<ProductSupplier>(["AM_EMBUTIDOS", "MARCHEF", "BONI"])
 
 function getCategoryName(formData: FormData) {
   const selectedCategory = String(formData.get("category") ?? "").trim()
   const newCategory = String(formData.get("newCategory") ?? "").trim()
-  return selectedCategory === NEW_CATEGORY_VALUE ? newCategory : selectedCategory
+  const name = selectedCategory === NEW_CATEGORY_VALUE ? newCategory : selectedCategory
+  return name ? normalizeCategoryName(name) : ""
 }
 
 function getProductAudience(formData: FormData) {
@@ -23,6 +26,11 @@ function getProductAudience(formData: FormData) {
 
 function optionalText(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim() || null
+}
+
+function getProductSupplier(formData: FormData) {
+  const supplier = String(formData.get("supplier") ?? "") as ProductSupplier
+  return validSuppliers.has(supplier) ? supplier : null
 }
 
 export async function createProductAction(formData: FormData) {
@@ -63,6 +71,7 @@ export async function createProductAction(formData: FormData) {
       unit,
       audience: getProductAudience(formData),
       packageLabel,
+      supplier: getProductSupplier(formData),
       minimumQuantity: Math.max(1, Number(formData.get("minimumQuantity") ?? 1)),
       featured: formData.get("featured") === "on",
       paymentDiscountEligible: formData.get("paymentDiscountEligible") === "on",
@@ -119,6 +128,7 @@ export async function updateProductAction(formData: FormData) {
       unit: String(formData.get("unit") ?? "UND") as ProductUnit,
       audience: getProductAudience(formData),
       packageLabel,
+      supplier: getProductSupplier(formData),
       minimumQuantity: Math.max(1, Number(formData.get("minimumQuantity") ?? 1)),
       featured: formData.get("featured") === "on",
       paymentDiscountEligible: formData.get("paymentDiscountEligible") === "on",
@@ -151,7 +161,8 @@ export async function updateCategoryAction(formData: FormData) {
   await requireAdmin()
 
   const id = String(formData.get("id") ?? "").trim()
-  const name = String(formData.get("name") ?? "").trim()
+  const rawName = String(formData.get("name") ?? "").trim()
+  const name = rawName ? normalizeCategoryName(rawName) : ""
   if (!id || !name) throw new Error("Informe o nome da categoria.")
 
   const slug = createSlug(name)

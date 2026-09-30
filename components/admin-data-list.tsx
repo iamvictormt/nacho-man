@@ -10,7 +10,7 @@ export function AdminDataList({
   emptyTitle = "Nenhum registro encontrado",
   emptyDescription = "Quando houver itens cadastrados, eles aparecerão nesta lista.",
 }: {
-  headers: string[]
+  headers: React.ReactNode[]
   template: string
   children: React.ReactNode
   className?: string
