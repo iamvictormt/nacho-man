@@ -222,7 +222,9 @@ async function getCartItems(user: MarketplaceUser) {
     await prisma.marketplaceCartItem.deleteMany({ where: { id: { in: invalidIds } } })
   }
 
-  return items.sort((first, second) => Number(Boolean(first.supplier)) - Number(Boolean(second.supplier)))
+  return items
+    .sort((first, second) => Number(Boolean(first.supplier)) - Number(Boolean(second.supplier)))
+    .map(({ supplier: _supplier, ...item }) => item)
 }
 
 export async function GET() {

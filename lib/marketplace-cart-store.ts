@@ -11,7 +11,6 @@ export type MarketplaceCartItem = {
   image?: string | null
   unit: string
   packageLabel: string
-  supplier?: "AM_EMBUTIDOS" | "MARCHEF" | "BONI" | null
   unitPriceInCents: number
   paymentDiscountEligibleInCents?: number
   minimumQuantity: number

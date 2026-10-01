@@ -18,7 +18,6 @@ import {
 } from "lucide-react"
 import { useLockBodyScroll } from "@/hooks/use-lock-body-scroll"
 import { useMarketplaceCart } from "@/lib/marketplace-cart-store"
-import { getOrderItemSupplierLabel } from "@/lib/order-items"
 import { formatMoneyFromCents } from "@/lib/money"
 import { getPaymentMethodLabel, type MarketplacePaymentMethod } from "@/lib/payment-method"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -410,12 +409,7 @@ export function MarketplaceCartDrawer({
                       <div className="flex h-full flex-col justify-between gap-5">
                         <div>
                           <h4 className="text-sm font-black uppercase leading-5">{item.name}</h4>
-                          <p className="mt-1 text-xs text-muted-foreground">{item.packageLabel}</p>
-                          {getOrderItemSupplierLabel(item) && (
-                            <p className="mt-2 text-[10px] font-bold text-purple-medium">
-                              Fornecimento por parceiro: {getOrderItemSupplierLabel(item)}. A Nacho Factory faz a ponte.
-                            </p>
-                          )}
+                          <p className="mt-1 text-xs text-muted-foreground">{item.packageLabel}</p> 
                           {item.selectedOptions && item.selectedOptions.length > 0 && (
                             <ul className="mt-3 space-y-1 text-[10px] font-bold uppercase text-foreground/70">
                               {item.selectedOptions.map((option) => (
@@ -452,11 +446,6 @@ export function MarketplaceCartDrawer({
                         <div>
                           <h3 className="text-sm font-black uppercase leading-5">{item.name}</h3>
                           <p className="mt-1 text-xs text-muted-foreground">{item.packageLabel}</p>
-                          {getOrderItemSupplierLabel(item) && (
-                            <p className="mt-2 text-[10px] font-bold text-purple-medium">
-                              Fornecimento por parceiro: {getOrderItemSupplierLabel(item)}. A Nacho Factory faz a ponte.
-                            </p>
-                          )}
                           {item.selectedOptions && item.selectedOptions.length > 0 && (
                             <ul className="mt-3 space-y-1 text-[10px] font-bold uppercase text-foreground/70">
                               {item.selectedOptions.map((option) => (

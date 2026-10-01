@@ -16,7 +16,7 @@ import { getCurrentPage, getPagination, type SearchParams } from "@/lib/paginati
 import { PrivatePageHeader } from "@/components/private-page-header"
 import { getPaymentDiscountLabel, getPaymentMethodInstruction, getPaymentMethodLabel } from "@/lib/payment-method"
 import { formatOrderCode } from "@/lib/order-number"
-import { getOrderItemCategoryName, getOrderItemSupplierLabel, sortOrderItemsByCategory } from "@/lib/order-items"
+import { getOrderItemCategoryName, sortOrderItemsByCategory } from "@/lib/order-items"
 import { getOrderMessageSettings, getStoreWhatsAppNumber } from "@/lib/site-settings"
 import { buildWhatsAppUrl } from "@/lib/whatsapp"
 import {
@@ -294,11 +294,6 @@ function OrderCard({
                     {getOrderItemCategoryName(item) && (
                       <p className="mt-1 text-[9px] font-black uppercase tracking-wider text-purple-medium">
                         {getOrderItemCategoryName(item)}
-                      </p>
-                    )}
-                    {getOrderItemSupplierLabel(item) && (
-                      <p className="mt-1 text-[10px] font-bold text-purple-medium">
-                        Fornecimento por parceiro: {getOrderItemSupplierLabel(item)}. A Nacho Factory faz a ponte.
                       </p>
                     )}
                     <p className="mt-1 text-[10px] text-muted-foreground">

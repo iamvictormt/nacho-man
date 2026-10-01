@@ -100,11 +100,6 @@ export function ProductDetailCard({ product, commerce }: ProductDetailCardProps)
 
       <div className="relative z-10 flex flex-1 flex-col bg-background p-5 md:p-6">
         <div>
-          {(commerce?.supplier ?? product.supplier) && (
-            <p className="mb-2 text-[10px] font-bold text-purple-medium">
-              Fornecimento por parceiro: {getOrderItemSupplierLabel({ supplier: commerce?.supplier ?? product.supplier })}. A Nacho Factory faz a ponte.
-            </p>
-          )}
           <Link href={detailHref} className="block">
             <h3 className="mt-3 line-clamp-2 text-xl font-black uppercase leading-[1.1] tracking-[-0.025em] text-foreground transition-colors group-hover:text-lime md:text-2xl">
               {product.displayName}
@@ -128,14 +123,14 @@ export function ProductDetailCard({ product, commerce }: ProductDetailCardProps)
           ))}
         </ul>
 
-        <div className="mt-5 flex items-center gap-3 rounded-xl border border-border bg-graphite px-4 py-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-purple-medium/25 bg-purple-medium/10">
-            <Package className="h-4 w-4 text-purple-medium" aria-hidden="true" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-[0.16em] text-muted-foreground">Embalagem</p>
-            <p className="mt-0.5 truncate text-xs font-bold text-foreground">{product.weight}</p>
-          </div>
+        <div className={`mt-5 grid gap-2 ${commerce?.supplier ?? product.supplier ? "sm:grid-cols-2" : ""}`}>
+          <ProductInfo label="Embalagem" value={product.weight}/>
+          {(commerce?.supplier ?? product.supplier) && (
+            <ProductInfo
+              label="Fornecedor"
+              value={getOrderItemSupplierLabel({ supplier: commerce?.supplier ?? product.supplier })!}
+            />
+          )}
         </div>
 
         {visibleApplications.length > 0 && (
@@ -175,5 +170,32 @@ export function ProductDetailCard({ product, commerce }: ProductDetailCardProps)
         </div>
       </div>
     </article>
+  )
+}
+
+function ProductInfo({
+  label,
+  value,
+  detail,
+  icon,
+}: {
+  label: string
+  value: string
+  detail?: string
+  icon?: React.ReactNode
+}) {
+  return (
+    <div className="flex min-w-0 items-start gap-3 rounded-xl border border-border bg-graphite px-4 py-3">
+      {icon && (
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-purple-medium/25 bg-purple-medium/10">
+          {icon}
+        </span>
+      )}
+      <div className="min-w-0">
+        <p className="text-[9px] font-black uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+        <p className="mt-0.5 truncate text-xs font-bold text-foreground">{value}</p>
+        {detail && <p className="mt-1 text-[10px] leading-4 text-muted-foreground">{detail}</p>}
+      </div>
+    </div>
   )
 }

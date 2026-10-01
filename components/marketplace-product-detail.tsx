@@ -23,6 +23,7 @@ type MarketplaceCommerce = {
   packageLabel: string
   minimumQuantity: number
   supplier?: "AM_EMBUTIDOS" | "MARCHEF" | "BONI" | null
+  audience: "FRANCHISEE" | "PUBLIC"
 }
 
 type RelatedMarketplaceProduct = {
@@ -112,12 +113,7 @@ export function MarketplaceProductDetail({
   }
 
   return (
-    <div>
-        {commerce.supplier && (
-          <p className="mb-3 rounded-xl border border-purple-medium/20 bg-purple-medium/5 px-4 py-3 text-xs font-bold text-purple-medium">
-            Fornecimento por parceiro: {getOrderItemSupplierLabel(commerce)}. A Nacho Factory faz a ponte.
-          </p>
-        )}
+      <div>
       <div className="mx-auto max-w-7xl px-4 pt-6">
         <Breadcrumb>
           <BreadcrumbList>
@@ -157,9 +153,11 @@ export function MarketplaceProductDetail({
                 <span className="rounded-full border border-lime/25 bg-background/78 px-3 py-1 text-lime backdrop-blur">
                   {product.subcategory}
                 </span>
-                <span className="rounded-full border border-border bg-background/78 px-3 py-1 text-muted-foreground backdrop-blur">
-                  Exclusivo para franqueados
-                </span>
+                {commerce.audience === "FRANCHISEE" && (
+                  <span className="rounded-full border border-border bg-background/78 px-3 py-1 text-muted-foreground backdrop-blur">
+                    Exclusivo para franqueados
+                  </span>
+                )}
               </div>
             </div>
 
@@ -209,7 +207,7 @@ export function MarketplaceProductDetail({
                 </div>
               )}
 
-              <div className="grid grid-cols-[1.1fr_0.9fr] gap-5 border-y border-border/70 py-5">
+              <div className={`grid gap-5 border-y border-border/70 py-5 ${commerce.supplier ? "sm:grid-cols-3" : "grid-cols-[1.1fr_0.9fr]"}`}>
                 <div>
                   <span className="text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">
                     Preço exclusivo
@@ -227,6 +225,16 @@ export function MarketplaceProductDetail({
                     </p>
                   )}
                 </div>
+                {commerce.supplier && (
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-[0.22em] text-purple-medium">
+                      Fornecedor
+                    </span>
+                    <p className="mt-2 text-sm font-bold leading-relaxed text-foreground">
+                      {getOrderItemSupplierLabel(commerce)}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col items-stretch gap-3 border border-border bg-graphite p-3 sm:flex-row sm:items-center">

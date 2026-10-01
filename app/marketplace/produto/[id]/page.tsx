@@ -37,6 +37,7 @@ export default async function MarketplaceProductPage({ params }: { params: Promi
         packageLabel: product.packageLabel,
         minimumQuantity: product.minimumQuantity,
         supplier: product.supplier,
+        audience: product.audience,
       }}
       relatedProducts={related.map((item) => ({
         product: adaptMarketplaceProduct(item),
@@ -46,6 +47,7 @@ export default async function MarketplaceProductPage({ params }: { params: Promi
           packageLabel: item.packageLabel,
           minimumQuantity: item.minimumQuantity,
           supplier: item.supplier,
+          audience: item.audience,
         },
       }))}
     />
