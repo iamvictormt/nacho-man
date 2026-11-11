@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 import {
   BarChart3,
+  BrainCircuit,
   Factory,
   Gift,
   KeyRound,
@@ -394,6 +395,17 @@ export function PrivateShell({
         </div>
         <div className="relative">{children}</div>
       </div>
+
+      {admin && canAccessIndicators && !pathname.startsWith("/indicadores") ? (
+        <Link
+          href="/indicadores?tab=ia"
+          aria-label="Abrir conversa com IA dos indicadores"
+          className="fixed bottom-5 right-5 z-50 inline-flex min-h-12 items-center gap-2 rounded-full border border-lime/30 bg-lime px-4 text-xs font-black text-background shadow-[0_12px_36px_rgba(0,0,0,.35)] transition hover:-translate-y-0.5 hover:bg-lime-dark sm:bottom-6 sm:right-6"
+        >
+          <BrainCircuit className="h-4 w-4" />
+          Perguntar à IA
+        </Link>
+      ) : null}
 
       <footer className="border-t border-border bg-graphite">
         <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-8 sm:flex-row sm:items-center sm:justify-between">

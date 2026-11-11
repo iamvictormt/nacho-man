@@ -308,7 +308,7 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
   }))
 
   return (
-    <main className="min-h-screen touch-pan-y overflow-x-hidden bg-background text-foreground">
+    <main className="min-h-screen touch-pan-y overflow-x-clip bg-background text-foreground">
       <SaiposMobileMenu tabs={mobileTabs} />
       <div className="min-h-screen xl:block">
         <aside className="hidden border-border bg-graphite/95 backdrop-blur xl:fixed xl:inset-y-0 xl:left-0 xl:z-30 xl:block xl:w-[280px] xl:overflow-hidden xl:border-r">
@@ -358,7 +358,7 @@ export default async function IndicatorsPage({ searchParams }: { searchParams?: 
           </div>
         </aside>
 
-        <section className="min-w-0 max-w-full touch-pan-y overflow-x-hidden px-3 py-5 sm:px-4 md:px-7 xl:ml-[280px]">
+        <section className="min-w-0 max-w-full touch-pan-y overflow-x-clip px-3 py-5 sm:px-4 md:px-7 xl:ml-[280px]">
           <header className="flex min-w-0 flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="text-xs font-black uppercase tracking-[0.18em] text-lime">Nacho Man BI</p>

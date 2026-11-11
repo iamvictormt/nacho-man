@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import ReactMarkdown from "react-markdown"
-import { BrainCircuit, Loader2, History, ArrowUpRight, Download, AlertCircle, Minimize2, Maximize2 } from "lucide-react"
+import { BrainCircuit, Loader2, History, ArrowUpRight, Download, AlertCircle, Minimize2, Maximize2, ArrowLeft } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -14,6 +14,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { IndicatorsAiCosts } from "@/components/indicators-ai-costs"
 
 type HistoryRow = { id: string; question: string; status: string; createdAt: string }
+type AiScreen = "conversation" | "detail" | "history"
 type Analysis = HistoryRow & {
   answer: string | null
   snapshot: {
@@ -62,16 +63,21 @@ export function IndicatorsAi({
   const [question, setQuestion] = useState("")
   const [configured, setConfigured] = useState(false)
   const [history, setHistory] = useState<HistoryRow[]>([])
-  const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(false)
+  const [allHistory, setAllHistory] = useState<HistoryRow[]>([])
+  const [allPage, setAllPage] = useState(0)
+  const [allHasMore, setAllHasMore] = useState(false)
+  const [loadingAll, setLoadingAll] = useState(false)
+  const [allHistoryError, setAllHistoryError] = useState("")
   const [loadingHistory, setLoadingHistory] = useState(true)
   const [busy, setBusy] = useState(false)
-  const [opening, setOpening] = useState(false)
   const [error, setError] = useState("")
   const [creditError, setCreditError] = useState(false)
   const [historyError, setHistoryError] = useState("")
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
   const [analysisMinimized, setAnalysisMinimized] = useState(false)
+  const [screen, setScreen] = useState<AiScreen>("conversation")
+  const [detailReturnScreen, setDetailReturnScreen] = useState<AiScreen>("conversation")
   const questionRef = useRef<HTMLTextAreaElement>(null)
 
   const loadHistory = useCallback(
@@ -79,7 +85,7 @@ export function IndicatorsAi({
       setLoadingHistory(true)
       setHistoryError("")
       try {
-        const response = await fetch(`/api/indicadores/analysis?page=${page}`, { cache: "no-store", signal })
+        const response = await fetch("/api/indicadores/analysis?page=0", { cache: "no-store", signal })
         const data = await response.json()
         if (!response.ok) throw new Error(data.error)
         setHistory(data.analyses)
@@ -92,7 +98,7 @@ export function IndicatorsAi({
         if (!signal?.aborted) setLoadingHistory(false)
       }
     },
-    [page]
+    []
   )
 
   useEffect(() => {
@@ -103,7 +109,7 @@ export function IndicatorsAi({
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
-    if (busy || opening) return
+    if (busy) return
     setBusy(true)
     setError("")
     setAnalysis(null)
@@ -126,25 +132,45 @@ export function IndicatorsAi({
       setError(err instanceof Error ? err.message : "Falha de conexão. Consulte o histórico antes de tentar novamente.")
     } finally {
       setBusy(false)
-      if (page === 0) void loadHistory()
-      else setPage(0)
+      void loadHistory()
     }
   }
 
-  async function openAnalysis(id: string) {
-    setOpening(true)
+  async function loadAllHistory(nextPage: number) {
+    setLoadingAll(true)
+    setAllHistoryError("")
+    try {
+      const response = await fetch(`/api/indicadores/analysis?page=${nextPage}`, { cache: "no-store" })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error)
+      setAllHistory(data.analyses)
+      setAllHasMore(data.hasMore)
+      setAllPage(nextPage)
+    } catch (err) {
+      setAllHistoryError(err instanceof Error ? err.message : "Não foi possível carregar as análises.")
+    } finally {
+      setLoadingAll(false)
+    }
+  }
+
+  async function openAnalysis(id: string, returnScreen: AiScreen) {
     setError("")
+    setDetailReturnScreen(returnScreen)
     try {
       const response = await fetch(`/api/indicadores/analysis?id=${encodeURIComponent(id)}`, { cache: "no-store" })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error)
       setAnalysis(data.analysis)
       setAnalysisMinimized(false)
+      setScreen("detail")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível abrir a análise.")
-    } finally {
-      setOpening(false)
     }
+  }
+
+  async function showAllHistory() {
+    setScreen("history")
+    await loadAllHistory(0)
   }
 
   function download() {
@@ -158,14 +184,18 @@ export function IndicatorsAi({
   }
 
   return (
-    <div className="[--accent:var(--secondary)] [--accent-foreground:var(--lime)] mt-5 grid min-w-0 gap-4 sm:mt-6 sm:gap-5 2xl:grid-cols-[minmax(0,1fr)_340px]">
-      <div className="min-w-0 space-y-5">
+    <div className={`[--accent:var(--secondary)] [--accent-foreground:var(--lime)] mt-5 grid min-w-0 gap-4 sm:mt-6 sm:gap-5 ${screen === "conversation" ? "2xl:grid-cols-[minmax(0,1fr)_340px]" : ""}`}>
+      <div className="flex min-w-0 flex-col gap-5">
+        {screen === "conversation" ? (
+          <>
         <Card className="@container min-w-0 gap-0 rounded-2xl border-border bg-graphite p-4 shadow-none sm:p-6">
-          <div className="flex items-center gap-3">
-            <span className="shrink-0 rounded-xl border border-lime/20 bg-lime/10 p-2.5 sm:p-3">
-              <BrainCircuit className="h-5 w-5 text-lime" />
-            </span>
-            <h2 className="min-w-0 text-base font-bold sm:text-lg">Análise dos indicadores</h2>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="shrink-0 rounded-xl border border-lime/20 bg-lime/10 p-2.5 sm:p-3">
+                <BrainCircuit className="h-5 w-5 text-lime" />
+              </span>
+              <h2 className="min-w-0 text-base font-bold sm:text-lg">Conversa com IA</h2>
+            </div>
           </div>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
             Pergunte sobre vendas, lojas, produtos e CMV. O Claude analisa os dois períodos abaixo e cada resposta fica
@@ -280,7 +310,7 @@ export function IndicatorsAi({
               </p>
               <Button
                 variant="ghost"
-                disabled={!configured || busy || opening || question.trim().length < 8}
+                disabled={!configured || busy || question.trim().length < 8}
                 type="submit"
                 className="inline-flex h-auto min-h-11 w-full whitespace-normal items-center gap-2 rounded-xl bg-lime px-5 py-3 text-sm font-bold text-black sm:w-auto transition hover:bg-lime-dark hover:text-black dark:hover:bg-lime-dark dark:hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
               >
@@ -290,7 +320,7 @@ export function IndicatorsAi({
             </div>
           </form>
         </Card>
-        <div aria-live="polite" aria-busy={busy || opening}>
+        <div aria-live="polite" aria-busy={busy}>
           {error ? (
             <Alert variant="destructive" className="mb-4 border-red-500/30 bg-red-500/10">
               <AlertCircle />
@@ -303,7 +333,6 @@ export function IndicatorsAi({
               Consultando os dados e preparando a resposta. Isso pode levar cerca de um minuto.
             </p>
           ) : null}
-          {opening ? <p className="text-sm text-muted-foreground">Abrindo análise…</p> : null}
           {analysis ? (
             <article className="min-w-0 rounded-2xl border border-border bg-graphite p-4 sm:p-6">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -366,20 +395,91 @@ export function IndicatorsAi({
                 </p>
               </div>
             </article>
-          ) : !busy && !error ? (
-            <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              Selecione os períodos e faça uma pergunta, ou abra uma análise do histórico.
-            </div>
           ) : null}
         </div>
+          </>
+        ) : screen === "detail" && analysis ? (
+          <section className="min-w-0 rounded-2xl border border-border bg-graphite p-4 sm:p-7">
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={() => {
+                setAnalysis(null)
+                setScreen(detailReturnScreen)
+              }}
+              className="min-h-11 rounded-full border border-border px-4 text-xs font-black uppercase tracking-wider text-muted-foreground hover:border-lime/40 hover:text-lime"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+            </Button>
+            <header className="mt-6 border-b border-border pb-5">
+              <p className="text-xs font-bold uppercase tracking-wider text-lime">
+                {new Date(analysis.createdAt).toLocaleString("pt-BR")} · {getStatusLabel(analysis.status)}
+              </p>
+              <h2 className="mt-3 break-words text-xl font-black leading-tight sm:text-2xl">{analysis.question}</h2>
+            </header>
+            <div className="mt-6 break-words text-sm leading-7 [&_h1]:mb-3 [&_h1]:mt-6 [&_h1]:text-xl [&_h1]:font-black [&_h2]:mb-3 [&_h2]:mt-6 [&_h2]:text-lg [&_h2]:font-black [&_h3]:mb-2 [&_h3]:mt-5 [&_h3]:text-base [&_h3]:font-bold [&_li]:ml-5 [&_li]:list-disc [&_li]:pl-1 [&_ol_li]:list-decimal [&_p]:mb-4 [&_strong]:font-bold [&_ul]:mb-4 [&_ul]:space-y-1">
+              <ReactMarkdown>{analysis.answer ?? "Esta análise não possui resposta salva."}</ReactMarkdown>
+            </div>
+            <p className="mt-6 border-t border-border pt-4 text-xs text-muted-foreground">
+              Resposta gerada a partir dos dados consultados nesta análise. Confira os valores antes de tomar decisões.
+            </p>
+          </section>
+        ) : (
+          <section className="min-w-0 rounded-2xl border border-border bg-graphite p-4 sm:p-7">
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={() => {
+                setAnalysis(null)
+                setScreen("conversation")
+              }}
+              className="min-h-11 rounded-full border border-border px-4 text-xs font-black uppercase tracking-wider text-muted-foreground hover:border-lime/40 hover:text-lime"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+            </Button>
+            <header className="mt-6 border-b border-border pb-5">
+              <h2 className="text-xl font-black sm:text-2xl">Todas as análises</h2>
+              <p className="mt-2 text-sm text-muted-foreground">Da mais recente à mais antiga.</p>
+            </header>
+            {allHistoryError ? <p role="alert" className="mt-5 text-sm text-red-300">{allHistoryError}</p> : null}
+            {loadingAll ? <p className="mt-5 text-sm text-muted-foreground">Carregando análises…</p> : null}
+            <div className="mt-5 grid gap-3">
+              {allHistory.map((row) => (
+                <Button
+                  key={row.id}
+                  variant="ghost"
+                  type="button"
+                  disabled={loadingAll}
+                  onClick={() => void openAnalysis(row.id, "history")}
+                  className="h-auto items-start rounded-xl border border-border p-4 text-left hover:border-lime/40 hover:bg-lime/5"
+                >
+                  <span className="block whitespace-normal break-words text-sm font-bold leading-6">{row.question}</span>
+                  <span className="mt-2 block text-xs font-normal text-muted-foreground">
+                    {new Date(row.createdAt).toLocaleString("pt-BR")} · {getStatusLabel(row.status)}
+                  </span>
+                </Button>
+              ))}
+              {!loadingAll && !allHistory.length && !allHistoryError ? (
+                <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Você ainda não tem análises salvas.</p>
+              ) : null}
+            </div>
+            {allPage > 0 || allHasMore ? (
+              <div className="mt-5 flex items-center justify-between gap-3">
+                <Button variant="ghost" type="button" disabled={allPage === 0 || loadingAll} onClick={() => void loadAllHistory(allPage - 1)} className="min-h-10 border border-border px-4 text-xs disabled:opacity-40">Anterior</Button>
+                <span className="text-xs text-muted-foreground">Página {allPage + 1}</span>
+                <Button variant="ghost" type="button" disabled={!allHasMore || loadingAll} onClick={() => void loadAllHistory(allPage + 1)} className="min-h-10 border border-border px-4 text-xs disabled:opacity-40">Próxima</Button>
+              </div>
+            ) : null}
+          </section>
+        )}
       </div>
-      <aside className="grid min-w-0 items-start gap-4 md:grid-cols-2 2xl:grid-cols-1 sm:gap-5">
+      {screen === "conversation" ? <aside className="grid min-w-0 items-start gap-4 md:grid-cols-2 2xl:grid-cols-1 sm:gap-5">
         <IndicatorsAiCosts creditError={creditError} />
-        <Card className="min-w-0 gap-0 rounded-2xl border-border bg-graphite p-4 shadow-none sm:p-5">
+        <Card className="2xl:sticky 2xl:top-5 min-w-0 self-start gap-0 rounded-2xl border-border bg-graphite p-4 shadow-none sm:p-5">
           <div className="flex items-center justify-between gap-2">
             <h2 className="flex items-center gap-2 text-sm font-bold">
               <History className="h-4 w-4 text-lime" />
-              Meu histórico
+              Minhas análises
             </h2>
             <Button
               variant="ghost"
@@ -403,16 +503,16 @@ export function IndicatorsAi({
             <p className="mt-5 text-sm text-muted-foreground">Suas análises aparecerão aqui.</p>
           ) : null}
           <div className="mt-4 grid gap-2">
-            {history.map((row) => (
+            {history.slice(0, 2).map((row) => (
               <Button
+                key={row.id}
                 variant="ghost"
                 type="button"
-                key={row.id}
-                disabled={busy || opening}
-                onClick={() => void openAnalysis(row.id)}
-                className={`h-auto whitespace-normal items-start flex-col rounded-xl border p-3 text-left transition disabled:opacity-50 ${analysis?.id === row.id ? "border-lime/40 bg-lime/10" : "border-border hover:border-lime/30"}`}
+                disabled={busy}
+                onClick={() => void openAnalysis(row.id, screen === "history" ? "history" : "conversation")}
+                className="h-auto w-full min-w-0 flex-col items-start justify-start whitespace-normal overflow-hidden rounded-xl border border-border p-3 text-left transition hover:border-lime/30 hover:bg-lime/5"
               >
-                <span className="line-clamp-3 break-words text-sm">{row.question}</span>
+                <span className="line-clamp-2 w-full min-w-0 overflow-hidden break-words text-ellipsis text-sm">{row.question}</span>
                 <span className="mt-2 block text-[11px] text-muted-foreground">
                   {new Date(row.createdAt).toLocaleString("pt-BR")} ·{" "}
                   {row.status === "completed"
@@ -426,29 +526,22 @@ export function IndicatorsAi({
               </Button>
             ))}
           </div>
-          {page > 0 || hasMore ? (
-            <div className="mt-4 flex justify-between text-xs">
-              <Button
-                variant="ghost"
-                disabled={page === 0 || loadingHistory}
-                onClick={() => setPage(page - 1)}
-                className="min-h-10 disabled:opacity-40"
-              >
-                Anterior
-              </Button>
-              <span className="self-center">Página {page + 1}</span>
-              <Button
-                variant="ghost"
-                disabled={!hasMore || loadingHistory}
-                onClick={() => setPage(page + 1)}
-                className="min-h-10 disabled:opacity-40"
-              >
-                Próxima
-              </Button>
-            </div>
-          ) : null}
+          <Button
+            variant="ghost"
+            type="button"
+            onClick={() => void showAllHistory()}
+            className="mt-3 flex min-h-10 w-full items-center justify-center rounded-lg border border-border px-3 text-xs font-bold text-lime transition hover:border-lime/40 hover:bg-lime/5"
+          >
+            Ver todas minhas análises
+          </Button>
         </Card>
-      </aside>
+      </aside> : null}
     </div>
   )
+}
+
+function getStatusLabel(status: string) {
+  if (status === "completed") return "Concluída"
+  if (status === "failed") return "Não concluída"
+  return "Em andamento"
 }
