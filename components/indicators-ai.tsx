@@ -451,7 +451,7 @@ export function IndicatorsAi({
                   type="button"
                   disabled={loadingAll}
                   onClick={() => void openAnalysis(row.id, "history")}
-                  className="h-auto items-start rounded-xl border border-border p-4 text-left hover:border-lime/40 hover:bg-lime/5"
+                  className="h-auto w-full min-w-0 flex-col items-start justify-start whitespace-normal rounded-xl border border-border p-4 text-left hover:border-lime/40 hover:bg-lime/5"
                 >
                   <span className="block whitespace-normal break-words text-sm font-bold leading-6">{row.question}</span>
                   <span className="mt-2 block text-xs font-normal text-muted-foreground">
