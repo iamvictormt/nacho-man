@@ -417,6 +417,22 @@ export function IndicatorsAi({
               </p>
               <h2 className="mt-3 break-words text-xl font-black leading-tight sm:text-2xl">{analysis.question}</h2>
             </header>
+            {analysis.snapshot.current && analysis.snapshot.comparison ? (
+              <dl className="mt-5 grid gap-3 rounded-xl border border-border bg-background/40 p-4 sm:grid-cols-3">
+                <div>
+                  <dt className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Loja</dt>
+                  <dd className="mt-1 text-sm font-bold">{analysis.snapshot.storeName ?? "Todas as lojas"}</dd>
+                </div>
+                <div>
+                  <dt className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Período analisado</dt>
+                  <dd className="mt-1 text-sm font-bold">{dateLabel(analysis.snapshot.current.period.start)} – {dateLabel(analysis.snapshot.current.period.end)}</dd>
+                </div>
+                <div>
+                  <dt className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Comparação</dt>
+                  <dd className="mt-1 text-sm font-bold">{dateLabel(analysis.snapshot.comparison.period.start)} – {dateLabel(analysis.snapshot.comparison.period.end)}</dd>
+                </div>
+              </dl>
+            ) : null}
             <div className="mt-6 break-words text-sm leading-7 [&_h1]:mb-3 [&_h1]:mt-6 [&_h1]:text-xl [&_h1]:font-black [&_h2]:mb-3 [&_h2]:mt-6 [&_h2]:text-lg [&_h2]:font-black [&_h3]:mb-2 [&_h3]:mt-5 [&_h3]:text-base [&_h3]:font-bold [&_li]:ml-5 [&_li]:list-disc [&_li]:pl-1 [&_ol_li]:list-decimal [&_p]:mb-4 [&_strong]:font-bold [&_ul]:mb-4 [&_ul]:space-y-1">
               <ReactMarkdown>{analysis.answer ?? "Esta análise não possui resposta salva."}</ReactMarkdown>
             </div>
