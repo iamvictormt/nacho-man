@@ -80,6 +80,7 @@ model User {
   role                 UserRole
   canAccessIndicators  Boolean               @default(false)
   active               Boolean               @default(true)
+  activationPending    Boolean               @default(false)
   franchiseId          String?               @unique
   franchise            Franchise?            @relation(fields: [franchiseId], references: [id])
   businessProfile      BusinessProfile?

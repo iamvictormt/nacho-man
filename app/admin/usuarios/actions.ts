@@ -250,7 +250,7 @@ export async function toggleFranchiseeUserAction(formData: FormData) {
   const operations = [
     prisma.user.updateMany({
       where: { id, role: "FRANCHISEE" },
-      data: { active: nextActive },
+      data: { active: nextActive, activationPending: false },
     }),
   ]
 
@@ -399,7 +399,7 @@ export async function rejectFranchiseeUserAction(formData: FormData) {
   if (!id) throw new Error("Usuário não encontrado.")
 
   const user = await prisma.user.findFirst({
-    where: { id, role: "FRANCHISEE", active: false },
+    where: { id, role: "FRANCHISEE", activationPending: true },
     select: {
       franchiseId: true,
       _count: { select: { orders: true } },
@@ -417,7 +417,7 @@ export async function rejectFranchiseeUserAction(formData: FormData) {
 
     if ((franchise?._count.orders ?? 0) > 0 || user._count.orders > 0) {
       await prisma.$transaction([
-        prisma.user.update({ where: { id }, data: { active: false } }),
+        prisma.user.update({ where: { id }, data: { active: false, activationPending: false } }),
         prisma.franchise.update({ where: { id: user.franchiseId }, data: { active: false } }),
       ])
     } else {

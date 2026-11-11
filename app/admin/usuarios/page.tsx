@@ -66,6 +66,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
   const page = getCurrentPage(resolvedSearchParams)
   const { sort, direction } = getUserSort(resolvedSearchParams)
   const query = getSearchQuery(resolvedSearchParams)
+  const franchiseStatus = String(Array.isArray(resolvedSearchParams?.status) ? resolvedSearchParams.status[0] : resolvedSearchParams?.status ?? "")
   let userWhere: Prisma.UserWhereInput
 
   if (view === "admins") {
@@ -101,6 +102,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
   } else {
     userWhere = {
       role: "FRANCHISEE",
+      ...(franchiseStatus === "pendentes" ? { activationPending: true } : franchiseStatus === "inativos" ? { active: false, activationPending: false } : franchiseStatus === "ativos" ? { active: true } : {}),
       ...(query
         ? {
             OR: [
@@ -129,7 +131,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
     indicatorsAdminTotal,
   ] = await Promise.all([
     prisma.user.count({ where: { role: "FRANCHISEE" } }),
-    prisma.user.count({ where: { role: "FRANCHISEE", active: false } }),
+    prisma.user.count({ where: { role: "FRANCHISEE", activationPending: true } }),
     prisma.user.count({ where: { role: "FRANCHISEE", active: true } }),
     prisma.user.count({ where: { role: "USER" } }),
     prisma.user.count({ where: { role: "USER", active: true } }),
@@ -193,6 +195,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
             name: true,
             email: true,
             active: true,
+            activationPending: true,
             mustChangePassword: true,
             createdAt: true,
             franchise: {
@@ -308,6 +311,12 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
         />
       </div>
 
+      {view === "franqueados" && <nav className="mt-4 flex flex-wrap gap-2" aria-label="Filtrar franqueados por situação">
+        {[ ["", "Todos"], ["pendentes", "Pendentes"], ["ativos", "Ativos"], ["inativos", "Inativos"] ].map(([value, label]) => (
+          <Link key={value} href={`/admin/usuarios?tipo=franqueados${value ? `&status=${value}` : ""}`} className={`rounded-full border px-4 py-2 text-[10px] font-black uppercase ${franchiseStatus === value ? "border-lime bg-lime/10 text-lime" : "border-border text-muted-foreground"}`}>{label}</Link>
+        ))}
+      </nav>}
+
       <div id="users-grid" className="mt-6">
         {view === "admins" ? (
           <AdminUsersList users={adminUsers} currentUserId={currentUser.id} />
@@ -385,6 +394,7 @@ type AdminUser = {
   role: UserRole
   canAccessIndicators: boolean
   active: boolean
+  activationPending: boolean
   mustChangePassword: boolean
   createdAt: Date
 }
@@ -623,7 +633,7 @@ function FranchiseUsersList({
               <AdminDataLabel>Cadastro</AdminDataLabel>
               <p className="mt-1 text-xs font-bold xl:mt-0">{formatDate(user.createdAt)}</p>
             </div>
-            <StatusPill active={user.active} activeText="Ativo" inactiveText="Pendente" />
+            <StatusPill active={user.active} activeText="Ativo" inactiveText={user.activationPending ? "Pendente" : "Inativo"} />
             <div className="xl:justify-self-end">
               <AdminManageModal
                 id={`view-franchisee-${user.id}`}

@@ -1,0 +1,1 @@
+ALTER TABLE "User" ADD COLUMN "activationPending" BOOLEAN NOT NULL DEFAULT false;

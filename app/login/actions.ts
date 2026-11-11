@@ -191,6 +191,7 @@ export async function registerAction(_state: RegisterState, formData: FormData):
               passwordHash,
               role: "FRANCHISEE",
               active: false,
+              activationPending: true,
             },
           },
           addresses: {

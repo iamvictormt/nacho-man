@@ -1,7 +1,8 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { BrainCircuit, Loader2, History, ArrowUpRight, Download, AlertCircle } from "lucide-react"
+import ReactMarkdown from "react-markdown"
+import { BrainCircuit, Loader2, History, ArrowUpRight, Download, AlertCircle, Minimize2, Maximize2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -70,6 +71,7 @@ export function IndicatorsAi({
   const [creditError, setCreditError] = useState(false)
   const [historyError, setHistoryError] = useState("")
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
+  const [analysisMinimized, setAnalysisMinimized] = useState(false)
   const questionRef = useRef<HTMLTextAreaElement>(null)
 
   const loadHistory = useCallback(
@@ -105,6 +107,7 @@ export function IndicatorsAi({
     setBusy(true)
     setError("")
     setAnalysis(null)
+    setAnalysisMinimized(false)
     try {
       const response = await fetch("/api/indicadores/analysis", {
         method: "POST",
@@ -118,6 +121,7 @@ export function IndicatorsAi({
       }
       setCreditError(false)
       setAnalysis(data.analysis)
+      setAnalysisMinimized(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha de conexão. Consulte o histórico antes de tentar novamente.")
     } finally {
@@ -135,6 +139,7 @@ export function IndicatorsAi({
       const data = await response.json()
       if (!response.ok) throw new Error(data.error)
       setAnalysis(data.analysis)
+      setAnalysisMinimized(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível abrir a análise.")
     } finally {
@@ -308,17 +313,30 @@ export function IndicatorsAi({
                   </p>
                   <h3 className="mt-3 break-words text-lg font-bold">{analysis.question}</h3>
                 </div>
-                <Button
-                  variant="ghost"
-                  type="button"
-                  onClick={download}
-                  className="inline-flex h-auto min-h-11 w-full whitespace-normal items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs sm:w-auto"
-                >
-                  <Download className="h-4 w-4" />
-                  Baixar dados e resposta
-                </Button>
+                <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+                  <Button
+                    variant="ghost"
+                    type="button"
+                    aria-expanded={!analysisMinimized}
+                    aria-controls={`analysis-content-${analysis.id}`}
+                    onClick={() => setAnalysisMinimized((minimized) => !minimized)}
+                    className="inline-flex h-auto min-h-11 flex-1 whitespace-normal items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-xs sm:flex-none"
+                  >
+                    {analysisMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+                    {analysisMinimized ? "Expandir análise" : "Minimizar"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    type="button"
+                    onClick={download}
+                    className="inline-flex h-auto min-h-11 flex-1 whitespace-normal items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-xs sm:flex-none"
+                  >
+                    <Download className="h-4 w-4" />
+                    Baixar dados e resposta
+                  </Button>
+                </div>
               </div>
-              {analysis.snapshot.current ? (
+              {!analysisMinimized && analysis.snapshot.current ? (
                 <p className="mt-3 text-xs leading-5 text-muted-foreground">
                   {analysis.snapshot.storeName} · {dateLabel(analysis.snapshot.current.period.start)} a{" "}
                   {dateLabel(analysis.snapshot.current.period.end)}
@@ -334,15 +352,19 @@ export function IndicatorsAi({
                   de faturamento líquido.
                 </p>
               ) : null}
-              <div className="mt-5 whitespace-pre-wrap break-words border-t border-border pt-5 text-sm leading-7">
-                {analysis.answer ??
-                  (analysis.status === "failed"
-                    ? "Esta análise não foi concluída. Você pode gerar uma nova pergunta com os filtros desejados."
-                    : "Esta solicitação está em processamento ou foi interrompida. Atualize o histórico para verificar.")}
+              <div id={`analysis-content-${analysis.id}`} hidden={analysisMinimized}>
+                <div className="mt-5 break-words border-t border-border pt-5 text-sm leading-7 [&_h1]:mb-3 [&_h1]:mt-6 [&_h1]:text-xl [&_h1]:font-black [&_h2]:mb-3 [&_h2]:mt-6 [&_h2]:text-lg [&_h2]:font-black [&_h3]:mb-2 [&_h3]:mt-5 [&_h3]:text-base [&_h3]:font-bold [&_li]:ml-5 [&_li]:list-disc [&_li]:pl-1 [&_ol_li]:list-decimal [&_p]:mb-4 [&_strong]:font-bold [&_ul]:mb-4 [&_ul]:space-y-1">
+                  <ReactMarkdown>
+                    {analysis.answer ??
+                      (analysis.status === "failed"
+                        ? "Esta análise não foi concluída. Você pode gerar uma nova pergunta com os filtros desejados."
+                        : "Esta solicitação está em processamento ou foi interrompida. Atualize o histórico para verificar.")}
+                  </ReactMarkdown>
+                </div>
+                <p className="mt-5 text-xs text-muted-foreground">
+                  Resposta gerada por IA a partir de um retrato dos dados. Confira os valores antes de tomar decisões.
+                </p>
               </div>
-              <p className="mt-5 text-xs text-muted-foreground">
-                Resposta gerada por IA a partir de um retrato dos dados. Confira os valores antes de tomar decisões.
-              </p>
             </article>
           ) : !busy && !error ? (
             <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
