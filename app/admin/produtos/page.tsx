@@ -2,6 +2,7 @@ import { ArrowDown, ArrowDownAZ, ArrowUp, Package, PackagePlus } from "lucide-re
 import Link from "next/link"
 import type { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
+import { findMatchingProductIds } from "@/lib/product-search"
 import { formatMoneyFromCents } from "@/lib/money"
 import { AdminActionForm } from "@/components/admin-action-form"
 import { AdminModal } from "@/components/admin-modal"
@@ -79,22 +80,14 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
     return first.name.localeCompare(second.name, "pt-BR")
   })
   const selectedCategory = filterCategories.find((category) => category.slug === categorySlug)
-  const productWhere: Prisma.ProductWhereInput = {
+  const catalogWhere: Prisma.ProductWhereInput = {
     audience,
     ...(selectedCategory ? { category: { slug: selectedCategory.slug } } : {}),
-    ...(query
-      ? {
-          OR: [
-            { name: { contains: query, mode: "insensitive" } },
-            { sku: { contains: query, mode: "insensitive" } },
-            { packageLabel: { contains: query, mode: "insensitive" } },
-            { category: { name: { contains: query, mode: "insensitive" } } },
-          ],
-        }
-      : {}),
   }
+  const matchingIds = query ? await findMatchingProductIds(catalogWhere, query, "sku") : null
+  const productWhere = matchingIds ? { ...catalogWhere, id: { in: matchingIds } } : catalogWhere
   const [totalProducts, franchiseeCount, publicCount] = await Promise.all([
-    prisma.product.count({ where: productWhere }),
+    matchingIds?.length ?? prisma.product.count({ where: productWhere }),
     prisma.product.count({ where: { audience: "FRANCHISEE" } }),
     prisma.product.count({ where: { audience: "PUBLIC" } }),
   ])
@@ -190,6 +183,9 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
                   <AdminDataLabel>Embalagem</AdminDataLabel>
                   <p className="mt-1 truncate text-xs font-bold xl:mt-0">{product.packageLabel}</p>
                   <p className="mt-1 text-[9px] uppercase text-muted-foreground">Mínimo {product.minimumQuantity}</p>
+                  {product.maximumQuantity !== null && (
+                    <p className="mt-1 text-[9px] uppercase text-muted-foreground">Máximo {product.maximumQuantity}</p>
+                  )}
                 </div>
                 <div>
                   <AdminDataLabel>Preço</AdminDataLabel>
@@ -300,6 +296,7 @@ function ProductForm({
     packageLabel: string
     supplier: "AM_EMBUTIDOS" | "MARCHEF" | "BONI" | null
     minimumQuantity: number
+    maximumQuantity: number | null
     featured: boolean
     paymentDiscountEligible: boolean
     category: { name: string }
@@ -377,6 +374,18 @@ function ProductForm({
           defaultValue={product?.minimumQuantity ?? 1}
           required
         />
+      </AdminFieldGrid>
+      <AdminFieldGrid columns="equal">
+        <AdminInput
+          name="maximumQuantity"
+          label="Qtd. máxima por pedido"
+          mask="integer"
+          defaultValue={product?.maximumQuantity ?? ""}
+          placeholder="Sem limite"
+        />
+        <p className="self-center text-xs text-muted-foreground">
+          Deixe vazio para não limitar. O cliente não poderá ultrapassar esse total no pedido.
+        </p>
       </AdminFieldGrid>
       <AdminFieldGrid columns="equal">
         <AdminTextarea

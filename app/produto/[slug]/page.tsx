@@ -21,6 +21,7 @@ const productDetailSelect = {
   unit: true,
   packageLabel: true,
   minimumQuantity: true,
+  maximumQuantity: true,
   categoryId: true,
   category: { select: { name: true } },
 } satisfies Prisma.ProductSelect

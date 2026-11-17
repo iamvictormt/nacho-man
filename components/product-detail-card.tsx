@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowUpRight, Check, Package, Plus } from "lucide-react"
+import { ArrowUpRight, Check, Plus } from "lucide-react"
 import { useCartStore } from "@/lib/cart-store"
 import { useMarketplaceCart } from "@/lib/marketplace-cart-store"
 import type { CatalogProduct } from "@/lib/products"
@@ -15,6 +15,7 @@ type MarketplaceCommerce = {
   unit: string
   packageLabel: string
   minimumQuantity: number
+  maximumQuantity: number | null
   supplier?: "AM_EMBUTIDOS" | "MARCHEF" | "BONI" | null
 }
 
@@ -25,6 +26,7 @@ type ProductDetailCardProps = {
 
 export function ProductDetailCard({ product, commerce }: ProductDetailCardProps) {
   const [added, setAdded] = useState(false)
+  const [error, setError] = useState("")
   const addPublicItem = useCartStore((state) => state.addItem)
   const addMarketplaceItem = useMarketplaceCart((state) => state.add)
   const visibleFeatures = product.features.map((feature) => feature.trim()).filter(Boolean).slice(0, 3)
@@ -32,25 +34,37 @@ export function ProductDetailCard({ product, commerce }: ProductDetailCardProps)
   const remainingApplications = product.applications.length - visibleApplications.length
   const detailHref = commerce ? `/marketplace/produto/${commerce.id}` : `/produto/${product.slug}`
 
-  function handleAddToCart() {
+  async function handleAddToCart() {
+    setError("")
     if (commerce) {
-      addMarketplaceItem({
-        id: commerce.id,
-        type: "PRODUCT",
-        name: product.displayName,
-        image: product.image,
-        unit: commerce.unit,
-        packageLabel: commerce.packageLabel,
-        unitPriceInCents: Math.round(product.price * 100),
-        minimumQuantity: commerce.minimumQuantity,
-      })
+      try {
+        await addMarketplaceItem({
+          id: commerce.id,
+          type: "PRODUCT",
+          name: product.displayName,
+          image: product.image,
+          unit: commerce.unit,
+          packageLabel: commerce.packageLabel,
+          unitPriceInCents: Math.round(product.price * 100),
+          minimumQuantity: commerce.minimumQuantity,
+          maximumQuantity: commerce.maximumQuantity,
+        })
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : "Não foi possível adicionar o produto.")
+        return
+      }
     } else {
-      addPublicItem({
+      const addedToPublicCart = addPublicItem({
         name: product.displayName,
         price: product.price,
         priceUnit: product.priceUnit,
         image: product.image,
+        maximumQuantity: product.maximumQuantity,
       })
+      if (!addedToPublicCart) {
+        setError("Você atingiu o limite máximo desse produto pro seu pedido.")
+        return
+      }
     }
     setAdded(true)
     setTimeout(() => setAdded(false), 1000)
@@ -58,6 +72,14 @@ export function ProductDetailCard({ product, commerce }: ProductDetailCardProps)
 
   return (
     <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-background transition-all duration-300 hover:-translate-y-1.5 hover:border-lime/40 hover:shadow-[0_18px_50px_rgba(0,0,0,0.35),0_0_28px_rgba(239,255,13,0.08)]">
+      {error && (
+        <p
+          role="alert"
+          className="absolute inset-x-3 top-3 z-30 rounded-lg bg-red-950/95 px-3 py-2 text-xs font-bold text-red-200"
+        >
+          {error}
+        </p>
+      )}
       <div className="pointer-events-none absolute inset-x-10 top-0 z-20 h-px bg-gradient-to-r from-transparent via-lime/80 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
       <Link

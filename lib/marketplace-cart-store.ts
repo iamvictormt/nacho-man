@@ -14,6 +14,7 @@ export type MarketplaceCartItem = {
   unitPriceInCents: number
   paymentDiscountEligibleInCents?: number
   minimumQuantity: number
+  maximumQuantity?: number | null
   quantity: number
   selectedOptions?: {
     productId: string

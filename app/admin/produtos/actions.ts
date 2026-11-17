@@ -33,6 +33,24 @@ function getProductSupplier(formData: FormData) {
   return validSuppliers.has(supplier) ? supplier : null
 }
 
+function getQuantityLimits(formData: FormData) {
+  const minimumQuantity = Number(formData.get("minimumQuantity") ?? 1)
+  const rawMaximum = String(formData.get("maximumQuantity") ?? "").trim()
+  const maximumQuantity = rawMaximum ? Number(rawMaximum) : null
+
+  if (!Number.isInteger(minimumQuantity) || minimumQuantity < 1) {
+    throw new Error("A quantidade mínima deve ser um número inteiro maior que zero.")
+  }
+  if (maximumQuantity !== null && (!Number.isInteger(maximumQuantity) || maximumQuantity < 1)) {
+    throw new Error("A quantidade máxima deve ser um número inteiro maior que zero.")
+  }
+  if (maximumQuantity !== null && maximumQuantity < minimumQuantity) {
+    throw new Error("A quantidade máxima não pode ser menor que a quantidade mínima.")
+  }
+
+  return { minimumQuantity, maximumQuantity }
+}
+
 export async function createProductAction(formData: FormData) {
   await requireAdmin()
 
@@ -41,6 +59,7 @@ export async function createProductAction(formData: FormData) {
   const priceInCents = parseMoneyToCents(formData.get("price"))
   const unit = String(formData.get("unit") ?? "UND") as ProductUnit
   const packageLabel = String(formData.get("packageLabel") ?? "").trim()
+  const quantityLimits = getQuantityLimits(formData)
 
   if (!name || !categoryName || priceInCents <= 0 || !packageLabel) return
 
@@ -72,7 +91,7 @@ export async function createProductAction(formData: FormData) {
       audience: getProductAudience(formData),
       packageLabel,
       supplier: getProductSupplier(formData),
-      minimumQuantity: Math.max(1, Number(formData.get("minimumQuantity") ?? 1)),
+      ...quantityLimits,
       featured: formData.get("featured") === "on",
       paymentDiscountEligible: formData.get("paymentDiscountEligible") === "on",
       categoryId: category.id,
@@ -104,6 +123,7 @@ export async function updateProductAction(formData: FormData) {
   const categoryName = getCategoryName(formData)
   const priceInCents = parseMoneyToCents(formData.get("price"))
   const packageLabel = String(formData.get("packageLabel") ?? "").trim()
+  const quantityLimits = getQuantityLimits(formData)
   if (!id || !name || !categoryName || priceInCents <= 0 || !packageLabel) return
 
   const category = await prisma.category.upsert({
@@ -129,7 +149,7 @@ export async function updateProductAction(formData: FormData) {
       audience: getProductAudience(formData),
       packageLabel,
       supplier: getProductSupplier(formData),
-      minimumQuantity: Math.max(1, Number(formData.get("minimumQuantity") ?? 1)),
+      ...quantityLimits,
       featured: formData.get("featured") === "on",
       paymentDiscountEligible: formData.get("paymentDiscountEligible") === "on",
       categoryId: category.id,

@@ -19,23 +19,31 @@ interface ProductCardProps {
     image: string
     tag: string | null
     tagColor: string
+    maximumQuantity?: number | null
     applications?: string[]
   }
 }
 
 export function ProductCard({ product }: ProductCardProps) {
   const [added, setAdded] = useState(false)
+  const [error, setError] = useState("")
   const addItem = useCartStore((s) => s.addItem)
 
   function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
-    addItem({
+    setError("")
+    const added = addItem({
       name: product.name,
       price: product.price,
       priceUnit: product.priceUnit,
       image: product.image,
+      maximumQuantity: product.maximumQuantity,
     })
+    if (!added) {
+      setError("Você atingiu o limite máximo desse produto pro seu pedido.")
+      return
+    }
     setAdded(true)
     setTimeout(() => setAdded(false), 1000)
   }
@@ -46,6 +54,7 @@ export function ProductCard({ product }: ProductCardProps) {
       className="group block overflow-hidden rounded-lg border border-border/90 bg-background transition-all duration-500 hover:border-lime/40 hover:shadow-[0_0_24px_rgba(239,255,13,0.12)]"
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-white [transform:translateZ(0)]">
+        {error && <p role="alert" className="absolute inset-x-3 top-3 z-20 rounded-lg bg-red-950/95 px-3 py-2 text-xs font-bold text-red-200">{error}</p>}
         <Image
           src={product.image}
           alt={product.name}

@@ -26,7 +26,9 @@ export function PublicProductDetail({
 }) {
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
+  const [error, setError] = useState("")
   const addItem = useCartStore((state) => state.addItem)
+  const cartItems = useCartStore((state) => state.items)
   const visibleFeatures = product.features.map((feature) => feature.trim()).filter(Boolean)
 
   const careInfo =
@@ -53,12 +55,22 @@ export function PublicProductDetail({
   ]
 
   function handleAdd() {
+    setError("")
+    const existing = cartItems.find((item) => item.name === product.displayName)
+    if (
+      product.maximumQuantity != null &&
+      (existing?.quantity ?? 0) + quantity > product.maximumQuantity
+    ) {
+      setError("Você atingiu o limite máximo desse produto pro seu pedido.")
+      return
+    }
     for (let index = 0; index < quantity; index += 1) {
       addItem({
         name: product.displayName,
         price: product.price,
         priceUnit: product.priceUnit,
         image: product.image,
+        maximumQuantity: product.maximumQuantity,
       })
     }
     setAdded(true)
@@ -198,7 +210,15 @@ export function PublicProductDetail({
                   </button>
                   <span className="w-8 text-center text-sm font-black text-foreground">{quantity}</span>
                   <button
-                    onClick={() => setQuantity((current) => Math.min(99, current + 1))}
+                    onClick={() => {
+                      const cartQuantity = cartItems.find((item) => item.name === product.displayName)?.quantity ?? 0
+                      if (product.maximumQuantity != null && cartQuantity + quantity >= product.maximumQuantity) {
+                        setError("Você atingiu o limite máximo desse produto pro seu pedido.")
+                        return
+                      }
+                      setError("")
+                      setQuantity((current) => Math.min(99, current + 1))
+                    }}
                     disabled={quantity >= 99}
                     className="flex h-11 w-11 items-center justify-center rounded-full text-foreground/70 transition-colors hover:bg-foreground/10 disabled:cursor-not-allowed disabled:opacity-30"
                     aria-label="Aumentar quantidade"
@@ -229,6 +249,12 @@ export function PublicProductDetail({
                   )}
                 </button>
               </div>
+              {product.maximumQuantity != null && (
+                <p className="text-xs font-bold text-purple-medium">
+                  Limite máximo: {product.maximumQuantity} por pedido
+                </p>
+              )}
+              {error && <p role="alert" className="text-sm font-bold text-red-300">{error}</p>}
 
               <div className="grid grid-cols-1 gap-3 border-t border-border/50 pt-6 sm:grid-cols-3">
                 {careInfo.map((item) => (

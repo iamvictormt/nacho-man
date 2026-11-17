@@ -2,6 +2,7 @@ import { PackageSearch } from "lucide-react"
 import Link from "next/link"
 import { ProductAudience, type Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
+import { findMatchingProductIds } from "@/lib/product-search"
 import { requireMarketplaceUser } from "@/lib/auth"
 import { adaptMarketplaceProduct } from "@/lib/marketplace-product-adapter"
 import { AdminSearch } from "@/components/admin-search"
@@ -26,6 +27,7 @@ const marketplaceProductSelect = {
   packageLabel: true,
   supplier: true,
   minimumQuantity: true,
+  maximumQuantity: true,
   category: { select: { name: true } },
 } satisfies Prisma.ProductSelect
 
@@ -57,22 +59,14 @@ export default async function MarketplaceProductsPage({ searchParams }: { search
     return first.name.localeCompare(second.name, "pt-BR")
   })
   const selectedCategory = categories.find((category) => category.slug === categorySlug)
-  const where: Prisma.ProductWhereInput = {
+  const catalogWhere: Prisma.ProductWhereInput = {
     audience,
     active: true,
     category: { active: true, ...(selectedCategory ? { slug: selectedCategory.slug } : {}) },
-    ...(query
-      ? {
-          OR: [
-            { name: { contains: query, mode: "insensitive" } },
-            { description: { contains: query, mode: "insensitive" } },
-            { packageLabel: { contains: query, mode: "insensitive" } },
-            { category: { name: { contains: query, mode: "insensitive" } } },
-          ],
-        }
-      : {}),
   }
-  const totalProducts = await prisma.product.count({ where })
+  const matchingIds = query ? await findMatchingProductIds(catalogWhere, query, "description") : null
+  const where = matchingIds ? { ...catalogWhere, id: { in: matchingIds } } : catalogWhere
+  const totalProducts = matchingIds?.length ?? (await prisma.product.count({ where }))
   const pagination = getPagination(page, totalProducts)
   const products = await prisma.product.findMany({
     where,
@@ -150,6 +144,7 @@ export default async function MarketplaceProductsPage({ searchParams }: { search
                     unit: product.unit,
                     packageLabel: product.packageLabel,
                     minimumQuantity: product.minimumQuantity,
+                    maximumQuantity: product.maximumQuantity,
                     supplier: product.supplier,
                   }}
                 />

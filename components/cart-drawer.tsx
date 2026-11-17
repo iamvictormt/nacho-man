@@ -14,6 +14,7 @@ export function CartDrawer({ whatsappNumber }: { whatsappNumber: string }) {
   const [visible, setVisible] = useState(false)
   const [animating, setAnimating] = useState(false)
   const [popupBlockedMessage, setPopupBlockedMessage] = useState(false)
+  const [quantityLimitError, setQuantityLimitError] = useState("")
 
   // Refs for focus management
   const drawerRef = useRef<HTMLDivElement>(null)
@@ -190,7 +191,12 @@ export function CartDrawer({ whatsappNumber }: { whatsappNumber: string }) {
                 <CartItemCard
                   item={item}
                   onRemove={() => removeItem(item.name)}
-                  onUpdateQuantity={(qty) => updateQuantity(item.name, qty)}
+                  onUpdateQuantity={(qty) => {
+                    const updated = updateQuantity(item.name, qty)
+                    setQuantityLimitError(
+                      updated ? "" : "Você atingiu o limite máximo desse produto pro seu pedido."
+                    )
+                  }}
                 />
               </div>
             ))
@@ -205,6 +211,7 @@ export function CartDrawer({ whatsappNumber }: { whatsappNumber: string }) {
             }`}
             style={{ transitionDelay: animating ? "200ms" : "0ms" }}
           >
+            {quantityLimitError && <p role="alert" className="text-center text-xs font-bold text-red-300">{quantityLimitError}</p>}
             {/* Total */}
             <div className="flex items-center justify-between">
               <span className="text-sm font-bold text-muted-foreground">
@@ -267,7 +274,14 @@ function CartItemCard({
   onRemove,
   onUpdateQuantity,
 }: {
-  item: { name: string; price: number; priceUnit?: "KG" | "UND" | "CX"; quantity: number; image: string }
+  item: {
+    name: string
+    price: number
+    priceUnit?: "KG" | "UND" | "CX"
+    quantity: number
+    image: string
+    maximumQuantity?: number | null
+  }
   onRemove: () => void
   onUpdateQuantity: (qty: number) => void
 }) {
@@ -294,6 +308,9 @@ function CartItemCard({
         <p className="text-xs text-muted-foreground">
           {formatPrice(item.price)} / {item.priceUnit ?? "UND"}
         </p>
+        {item.maximumQuantity != null && (
+          <p className="text-[10px] font-bold text-muted-foreground">Limite: {item.maximumQuantity} por pedido</p>
+        )}
 
         <div className="flex items-center justify-between">
           {/* Quantity controls */}

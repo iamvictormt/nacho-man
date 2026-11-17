@@ -58,6 +58,22 @@ function calculateDiscount(type: "PERCENTAGE" | "FIXED", value: number, base: nu
   return type === "PERCENTAGE" ? Math.round(base * (value / 100)) : Math.min(value, base)
 }
 
+function getProductOverLimit(
+  requestedItems: { id: string; quantity: number }[],
+  productsById: Map<string, { maximumQuantity: number | null; name: string }>
+) {
+  const totalQuantityByProduct = new Map<string, number>()
+  for (const item of requestedItems) {
+    totalQuantityByProduct.set(item.id, (totalQuantityByProduct.get(item.id) ?? 0) + item.quantity)
+  }
+
+  for (const [id, quantity] of totalQuantityByProduct) {
+    const product = productsById.get(id)
+    if (product && product.maximumQuantity !== null && quantity > product.maximumQuantity) return product
+  }
+  return null
+}
+
 function getPaymentDiscountPercent(
   method: MarketplacePaymentMethod,
   settings: Awaited<ReturnType<typeof getPaymentDiscountSettings>>,
@@ -188,6 +204,12 @@ export async function PUT(request: Request) {
 
   const productMap = new Map(products.map((product) => [product.id, product]))
   const comboMap = new Map(combos.map((combo) => [combo.id, combo]))
+  if (getProductOverLimit(productRequests, productMap)) {
+    return NextResponse.json(
+      { error: "Você atingiu o limite máximo desse produto pro seu pedido.", code: "MAX_QUANTITY_REACHED" },
+      { status: 400 }
+    )
+  }
   let subtotalInCents = 0
   let promotionDiscountInCents = 0
   let paymentDiscountEligibleSubtotalInCents = 0
@@ -201,7 +223,6 @@ export async function PUT(request: Request) {
         { status: 400 }
       )
     }
-
     const totalInCents = product.priceInCents * requestedItem.quantity
     subtotalInCents += totalInCents
 
@@ -365,6 +386,12 @@ export async function POST(request: Request) {
     const product = productMap.get(invalidMinimum.id)!
     return NextResponse.json(
       { error: `A quantidade mínima de ${product.name} é ${product.minimumQuantity}.` },
+      { status: 400 }
+    )
+  }
+  if (getProductOverLimit(productRequests, productMap)) {
+    return NextResponse.json(
+      { error: "Você atingiu o limite máximo desse produto pro seu pedido.", code: "MAX_QUANTITY_REACHED" },
       { status: 400 }
     )
   }

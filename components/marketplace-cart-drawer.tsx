@@ -419,6 +419,13 @@ export function MarketplaceCartDrawer({
                               ))}
                             </ul>
                           )}
+                          {item.type === "PRODUCT" &&
+                            item.maximumQuantity !== null &&
+                            item.maximumQuantity !== undefined && (
+                              <p className="mt-2 text-[10px] font-bold text-muted-foreground">
+                                Limite: {item.maximumQuantity} por pedido
+                              </p>
+                            )}
                         </div>
                         <div className="flex items-end justify-between gap-4 border-t border-border pt-4">
                           <p className="text-xs font-black uppercase text-muted-foreground">Qtd. {item.quantity}</p>
@@ -485,8 +492,16 @@ export function MarketplaceCartDrawer({
                           <button
                             type="button"
                             onClick={() => {
-                              setQuantity(item.id, item.type, item.quantity + 1, item.selectionKey)
-                              invalidateCouponPreview()
+                              void setQuantity(item.id, item.type, item.quantity + 1, item.selectionKey)
+                                .then(() => {
+                                  setError("")
+                                  invalidateCouponPreview()
+                                })
+                                .catch((cause) =>
+                                  setError(
+                                    cause instanceof Error ? cause.message : "Não foi possível alterar a quantidade."
+                                  )
+                                )
                             }}
                             className="flex size-10 items-center justify-center rounded-full border border-border transition-all duration-200 hover:border-lime/50 hover:text-lime active:scale-90"
                             aria-label={`Aumentar quantidade de ${item.name}`}

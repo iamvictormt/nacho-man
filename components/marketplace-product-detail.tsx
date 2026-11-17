@@ -22,6 +22,7 @@ type MarketplaceCommerce = {
   unit: string
   packageLabel: string
   minimumQuantity: number
+  maximumQuantity: number | null
   supplier?: "AM_EMBUTIDOS" | "MARCHEF" | "BONI" | null
   audience: "FRANCHISEE" | "PUBLIC"
 }
@@ -50,6 +51,7 @@ export function MarketplaceProductDetail({
 }) {
   const [quantity, setQuantity] = useState(commerce.minimumQuantity)
   const [added, setAdded] = useState(false)
+  const [cartError, setCartError] = useState("")
   const add = useMarketplaceCart((state) => state.add)
   const setCartQuantity = useMarketplaceCart((state) => state.setQuantity)
   const items = useMarketplaceCart((state) => state.items)
@@ -89,23 +91,30 @@ export function MarketplaceProductDetail({
     },
   ].filter((item) => item.text)
 
-  function handleAdd() {
+  async function handleAdd() {
+    setCartError("")
     const existing = items.find((item) => item.id === commerce.id && item.type === "PRODUCT")
 
-    if (existing) {
-      setCartQuantity(commerce.id, "PRODUCT", existing.quantity + quantity)
-    } else {
-      add({
-        id: commerce.id,
-        type: "PRODUCT",
-        name: product.displayName,
-        image: product.image,
-        unit: commerce.unit,
-        packageLabel: commerce.packageLabel,
-        unitPriceInCents: Math.round(product.price * 100),
-        minimumQuantity: commerce.minimumQuantity,
-        quantity,
-      })
+    try {
+      if (existing) {
+        await setCartQuantity(commerce.id, "PRODUCT", existing.quantity + quantity)
+      } else {
+        await add({
+          id: commerce.id,
+          type: "PRODUCT",
+          name: product.displayName,
+          image: product.image,
+          unit: commerce.unit,
+          packageLabel: commerce.packageLabel,
+          unitPriceInCents: Math.round(product.price * 100),
+          minimumQuantity: commerce.minimumQuantity,
+          maximumQuantity: commerce.maximumQuantity,
+          quantity,
+        })
+      }
+    } catch (cause) {
+      setCartError(cause instanceof Error ? cause.message : "Não foi possível adicionar o produto.")
+      return
     }
 
     setAdded(true)
@@ -224,6 +233,11 @@ export function MarketplaceProductDetail({
                       Pedido mínimo: {commerce.minimumQuantity}
                     </p>
                   )}
+                  {commerce.maximumQuantity !== null && (
+                    <p className="mt-1 text-xs font-bold text-purple-medium">
+                      Limite máximo: {commerce.maximumQuantity} por pedido
+                    </p>
+                  )}
                 </div>
                 {commerce.supplier && (
                   <div>
@@ -248,7 +262,19 @@ export function MarketplaceProductDetail({
                   </button>
                   <span className="w-8 text-center text-sm font-black">{quantity}</span>
                   <button
-                    onClick={() => setQuantity((current) => Math.min(999, current + 1))}
+                    onClick={() => {
+                      const cartQuantity =
+                        items.find((item) => item.id === commerce.id && item.type === "PRODUCT")?.quantity ?? 0
+                      if (
+                        commerce.maximumQuantity !== null &&
+                        quantity + cartQuantity >= commerce.maximumQuantity
+                      ) {
+                        setCartError("Você atingiu o limite máximo desse produto pro seu pedido.")
+                        return
+                      }
+                      setCartError("")
+                      setQuantity((current) => Math.min(999, current + 1))
+                    }}
                     className="flex h-11 w-11 items-center justify-center rounded-full text-foreground/70 hover:bg-foreground/10"
                   >
                     <Plus className="h-4 w-4" />
@@ -266,6 +292,7 @@ export function MarketplaceProductDetail({
                   {added ? "ADICIONADO" : "ADICIONAR AO CARRINHO"}
                 </button>
               </div>
+              {cartError && <p role="alert" className="text-sm font-bold text-red-300">{cartError}</p>}
 
               {careInfo.length > 0 && (
                 <div className="grid grid-cols-1 gap-3 border-t border-border/50 pt-6 sm:grid-cols-3">

@@ -91,6 +91,7 @@ async function getCartItems(user: MarketplaceUser) {
           priceInCents: true,
           paymentDiscountEligible: true,
           minimumQuantity: true,
+          maximumQuantity: true,
           audience: true,
           active: true,
           category: { select: { active: true } },
@@ -156,6 +157,7 @@ async function getCartItems(user: MarketplaceUser) {
         unitPriceInCents: product.priceInCents,
         paymentDiscountEligibleInCents: product.paymentDiscountEligible ? product.priceInCents * quantity : 0,
         minimumQuantity: product.minimumQuantity,
+        maximumQuantity: product.maximumQuantity,
         quantity,
       })
       continue
@@ -252,16 +254,18 @@ export async function POST(request: Request) {
   let selectionKey = parsed.data.selectionKey
   let selectedOptions: Prisma.InputJsonValue | undefined
   let quantity = parsed.data.quantity ?? 1
+  let productMaximumQuantity: number | null = null
 
   if (type === "PRODUCT") {
     const product = await prisma.product.findFirst({
       where: { id, audience, active: true, category: { active: true } },
-      select: { minimumQuantity: true },
+      select: { minimumQuantity: true, maximumQuantity: true },
     })
     if (!product) {
       return NextResponse.json({ error: "Produto indisponivel." }, { status: 400 })
     }
     quantity = Math.max(product.minimumQuantity, quantity)
+    productMaximumQuantity = product.maximumQuantity
   } else {
     const combo = await prisma.combo.findFirst({
       where: {
@@ -312,20 +316,48 @@ export async function POST(request: Request) {
   }
 
   const itemKey = buildItemKey(type, id, selectionKey)
-  await prisma.marketplaceCartItem.upsert({
-    where: { userId_itemKey: { userId: user.id, itemKey } },
-    create: {
-      userId: user.id,
-      itemKey,
-      type,
-      productId: type === "PRODUCT" ? id : null,
-      comboId: type === "COMBO" ? id : null,
-      selectionKey,
-      selectedOptions,
-      quantity,
-    },
-    update: { quantity: { increment: quantity }, selectedOptions },
-  })
+  try {
+    await prisma.$transaction(
+      async (transaction) => {
+        if (type === "PRODUCT" && productMaximumQuantity !== null) {
+          const existing = await transaction.marketplaceCartItem.findUnique({
+            where: { userId_itemKey: { userId: user.id, itemKey } },
+            select: { quantity: true },
+          })
+          if ((existing?.quantity ?? 0) + quantity > productMaximumQuantity) {
+            throw new Error("MAX_QUANTITY_REACHED")
+          }
+        }
+
+        await transaction.marketplaceCartItem.upsert({
+          where: { userId_itemKey: { userId: user.id, itemKey } },
+          create: {
+            userId: user.id,
+            itemKey,
+            type,
+            productId: type === "PRODUCT" ? id : null,
+            comboId: type === "COMBO" ? id : null,
+            selectionKey,
+            selectedOptions,
+            quantity,
+          },
+          update: { quantity: { increment: quantity }, selectedOptions },
+        })
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    )
+  } catch (cause) {
+    const isLimitError = cause instanceof Error && cause.message === "MAX_QUANTITY_REACHED"
+    const isConcurrentTransactionConflict =
+      cause instanceof Prisma.PrismaClientKnownRequestError && cause.code === "P2034"
+    if (isLimitError || (isConcurrentTransactionConflict && productMaximumQuantity !== null)) {
+      return NextResponse.json(
+        { error: "Você atingiu o limite máximo desse produto pro seu pedido.", code: "MAX_QUANTITY_REACHED" },
+        { status: 400 }
+      )
+    }
+    throw cause
+  }
 
   return NextResponse.json({ items: await getCartItems(user) })
 }
@@ -342,6 +374,25 @@ export async function PATCH(request: Request) {
   }
 
   const itemKey = buildItemKey(parsed.data.type, parsed.data.id, parsed.data.selectionKey)
+  if (parsed.data.type === "PRODUCT") {
+    const [item, product] = await Promise.all([
+      prisma.marketplaceCartItem.findUnique({
+        where: { userId_itemKey: { userId: user.id, itemKey } },
+        select: { id: true },
+      }),
+      prisma.product.findFirst({
+        where: { id: parsed.data.id, audience: audienceForUser(user), active: true, category: { active: true } },
+        select: { maximumQuantity: true },
+      }),
+    ])
+    if (!item || !product) return NextResponse.json({ error: "Item indisponível no carrinho." }, { status: 404 })
+    if (product.maximumQuantity !== null && parsed.data.quantity > product.maximumQuantity) {
+      return NextResponse.json(
+        { error: "Você atingiu o limite máximo desse produto pro seu pedido.", code: "MAX_QUANTITY_REACHED" },
+        { status: 400 }
+      )
+    }
+  }
   await prisma.marketplaceCartItem.updateMany({
     where: { userId: user.id, itemKey },
     data: { quantity: parsed.data.quantity },

@@ -9,14 +9,15 @@ export interface CartItem {
   priceUnit?: "KG" | "UND" | "CX"
   quantity: number
   image: string
+  maximumQuantity?: number | null
 }
 
 interface CartStore {
   items: CartItem[]
   isOpen: boolean
-  addItem: (item: Omit<CartItem, "quantity">) => void
+  addItem: (item: Omit<CartItem, "quantity">) => boolean
   removeItem: (name: string) => void
-  updateQuantity: (name: string, quantity: number) => void
+  updateQuantity: (name: string, quantity: number) => boolean
   clearCart: () => void
   toggleCart: () => void
   openCart: () => void
@@ -59,7 +60,16 @@ export const useCartStore = create<CartStore>()(
 
       addItem: (item) => {
         // Reject silently if item has no name or no valid price
-        if (!item.name.trim() || !Number.isFinite(item.price) || item.price < 0) return
+        if (!item.name.trim() || !Number.isFinite(item.price) || item.price < 0) return false
+
+        const existing = get().items.find((cartItem) => cartItem.name === item.name)
+        if (
+          existing &&
+          item.maximumQuantity != null &&
+          existing.quantity + 1 > item.maximumQuantity
+        ) {
+          return false
+        }
 
         set((state) => {
           const existing = state.items.find((i) => i.name === item.name)
@@ -72,6 +82,7 @@ export const useCartStore = create<CartStore>()(
           }
           return { items: [...state.items, { ...item, quantity: 1 }] }
         })
+        return true
       },
 
       removeItem: (name) => {
@@ -84,13 +95,16 @@ export const useCartStore = create<CartStore>()(
         // Treat values <= 0 as removal
         if (quantity <= 0) {
           get().removeItem(name)
-          return
+          return true
         }
+        const existing = get().items.find((item) => item.name === name)
+        if (existing?.maximumQuantity != null && quantity > existing.maximumQuantity) return false
         // Clamp quantity to max 99
         const clamped = Math.min(quantity, 99)
         set((state) => ({
           items: state.items.map((i) => (i.name === name ? { ...i, quantity: clamped } : i)),
         }))
+        return true
       },
 
       clearCart: () => set({ items: [] }),

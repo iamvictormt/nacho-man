@@ -276,6 +276,7 @@ export default async function MarketplacePage() {
                     unit: product.unit,
                     packageLabel: product.packageLabel,
                     minimumQuantity: product.minimumQuantity,
+                    maximumQuantity: product.maximumQuantity,
                   }}
                 />
               ))}

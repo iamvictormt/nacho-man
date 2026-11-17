@@ -36,6 +36,7 @@ export default async function MarketplaceProductPage({ params }: { params: Promi
         unit: product.unit,
         packageLabel: product.packageLabel,
         minimumQuantity: product.minimumQuantity,
+        maximumQuantity: product.maximumQuantity,
         supplier: product.supplier,
         audience: product.audience,
       }}
@@ -46,6 +47,7 @@ export default async function MarketplaceProductPage({ params }: { params: Promi
           unit: item.unit,
           packageLabel: item.packageLabel,
           minimumQuantity: item.minimumQuantity,
+          maximumQuantity: item.maximumQuantity,
           supplier: item.supplier,
           audience: item.audience,
         },

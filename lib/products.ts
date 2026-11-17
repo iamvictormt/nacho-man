@@ -16,6 +16,7 @@ export interface Product {
 
 export type CatalogProduct = Product & {
   supplier?: "AM_EMBUTIDOS" | "MARCHEF" | "BONI" | null
+  maximumQuantity?: number | null
   displayName: string
   subtitle?: string
   priceLabel: string

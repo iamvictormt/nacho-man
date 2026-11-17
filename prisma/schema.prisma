@@ -429,6 +429,7 @@ model Product {
   packageLabel            String
   supplier                ProductSupplier?
   minimumQuantity         Int                   @default(1)
+  maximumQuantity         Int?
   stockQuantity           Int?
   active                  Boolean               @default(true)
   featured                Boolean               @default(false)

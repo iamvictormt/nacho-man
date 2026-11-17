@@ -7,13 +7,7 @@ import { PageHeader } from "@/components/page-header"
 import { ProductDetailCard } from "@/components/product-detail-card"
 import { SearchBar } from "@/components/search-bar"
 import type { CatalogProduct } from "@/lib/products"
-
-function normalizeSearchText(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("pt-BR")
-}
+import { normalizeSearchText } from "@/lib/search-text"
 
 export function PublicProductsCatalog({
   products,

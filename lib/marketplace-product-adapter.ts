@@ -18,6 +18,7 @@ export type MarketplaceProductRecord = {
   packageLabel: string | null
   supplier?: "AM_EMBUTIDOS" | "MARCHEF" | "BONI" | null
   minimumQuantity: number
+  maximumQuantity?: number | null
   category: {
     name: string
   }
@@ -56,6 +57,7 @@ export function adaptMarketplaceProduct(product: MarketplaceProductRecord): Cata
   return {
     slug: product.slug,
     supplier: product.supplier ?? null,
+    maximumQuantity: product.maximumQuantity ?? null,
     name: product.name,
     displayName: product.name,
     description,
